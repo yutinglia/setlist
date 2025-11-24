@@ -2,7 +2,7 @@ import yt_dlp
 from typing import Any
 
 
-class YouTubeScraper:
+class YouTubeVideoCommentScraper:
     def __init__(self, video_url: str) -> None:
         self.video_url = video_url
 
@@ -11,6 +11,10 @@ class YouTubeScraper:
         ydl_opts = {
             "skip_download": True,
             "getcomments": True,
+            "quiet": True,
+            # speed limit
+            "sleep_interval": 1,
+            "max_sleep_interval": 2,
             "extractor_args": {
                 "youtube": {
                     # max-comments, max-parents, max-replies, max-replies-per-thread
