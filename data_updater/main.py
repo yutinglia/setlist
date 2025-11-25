@@ -5,6 +5,7 @@ import asyncio
 
 from config import IS_DEV, DATA_UPDATE_INTERVAL
 from db import async_session_factory
+from repositories import ChannelRepository, VideoRepository, SongRepository
 from routers.v1 import router as v1_router
 from services.data_updater import DataUpdater
 
@@ -18,7 +19,10 @@ async def run_periodic_data_updater():
         print("Updating song list data...")
         try:
             async with async_session_factory() as session:
-                data_updater = DataUpdater(session)
+                channel_repo = ChannelRepository(session)
+                video_repo = VideoRepository(session)
+                song_repo = SongRepository(session)
+                data_updater = DataUpdater(channel_repo, video_repo, song_repo)
                 await data_updater.update()
             print("Song list data updated successfully.")
         except asyncio.CancelledError:
