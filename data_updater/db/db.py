@@ -1,28 +1,8 @@
-import sqlalchemy as db
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 
+from config import DATABASE_URL, IS_DEV
 
-class Database:
-    def __init__(self, db_url):
-        self.engine = db.create_engine(db_url)
-        self.connection = self.engine.connect()
-        self.metadata = db.MetaData()
-
-    def create_table(self, table_name, columns):
-        table = db.Table(table_name, self.metadata, *columns)
-        self.metadata.create_all(self.engine)
-        return table
-
-    def insert_data(self, table, data):
-        insert_query = table.insert().values(data)
-        self.connection.execute(insert_query)
-
-    def fetch_data(self, table, conditions=None):
-        select_query = db.select([table])
-        if conditions:
-            select_query = select_query.where(conditions)
-        result = self.connection.execute(select_query)
-        return result.fetchall()
-
-    def close(self):
-        self.connection.close()
-        self.engine.dispose()
+# Create async database engine
+engine = create_async_engine(DATABASE_URL, echo=IS_DEV)
+async_session_factory = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
