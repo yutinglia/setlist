@@ -1,12 +1,14 @@
 import yt_dlp
 
+from models.video import YouTubeVideo
+
 
 class YouTubeChannelVideoScraper:
     def __init__(self, channel_url: str) -> None:
         self.channel_url = channel_url
-        self.videos: list[dict] = []
+        self.videos: list[YouTubeVideo] = []
 
-    def get_channel_videos(self) -> list[dict]:
+    def get_channel_videos(self) -> list[YouTubeVideo]:
         def filter_videos(info: dict, *, incomplete: bool) -> str | None:
             """Filter out shorts, live streams, and videos shorter than 60 seconds."""
             # Check if it's a short
@@ -65,6 +67,20 @@ class YouTubeChannelVideoScraper:
 
             all_videos = list(unique_videos.values())
 
-            self.videos = all_videos
+            # Convert to YouTubeVideo models
+            video_models = []
+            for video in all_videos:
+                video_model = YouTubeVideo(
+                    id=video.get("id"),
+                    title=video.get("title", ""),
+                    url=video.get("url") or f"https://www.youtube.com/watch?v={video.get('id')}",
+                    channel_id=video.get("channel_id") or video.get("uploader_id", ""),
+                    upload_date=video.get("upload_date"),
+                    type="was_live" if video.get("live_status") == "was_live" else "video",
+                    raw_data=video,
+                )
+                video_models.append(video_model)
 
-            return all_videos
+            self.videos = video_models
+
+            return video_models

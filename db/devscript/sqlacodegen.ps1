@@ -9,7 +9,7 @@ $dbPort = "5432"
 $dbName = "vks_db"
 $connectionString = "postgresql://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/${dbName}"
 
-$modelsDir = "..\..\song_list_updater\db"
+$modelsDir = "..\..\data_updater\db"
 $outputFile = Join-Path $modelsDir "models.py"
 
 Write-Host "Generating models from database schema..."

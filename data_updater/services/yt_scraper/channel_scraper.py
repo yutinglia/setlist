@@ -31,7 +31,7 @@ class YouTubeChannelScraper:
                     break
 
             self.channel = YouTubeChannel(
-                channel_id=info.get("id", ""),
+                id=info.get("id", ""),
                 name=info.get("uploader", ""),
                 url=channel_url,
                 thumbnail_url=thumbnail_url,
