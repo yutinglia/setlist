@@ -1,4 +1,5 @@
 import type {
+  ChannelVideoRefresh,
   HealthResponse,
   Paginated,
   Song,
@@ -70,6 +71,12 @@ export const api = {
   listChannelVideos: (channelId: string, limit: number, offset: number) =>
     request<Paginated<YouTubeVideo>>(
       `/v1/channels/${encodeURIComponent(channelId)}/videos?${pageQuery(limit, offset)}`,
+    ),
+
+  refreshChannelVideos: (channelId: string) =>
+    request<ChannelVideoRefresh>(
+      `/v1/channels/${encodeURIComponent(channelId)}/videos/refresh`,
+      { method: "POST" },
     ),
 
   listVideoSongs: (videoId: string, limit: number, offset: number) =>

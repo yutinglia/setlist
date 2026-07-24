@@ -55,3 +55,11 @@ export type HealthResponse = {
   version?: string
   database?: string
 }
+
+export type ChannelVideoRefresh = {
+  channel_id: string
+  mode: string
+  scraped: number
+  reclassified: number
+  message: string
+}
