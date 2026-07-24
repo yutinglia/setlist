@@ -12,3 +12,9 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list \
 
 # Keep pip current for reproducible installs of pinned requirements
 RUN pip install --no-cache-dir -U pip setuptools wheel
+
+# Bake API deps into the image so recreate / missing postCreate still works.
+# Build context is the repo root (see docker-compose.yml).
+COPY data_updater/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt

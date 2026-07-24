@@ -15,6 +15,12 @@
       "onAutoForward": "notify"
     }
   },
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22",
+      "installYarnUsingApt": false
+    }
+  },
   "remoteEnv": {
     "APP_ENV": "dev",
     "DB_HOST": "db",
@@ -24,7 +30,9 @@
     "DB_PASSWORD": "vks_db_pwd",
     "DATABASE_URL": "postgresql+asyncpg://vks_db_user:vks_db_pwd@db:5432/vks_db"
   },
-  "postCreateCommand": "pip install -r data_updater/requirements.txt",
+  "postCreateCommand": "pip install -r data_updater/requirements.txt && npm --prefix frontend install",
+  "postStartCommand": "bash .devcontainer/ensure-dev-servers.sh",
+  "overrideCommand": false,
   "customizations": {
     "vscode": {
       "extensions": [

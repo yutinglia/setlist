@@ -33,6 +33,11 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    // Poll when CHOKIDAR_USEPOLLING is set (Dev Container start script) so HMR
+    // sees edits through Docker bind mounts that skip inotify.
+    watch: {
+      usePolling: process.env.CHOKIDAR_USEPOLLING === "true",
+    },
     proxy: {
       "/v1": {
         target: "http://127.0.0.1:8000",

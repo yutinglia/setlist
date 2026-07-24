@@ -3,11 +3,17 @@ name: vtuber-karaoke-search-dev
 services:
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
     volumes:
       - ..:/workspace:cached
-    command: sleep infinity
+    # Entrypoint starts API/Vite as daemons, then runs this command.
+    # Do NOT rely only on postStartCommand: docker exec -t kills background jobs.
+    entrypoint: ["bash", "/workspace/.devcontainer/docker-entrypoint.sh"]
+    command: ["sleep", "infinity"]
+    ports:
+      - "8000:8000"
+      - "5173:5173"
     environment:
       APP_ENV: dev
       DB_HOST: db
