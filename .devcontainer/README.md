@@ -31,7 +31,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 | App (async) | `postgresql+asyncpg://vks_db_user:vks_db_pwd@db:5432/vks_db` |
 | sqlacodegen (sync) | `postgresql://vks_db_user:vks_db_pwd@db:5432/vks_db` |
 
-Host is `db` inside Compose, `localhost` from the host machine (port 5432 forwarded).
+Host is `db` inside Compose; from the host machine use `localhost:5433` (mapped to container 5432).
 
 ## Compose without the IDE
 

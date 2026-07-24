@@ -1,7 +1,10 @@
-FROM mcr.microsoft.com/devcontainers/python:1-3.12-bookworm
+FROM mcr.microsoft.com/devcontainers/python:3-3.12-bookworm
 
-# psycopg2 (non-binary) needs libpq headers at build/install time
-RUN apt-get update \
+# Base image may ship a Yarn apt repo whose GPG key drifts (NO_PUBKEY 62D54FD4003F6525),
+# which makes apt-get update fail. We don't need that repo for this project.
+# https://github.com/devcontainers/images/issues/1752
+RUN rm -f /etc/apt/sources.list.d/yarn.list \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
         libpq-dev \
         gcc \

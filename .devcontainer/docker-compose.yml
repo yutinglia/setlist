@@ -32,7 +32,9 @@ services:
       POSTGRES_USER: vks_db_user
       POSTGRES_PASSWORD: vks_db_pwd
     ports:
-      - "5432:5432"
+      # Host 5432 is often already taken by a local Postgres; use 5433 from the host.
+      # Inside Compose the DB remains reachable as db:5432.
+      - "5433:5432"
     volumes:
       # Postgres 18+ images expect the volume on /var/lib/postgresql (not .../data)
       - vks-pgdata:/var/lib/postgresql

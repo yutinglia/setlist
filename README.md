@@ -127,7 +127,7 @@ Copy [`.env.example`](.env.example) to `.env` and adjust. Do not commit a real `
 After Postgres + Flyway are up, insert the sample channels (Suisei + Marine):
 
 ```bash
-psql "postgresql://vks_db_user:vks_db_pwd@localhost:5432/vks_db" \
+psql "postgresql://vks_db_user:vks_db_pwd@localhost:5433/vks_db" \
   -f db/devscript/seed_channels.sql
 ```
 
