@@ -60,6 +60,7 @@ export type ChannelVideoRefresh = {
   channel_id: string
   mode: string
   scraped: number
+  deleted: number
   reclassified: number
   cleared: number
   message: string

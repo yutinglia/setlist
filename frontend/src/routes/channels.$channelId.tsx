@@ -65,7 +65,7 @@ function ChannelVideosPage() {
     setReloadStatus("loading")
     setReloadDetail("")
     try {
-      // Real refresh: scrape YouTube list + reclassify types (not just GET cache).
+      // Force reload: full-metadata scrape, then replace all channel videos in DB.
       const refresh: ChannelVideoRefresh =
         await api.refreshChannelVideos(channelId)
       await queryClient.invalidateQueries({
@@ -79,7 +79,7 @@ function ChannelVideosPage() {
       }
       setReloadStatus("done")
       setReloadDetail(
-        `${refresh.message} (scraped ${refresh.scraped}, reclassified ${refresh.reclassified}, cleared ${refresh.cleared})`,
+        `${refresh.message} (deleted ${refresh.deleted}, scraped ${refresh.scraped}, reclassified ${refresh.reclassified}, cleared ${refresh.cleared})`,
       )
     } catch (err) {
       setReloadStatus("error")

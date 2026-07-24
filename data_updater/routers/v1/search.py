@@ -25,9 +25,12 @@ router = APIRouter(tags=["Songs"])
 class ChannelVideoRefreshResponse(BaseModel):
     channel_id: str
     mode: str = Field(
-        description="'scrape' when YouTube list was fetched, else 'reclassify'"
+        description="'force' when videos were deleted+rescraped, else 'reclassify'"
     )
     scraped: int = Field(ge=0)
+    deleted: int = Field(
+        ge=0, description="Videos deleted before re-insert on force reload"
+    )
     reclassified: int = Field(ge=0, description="Rows whose type changed")
     cleared: int = Field(
         ge=0,
@@ -174,9 +177,10 @@ async def refresh_channel_videos(
     channel_id: str,
     session: AsyncSession = Depends(get_session),
 ):
-    """Scrape this channel's video list and reclassify karaoke/song types.
+    """Force-reload this channel's videos: full-metadata scrape, then replace DB rows.
 
-    Does not scrape comments or extract setlists.
+    Deletes existing videos/songs for the channel after a successful scrape and
+    re-inserts. Does not scrape comments or extract setlists.
     """
     channel_repo = ChannelRepository(session)
     channel = await channel_repo.get_by_id(channel_id)
@@ -200,6 +204,7 @@ async def refresh_channel_videos(
         channel_id=result.channel_id,
         mode=result.mode,
         scraped=result.scraped,
+        deleted=result.deleted,
         reclassified=result.reclassified,
         cleared=result.cleared,
         message=result.message,

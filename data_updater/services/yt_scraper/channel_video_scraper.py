@@ -11,9 +11,18 @@ logger = logging.getLogger(__name__)
 
 
 class YouTubeChannelVideoScraper:
-    def __init__(self, channel_url: str, *, max_videos: int | None = None) -> None:
+    def __init__(
+        self,
+        channel_url: str,
+        *,
+        max_videos: int | None = None,
+        full_metadata: bool = False,
+    ) -> None:
         self.channel_url = channel_url
         self.max_videos = max_videos
+        # Flat tab lists omit upload_date. When True, enrich dates via per-video
+        # metadata fetches after the flat list (full tab extract is unreliable).
+        self.full_metadata = full_metadata
         self.videos: list[YouTubeVideo] = []
 
     def get_channel_videos(self) -> list[YouTubeVideo]:
@@ -49,6 +58,8 @@ class YouTubeChannelVideoScraper:
         for tab_url in list_urls:
             ydl_opts: dict = {
                 "skip_download": True,
+                # Flat list is reliable for channel tabs; full tab extract often
+                # fails or times out. Dates are filled in _enrich_metadata later.
                 "extract_flat": "in_playlist",
                 "quiet": True,
                 "no_warnings": True,
@@ -106,6 +117,13 @@ class YouTubeChannelVideoScraper:
 
         all_videos = list(unique_videos.values())
 
+        if self.full_metadata:
+            # Cap enrichment to the newest N entries (flat order ≈ recent).
+            enrich_cap = self.max_videos * 2 if self.max_videos else len(all_videos)
+            all_videos = self._enrich_metadata(all_videos[:enrich_cap]) + all_videos[
+                enrich_cap:
+            ]
+
         # Convert to YouTubeVideo models
         video_models = []
         for video in all_videos:
@@ -138,9 +156,74 @@ class YouTubeChannelVideoScraper:
 
         self.videos = video_models
         logger.info(
-            "Scraped %s videos from %s (%s tabs)",
+            "Scraped %s videos from %s (%s tabs, full_metadata=%s)",
             len(video_models),
             self.channel_url,
             len(list_urls),
+            self.full_metadata,
         )
         return video_models
+
+    def _enrich_metadata(self, entries: list[dict]) -> list[dict]:
+        """Fill upload_date / live_status / duration via per-video extracts."""
+        if not entries:
+            return entries
+
+        ydl_opts = {
+            "skip_download": True,
+            "quiet": True,
+            "no_warnings": True,
+            "ignoreerrors": True,
+            "sleep_interval": 1,
+            "max_sleep_interval": 2,
+        }
+        enriched: list[dict] = []
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            for index, entry in enumerate(entries):
+                video_id = entry.get("id")
+                if not video_id:
+                    enriched.append(entry)
+                    continue
+
+                if upload_date_from_entry(entry) and entry.get("duration") is not None:
+                    enriched.append(entry)
+                    continue
+
+                url = (
+                    entry.get("url")
+                    or entry.get("webpage_url")
+                    or f"https://www.youtube.com/watch?v={video_id}"
+                )
+                logger.info(
+                    "Enriching metadata %s/%s for %s",
+                    index + 1,
+                    len(entries),
+                    video_id,
+                )
+                try:
+                    info = ydl.extract_info(url, download=False)
+                except Exception:
+                    logger.exception("Failed enriching metadata for %s", video_id)
+                    enriched.append(entry)
+                    continue
+
+                if not info:
+                    enriched.append(entry)
+                    continue
+
+                merged = dict(entry)
+                for key in (
+                    "upload_date",
+                    "timestamp",
+                    "release_timestamp",
+                    "live_status",
+                    "duration",
+                    "was_live",
+                    "title",
+                ):
+                    value = info.get(key)
+                    if value is not None and value != "":
+                        merged[key] = value
+                enriched.append(merged)
+
+        return enriched

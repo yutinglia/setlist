@@ -48,11 +48,12 @@ from utils.youtube_upload_date import upload_date_from_entry
 
 @dataclass(frozen=True)
 class ChannelVideoRefreshResult:
-    """Outcome of a manual channel video-list refresh (no comment analysis)."""
+    """Outcome of a manual channel video-list force reload (no comment analysis)."""
 
     channel_id: str
-    mode: str  # "scrape" | "reclassify"
+    mode: str  # "force" | "reclassify"
     scraped: int
+    deleted: int
     reclassified: int
     cleared: int
     message: str
@@ -168,84 +169,118 @@ class DataUpdater:
     async def refresh_channel_video_list(
         self, channel: YouTubeChannel
     ) -> ChannelVideoRefreshResult:
-        """Scrape/upsert the channel video list, reclassify, clear non-karaoke.
+        """Force-reload: full-metadata scrape, then replace all channel videos.
 
-        Does **not** scrape comments. For song/other videos, clears any prior
-        comment/setlist data and marks them exhausted so the background updater
-        will not analyze them again.
+        Flat tab lists omit ``upload_date``, so a soft upsert never fills dates.
+        This scrapes with full metadata first, then deletes existing video/song
+        rows and inserts the new list (same transaction — scrape failure keeps
+        old rows).
+
+        Does **not** scrape comments / setlists.
         """
         remaining = self.youtube_cooldown_remaining()
         scraped_count = 0
+        deleted_before = 0
         mode = "reclassify"
         message = "Reclassified types and cleared non-karaoke analysis."
+        scrape_ok = False
 
         if remaining > 0:
             message = (
                 f"YouTube cooldown active ({remaining:.0f}s left); "
-                "reclassified + cleared non-karaoke analysis only."
+                "skipped delete+rescrape; reclassified only."
             )
             logger.warning(
-                "Channel %s refresh: cooldown %.0fs; reclassify-only",
+                "Channel %s force reload: cooldown %.0fs; reclassify-only",
                 channel.id,
                 remaining,
             )
         else:
             try:
-                videos = await self._scrape_and_upsert_videos(channel)
+                # Scrape first so a YouTube failure does not wipe the DB.
+                scraped = await self._scrape_channel_videos(
+                    channel, full_metadata=True
+                )
+                deleted_before = await self.video_repo.delete_all_for_channel(
+                    channel.id
+                )
+                videos = await self.video_repo.upsert_many(scraped)
                 scraped_count = len(videos)
-                mode = "scrape"
+                scrape_ok = True
+                mode = "force"
                 message = (
-                    f"Scraped {scraped_count} video(s), reclassified types, "
-                    "cleared non-karaoke comments/setlists."
+                    f"Force reloaded: deleted {deleted_before}, "
+                    f"scraped {scraped_count} video(s) with dates."
+                )
+                logger.info(
+                    "Channel %s force reload: deleted %s, upserted %s",
+                    channel.id,
+                    deleted_before,
+                    scraped_count,
                 )
             except YouTubeAccessBlocked as exc:
                 self.set_youtube_cooldown()
                 message = (
                     f"YouTube blocked ({exc}); "
-                    "reclassified + cleared non-karaoke analysis only."
+                    "kept existing rows; skipped clear."
                 )
                 logger.warning(
-                    "Channel %s refresh blocked; reclassify-only: %s",
+                    "Channel %s force reload blocked: %s",
                     channel.id,
                     exc,
                 )
-            except Exception:
+            except Exception as exc:
                 logger.exception(
-                    "Channel %s video scrape failed; falling back to reclassify",
+                    "Channel %s force reload scrape failed; reclassify-only",
                     channel.id,
                 )
                 message = (
-                    "YouTube scrape failed; "
-                    "reclassified + cleared non-karaoke analysis only."
+                    f"YouTube scrape failed ({exc}); kept existing rows; "
+                    "skipped clear."
                 )
 
         reclassified = await self.video_repo.reclassify_for_channel(channel.id)
-        deleted = await self.video_repo.delete_non_persisted_for_channel(channel.id)
-        cleared_ids = await self.video_repo.clear_analysis_for_non_karaoke(
-            channel.id,
-            max_attempts=UPDATE_MAX_ANALYZE_ATTEMPTS,
-        )
-        for video_id in cleared_ids:
-            await self.song_repo.replace_for_video(video_id, [])
+        deleted_other = 0
+        cleared_ids: list[str] = []
+        # Destructive cleanup only after a successful replace. A failed scrape
+        # must not wipe setlists on the rows we intentionally kept.
+        if scrape_ok:
+            deleted_other = await self.video_repo.delete_non_persisted_for_channel(
+                channel.id
+            )
+            cleared_ids = await self.video_repo.clear_analysis_for_non_karaoke(
+                channel.id,
+                max_attempts=UPDATE_MAX_ANALYZE_ATTEMPTS,
+            )
+            for video_id in cleared_ids:
+                await self.song_repo.replace_for_video(video_id, [])
+        else:
+            logger.warning(
+                "Channel %s: force scrape did not succeed — "
+                "skipping delete/clear of analysis (reclassify only)",
+                channel.id,
+            )
 
         logger.info(
-            "Channel %s refresh done mode=%s scraped=%s reclassified=%s "
-            "deleted_other=%s cleared=%s",
+            "Channel %s force reload done mode=%s deleted=%s scraped=%s "
+            "reclassified=%s deleted_other=%s cleared=%s",
             channel.id,
             mode,
+            deleted_before,
             scraped_count,
             reclassified,
-            deleted,
+            deleted_other,
             len(cleared_ids),
         )
         return ChannelVideoRefreshResult(
             channel_id=channel.id,
             mode=mode,
             scraped=scraped_count,
+            deleted=deleted_before,
             reclassified=reclassified,
-            cleared=len(cleared_ids) + deleted,
+            cleared=len(cleared_ids) + deleted_other,
             message=(
-                f"{message} Removed {deleted} other video(s); "
+                f"{message} Removed {deleted_other} other video(s); "
                 f"cleared analysis on {len(cleared_ids)}."
             ),
         )
@@ -340,12 +375,19 @@ class DataUpdater:
 
         return await self.channel_repo.upsert(scraped)
 
-    async def _scrape_and_upsert_videos(
-        self, channel: YouTubeChannel
+    async def _scrape_channel_videos(
+        self,
+        channel: YouTubeChannel,
+        *,
+        full_metadata: bool = False,
     ) -> list[YouTubeVideo]:
+        """Scrape Streams+Videos tabs; return song/karaoke rows (newest first)."""
+
         def _scrape() -> list[YouTubeVideo]:
             return YouTubeChannelVideoScraper(
-                channel.url, max_videos=UPDATE_MAX_VIDEOS
+                channel.url,
+                max_videos=UPDATE_MAX_VIDEOS,
+                full_metadata=full_metadata,
             ).get_channel_videos()
 
         try:
@@ -370,17 +412,28 @@ class DataUpdater:
         ]
         limited = persisted[:UPDATE_MAX_VIDEOS]
         logger.info(
-            "Channel %s: scraped %s, kept %s song/karaoke, upserting %s",
+            "Channel %s: scraped %s, kept %s song/karaoke (full_metadata=%s)",
             channel.id,
             len(scraped),
-            len(persisted),
             len(limited),
+            full_metadata,
         )
 
         for video in limited:
             # Flat extracts sometimes omit channel_id; bind to the DB channel.
             video.channel_id = channel.id
 
+        return limited
+
+    async def _scrape_and_upsert_videos(
+        self,
+        channel: YouTubeChannel,
+        *,
+        full_metadata: bool = False,
+    ) -> list[YouTubeVideo]:
+        limited = await self._scrape_channel_videos(
+            channel, full_metadata=full_metadata
+        )
         return await self.video_repo.upsert_many(limited)
 
     async def _analyze_video(self, video: YouTubeVideo) -> None:

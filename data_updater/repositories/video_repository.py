@@ -234,6 +234,14 @@ class VideoRepository:
             await self.session.flush()
         return cleared_ids
 
+    async def delete_all_for_channel(self, channel_id: str) -> int:
+        """Delete every video for ``channel_id`` (cascades songs). Does not commit."""
+        result = await self.session.execute(
+            delete(Videos).where(Videos.channel_id == channel_id)
+        )
+        await self.session.flush()
+        return int(result.rowcount or 0)
+
     async def delete_non_persisted_for_channel(self, channel_id: str) -> int:
         """Delete videos that are not song/karaoke (type ``other`` or legacy).
 
@@ -275,12 +283,20 @@ class VideoRepository:
 
         On conflict, only scrape metadata is updated so analysis fields
         (attempts, song-list flags, comments) are preserved. Does not commit.
+
+        Flat extracts often omit ``upload_date``; never overwrite a known date
+        with NULL on conflict.
         """
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         insert_values = self._to_row_values(video, now)
         update_values = {
             key: insert_values[key] for key in _METADATA_UPDATE_KEYS
         }
+        # Prefer newly scraped date; keep existing when scrape has none.
+        update_values["upload_date"] = func.coalesce(
+            insert_values["upload_date"],
+            Videos.upload_date,
+        )
         update_values["updated_at"] = now
 
         stmt = (
@@ -295,7 +311,7 @@ class VideoRepository:
         result = await self.session.execute(stmt)
         row = result.scalar_one()
         await self.session.flush()
-        return YouTubeVideo.model_validate(row)
+        return self._to_model(row)
 
     async def upsert_many(self, videos: list[YouTubeVideo]) -> list[YouTubeVideo]:
         """Upsert multiple videos. Does not commit. Returns rows in input order."""
