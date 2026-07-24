@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/api/client"
 
@@ -40,22 +40,48 @@ export function useChannels(page: number) {
   })
 }
 
-export function useChannelVideos(channelId: string, page: number) {
+export function useCreateChannel() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (url: string) => api.createChannel(url),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["channels"] })
+    },
+  })
+}
+
+export function useChannelVideos(
+  channelId: string,
+  page: number,
+  type: "karaoke" | "song",
+) {
   const offset = page * PAGE_SIZE
   return useQuery({
-    queryKey: ["channels", channelId, "videos", page],
-    queryFn: () => api.listChannelVideos(channelId, PAGE_SIZE, offset),
+    queryKey: ["channels", channelId, "videos", type, page],
+    queryFn: () => api.listChannelVideos(channelId, PAGE_SIZE, offset, type),
     enabled: channelId.length > 0,
     placeholderData: (prev) => prev,
   })
 }
 
-export function useVideoSongs(videoId: string, page: number) {
+export function useVideo(videoId: string) {
+  return useQuery({
+    queryKey: ["videos", videoId],
+    queryFn: () => api.getVideo(videoId),
+    enabled: videoId.length > 0,
+  })
+}
+
+export function useVideoSongs(
+  videoId: string,
+  page: number,
+  options?: { enabled?: boolean },
+) {
   const offset = page * PAGE_SIZE
   return useQuery({
     queryKey: ["videos", videoId, "songs", page],
     queryFn: () => api.listVideoSongs(videoId, PAGE_SIZE, offset),
-    enabled: videoId.length > 0,
+    enabled: videoId.length > 0 && (options?.enabled ?? true),
     placeholderData: (prev) => prev,
   })
 }

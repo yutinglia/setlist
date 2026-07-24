@@ -10,22 +10,36 @@ import { PaginationControls } from "@/components/pagination-controls"
 import { QueryState } from "@/components/query-state"
 import { Button } from "@/components/ui/button"
 import { VideoListBadges } from "@/components/video-list-badges"
-import { pageSearchSchema } from "@/lib/search-schemas"
+import { channelVideosSearchSchema } from "@/lib/search-schemas"
+import {
+  formatUploadDate,
+  sortVideosByUploadDateDesc,
+  uploadDateTimeAttr,
+} from "@/lib/upload-date"
+import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
 
 export const Route = createFileRoute("/channels/$channelId")({
-  validateSearch: pageSearchSchema,
+  validateSearch: channelVideosSearchSchema,
   component: ChannelVideosPage,
 })
 
+type ChannelTab = "karaoke" | "videos"
 type ReloadStatus = "idle" | "loading" | "done" | "error"
+
+const TAB_TO_TYPE = {
+  karaoke: "karaoke",
+  videos: "song",
+} as const satisfies Record<ChannelTab, "karaoke" | "song">
 
 function ChannelVideosPage() {
   const { channelId } = Route.useParams()
-  const { page = 0 } = Route.useSearch()
+  const { page = 0, tab: tabParam } = Route.useSearch()
+  const tab: ChannelTab = tabParam ?? "karaoke"
+  const videoType = TAB_TO_TYPE[tab]
   const navigate = Route.useNavigate()
   const queryClient = useQueryClient()
-  const query = useChannelVideos(channelId, page)
+  const query = useChannelVideos(channelId, page, videoType)
   const [reloadStatus, setReloadStatus] = useState<ReloadStatus>("idle")
   const [reloadDetail, setReloadDetail] = useState<string>("")
 
@@ -37,6 +51,15 @@ function ChannelVideosPage() {
     }, 4000)
     return () => window.clearTimeout(timer)
   }, [reloadStatus])
+
+  function setTab(next: ChannelTab) {
+    void navigate({
+      search: () => ({
+        tab: next === "karaoke" ? undefined : next,
+        page: undefined,
+      }),
+    })
+  }
 
   async function handleReload() {
     setReloadStatus("loading")
@@ -56,7 +79,7 @@ function ChannelVideosPage() {
       }
       setReloadStatus("done")
       setReloadDetail(
-        `${refresh.message} (${refresh.mode}: scraped ${refresh.scraped}, reclassified ${refresh.reclassified})`,
+        `${refresh.message} (scraped ${refresh.scraped}, reclassified ${refresh.reclassified}, cleared ${refresh.cleared})`,
       )
     } catch (err) {
       setReloadStatus("error")
@@ -73,6 +96,9 @@ function ChannelVideosPage() {
         : reloadStatus === "error"
           ? m.reload_failed()
           : m.reload_list()
+  const emptyMessage =
+    tab === "karaoke" ? m.karaoke_empty() : m.song_videos_empty()
+  const videos = sortVideosByUploadDateDesc(query.data?.items ?? [])
 
   return (
     <section className="animate-fade pt-10">
@@ -127,48 +153,80 @@ function ChannelVideosPage() {
         </div>
       </div>
 
-      <div className="mt-8">
+      <div
+        className="mt-8 inline-flex rounded-md border border-border bg-card/70 p-0.5"
+        role="tablist"
+        aria-label={m.channel_tabs_label()}
+      >
+        <Button
+          type="button"
+          role="tab"
+          size="sm"
+          variant={tab === "karaoke" ? "secondary" : "ghost"}
+          aria-selected={tab === "karaoke"}
+          onClick={() => setTab("karaoke")}
+        >
+          {m.channel_tab_karaoke()}
+        </Button>
+        <Button
+          type="button"
+          role="tab"
+          size="sm"
+          variant={tab === "videos" ? "secondary" : "ghost"}
+          aria-selected={tab === "videos"}
+          onClick={() => setTab("videos")}
+        >
+          {m.channel_tab_videos()}
+        </Button>
+      </div>
+
+      <div className="mt-6" role="tabpanel">
         <QueryState
           isLoading={query.isLoading}
           isError={query.isError && !query.data}
           isEmpty={query.isSuccess && query.data.items.length === 0}
-          emptyMessage={m.videos_empty()}
+          emptyMessage={emptyMessage}
           onRetry={() => void handleReload()}
         >
           <div
-            className={
-              isReloading && query.data
-                ? "opacity-55 transition-opacity duration-200"
-                : "transition-opacity duration-200"
-            }
+            className={cn(
+              "transition-opacity duration-200",
+              isReloading && query.data && "opacity-55",
+            )}
             aria-busy={isReloading}
           >
             <ul className="divide-y divide-border/70">
-              {query.data?.items.map((video, i) => (
-                <li
-                  key={video.id}
-                  className={`animate-rise py-4 stagger-${Math.min((i % 4) + 1, 4)}`}
-                >
-                  <Link
-                    to="/videos/$videoId"
-                    params={{ videoId: video.id }}
-                    className="block text-left transition-colors hover:text-primary"
+              {videos.map((video, i) => {
+                const dateLabel = formatUploadDate(video.upload_date)
+                return (
+                  <li
+                    key={video.id}
+                    className={`animate-rise py-4 stagger-${Math.min((i % 4) + 1, 4)}`}
                   >
-                    <span className="font-display text-base font-semibold">
-                      {video.title}
-                    </span>
-                    <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-                      {video.upload_date ? (
-                        <span>{video.upload_date}</span>
-                      ) : null}
-                      <VideoListBadges
-                        type={video.type}
-                        hasSetlist={video.has_song_list_comment}
-                      />
-                    </span>
-                  </Link>
-                </li>
-              ))}
+                    <Link
+                      to="/videos/$videoId"
+                      params={{ videoId: video.id }}
+                      className="block text-left transition-colors hover:text-primary"
+                    >
+                      <span className="font-display text-base font-semibold">
+                        {video.title}
+                      </span>
+                      <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+                        <time
+                          dateTime={uploadDateTimeAttr(video.upload_date)}
+                          className="font-mono tabular-nums tracking-wide"
+                        >
+                          {dateLabel ?? m.video_date_unknown()}
+                        </time>
+                        <VideoListBadges
+                          type={video.type}
+                          hasSetlist={video.has_song_list_comment}
+                        />
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
             </ul>
           </div>
           {query.data ? (
@@ -179,7 +237,11 @@ function ChannelVideosPage() {
               disabled={isReloading}
               onPageChange={(next) =>
                 void navigate({
-                  search: (prev) => ({ ...prev, page: next || undefined }),
+                  search: (prev) => ({
+                    ...prev,
+                    tab: tab === "karaoke" ? undefined : tab,
+                    page: next || undefined,
+                  }),
                 })
               }
             />

@@ -2,6 +2,7 @@
 
 from utils.video_type import (
     KARAOKE_MIN_DURATION_SECONDS,
+    PERSISTED_VIDEO_TYPES,
     VIDEO_TYPE_KARAOKE,
     VIDEO_TYPE_OTHER,
     VIDEO_TYPE_SONG,
@@ -9,6 +10,7 @@ from utils.video_type import (
     is_karaoke_stream,
     is_karaoke_title,
     is_song_title,
+    should_persist_video,
     should_scrape_comments,
 )
 
@@ -21,10 +23,21 @@ class TestKaraokeTitles:
         assert is_karaoke_title("Singing Stream Archive")
         assert is_karaoke_title("カラOKタイム")
         assert is_karaoke_title("歌配信です")
+        assert is_karaoke_title("今夜はカラオケ！")
 
     def test_non_karaoke(self):
         assert not is_karaoke_title("ゲーム実況")
         assert not is_karaoke_title("【MV】Stellar Stellar")
+        # Outing / vlog — mentions カラオケ but is not a 歌枠 stream.
+        outing = "tuki.ちゃんと星街すいせいでカラオケ行ってみた‼🌙✨（前編）"
+        assert not is_karaoke_title(outing)
+        assert classify_video_type(outing) == VIDEO_TYPE_OTHER
+        assert not should_persist_video(outing)
+
+    def test_karaoke_stream_context(self):
+        assert is_karaoke_title("今夜はカラオケ配信！")
+        assert is_karaoke_title("【カラオケ】みんなで歌おう")
+        assert is_karaoke_title("カラオケ枠します")
 
 
 class TestSongTitles:
@@ -56,14 +69,25 @@ class TestKaraokeSoftConfirms:
             == VIDEO_TYPE_KARAOKE
         )
 
-    def test_rejects_not_live(self):
+    def test_strong_karaoke_keeps_not_live(self):
+        # Videos-tab VODs / reuploads are often not_live; strong titles still count.
         assert (
             classify_video_type(
                 "【歌枠】",
                 live_status="not_live",
                 duration=3600,
             )
-            == VIDEO_TYPE_OTHER
+            == VIDEO_TYPE_KARAOKE
+        )
+        assert should_persist_video(
+            "【歌枠】",
+            live_status="not_live",
+            duration=3600,
+        )
+        assert should_scrape_comments(
+            "【歌枠】",
+            live_status="not_live",
+            duration=3600,
         )
 
     def test_rejects_short_when_duration_known(self):
@@ -76,19 +100,48 @@ class TestKaraokeSoftConfirms:
             == VIDEO_TYPE_OTHER
         )
 
-    def test_cover_is_song_not_karaoke(self):
+    def test_cover_is_song_not_karaoke_when_short(self):
+        assert (
+            classify_video_type(
+                "Singing Cover Night",
+                live_status="not_live",
+                duration=5 * 60,
+            )
+            == VIDEO_TYPE_SONG
+        )
+        assert not should_scrape_comments(
+            "Singing Cover Night",
+            live_status="not_live",
+            duration=5 * 60,
+        )
+
+    def test_long_cover_is_not_song(self):
+        # Song keywords block weak karaoke; long duration blocks song → other.
         assert (
             classify_video_type(
                 "Singing Cover Night",
                 live_status="was_live",
                 duration=3600,
             )
-            == VIDEO_TYPE_SONG
+            == VIDEO_TYPE_OTHER
         )
-        assert not should_scrape_comments(
-            "Singing Cover Night",
-            live_status="was_live",
-            duration=3600,
+
+    def test_weak_singing_still_needs_was_live(self):
+        assert (
+            classify_video_type(
+                "Singing Stream Archive",
+                live_status="not_live",
+                duration=3600,
+            )
+            == VIDEO_TYPE_OTHER
+        )
+        assert (
+            classify_video_type(
+                "Singing Stream Archive",
+                live_status="was_live",
+                duration=3600,
+            )
+            == VIDEO_TYPE_KARAOKE
         )
 
     def test_strong_karaoke_beats_cover_word(self):
@@ -104,6 +157,15 @@ class TestKaraokeSoftConfirms:
             "KARAOKE Cover Night",
             live_status="was_live",
             duration=3600,
+        )
+        # Strong title + not_live still karaoke when long enough.
+        assert (
+            classify_video_type(
+                "KARAOKE Cover Night",
+                live_status="not_live",
+                duration=3600,
+            )
+            == VIDEO_TYPE_KARAOKE
         )
 
     def test_stored_song_type_blocks_comments(self):
@@ -122,7 +184,18 @@ class TestClassifyVideoType:
     def test_song(self):
         assert classify_video_type("【MV】新曲") == VIDEO_TYPE_SONG
         assert not should_scrape_comments("【MV】新曲")
+        assert classify_video_type("Official Audio - Title") == VIDEO_TYPE_SONG
+        assert (
+            classify_video_type("【MV】新曲", duration=9 * 60 + 59) == VIDEO_TYPE_SONG
+        )
+        assert (
+            classify_video_type("【MV】新曲", duration=10 * 60) == VIDEO_TYPE_OTHER
+        )
 
     def test_other(self):
         assert classify_video_type("Minecraft 実況") == VIDEO_TYPE_OTHER
         assert classify_video_type("") == VIDEO_TYPE_OTHER
+        assert not should_persist_video("Minecraft 実況")
+        assert should_persist_video("【MV】新曲")
+        assert should_persist_video("【歌枠】", live_status="was_live", duration=3600)
+        assert PERSISTED_VIDEO_TYPES == frozenset({VIDEO_TYPE_KARAOKE, VIDEO_TYPE_SONG})

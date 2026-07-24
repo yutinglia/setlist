@@ -18,9 +18,17 @@ function ChannelsPage() {
 
   return (
     <section className="animate-fade pt-10">
-      <h1 className="font-display text-3xl font-bold tracking-tight">
-        {m.channels_heading()}
-      </h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h1 className="font-display text-3xl font-bold tracking-tight">
+          {m.channels_heading()}
+        </h1>
+        <Link
+          to="/channels/new"
+          className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          {m.channel_add_cta()}
+        </Link>
+      </div>
 
       <div className="mt-8">
         <QueryState

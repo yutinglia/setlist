@@ -1,12 +1,18 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select, update
+from sqlalchemy import Float, cast, delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import Videos
 from models.video import YouTubeVideo
-from utils.video_type import VIDEO_TYPE_KARAOKE, classify_video_type, should_scrape_comments
+from utils.video_type import (
+    PERSISTED_VIDEO_TYPES,
+    VIDEO_TYPE_KARAOKE,
+    classify_video_type,
+    should_scrape_comments,
+)
+from utils.youtube_upload_date import upload_date_from_entry
 
 # Columns refreshed from channel/video list scrapes. Analysis fields are preserved.
 _METADATA_UPDATE_KEYS = (
@@ -19,17 +25,41 @@ _METADATA_UPDATE_KEYS = (
 )
 
 
+def _effective_upload_date_order():
+    """``upload_date`` or YYYYMMDD derived from flat-extract timestamps."""
+    ts = cast(Videos.raw_data["timestamp"].as_string(), Float)
+    release_ts = cast(Videos.raw_data["release_timestamp"].as_string(), Float)
+    return func.coalesce(
+        Videos.upload_date,
+        func.to_char(func.to_timestamp(ts), "YYYYMMDD"),
+        func.to_char(func.to_timestamp(release_ts), "YYYYMMDD"),
+    )
+
+
 class VideoRepository:
     """Video read/write access. Does not commit — caller owns transactions."""
 
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    @staticmethod
+    def _to_model(video: Videos) -> YouTubeVideo:
+        """ORM → DTO, filling ``upload_date`` from raw_data when the column is empty."""
+        model = YouTubeVideo.model_validate(video)
+        if (model.upload_date or "").strip():
+            return model
+        derived = upload_date_from_entry(
+            model.raw_data if isinstance(model.raw_data, dict) else None
+        )
+        if not derived:
+            return model
+        return model.model_copy(update={"upload_date": derived})
+
     async def get_all(self) -> list[YouTubeVideo]:
         """從資料庫取得所有影片列表"""
         result = await self.session.execute(select(Videos))
         videos = result.scalars().all()
-        return [YouTubeVideo.model_validate(video) for video in videos]
+        return [self._to_model(video) for video in videos]
 
     async def get_by_id(self, video_id: str) -> YouTubeVideo | None:
         """根據 ID 取得單一影片"""
@@ -37,7 +67,7 @@ class VideoRepository:
             select(Videos).where(Videos.id == video_id)
         )
         video = result.scalar_one_or_none()
-        return YouTubeVideo.model_validate(video) if video else None
+        return self._to_model(video) if video else None
 
     async def get_by_channel_id(
         self,
@@ -45,12 +75,15 @@ class VideoRepository:
         *,
         limit: int | None = None,
         offset: int = 0,
+        video_type: str | None = None,
     ) -> list[YouTubeVideo]:
-        """根據頻道 ID 取得該頻道的影片列表 (optional pagination)."""
-        stmt = (
-            select(Videos)
-            .where(Videos.channel_id == channel_id)
-            .order_by(Videos.upload_date.desc().nulls_last(), Videos.id)
+        """根據頻道 ID 取得該頻道的影片列表 (optional pagination / type filter)."""
+        stmt = select(Videos).where(Videos.channel_id == channel_id)
+        if video_type is not None:
+            stmt = stmt.where(Videos.type == video_type)
+        stmt = stmt.order_by(
+            _effective_upload_date_order().desc().nulls_last(),
+            Videos.id,
         )
         if limit is not None:
             stmt = stmt.limit(limit).offset(offset)
@@ -58,15 +91,23 @@ class VideoRepository:
             stmt = stmt.offset(offset)
         result = await self.session.execute(stmt)
         videos = result.scalars().all()
-        return [YouTubeVideo.model_validate(video) for video in videos]
+        return [self._to_model(video) for video in videos]
 
-    async def count_by_channel_id(self, channel_id: str) -> int:
-        """Count videos for ``channel_id``."""
-        result = await self.session.execute(
+    async def count_by_channel_id(
+        self,
+        channel_id: str,
+        *,
+        video_type: str | None = None,
+    ) -> int:
+        """Count videos for ``channel_id`` (optional type filter)."""
+        stmt = (
             select(func.count())
             .select_from(Videos)
             .where(Videos.channel_id == channel_id)
         )
+        if video_type is not None:
+            stmt = stmt.where(Videos.type == video_type)
+        result = await self.session.execute(stmt)
         return int(result.scalar_one())
 
     async def get_needing_analysis(
@@ -93,14 +134,14 @@ class VideoRepository:
                 Videos.has_song_list_comment.is_(False),
                 Videos.analyze_attempts < max_attempts,
             )
-            .order_by(Videos.upload_date.desc().nulls_last())
+            .order_by(_effective_upload_date_order().desc().nulls_last())
             .limit(max(limit * 3, limit))
         )
         result = await self.session.execute(stmt)
         videos = result.scalars().all()
         out: list[YouTubeVideo] = []
         for video in videos:
-            model = YouTubeVideo.model_validate(video)
+            model = self._to_model(video)
             raw = model.raw_data if isinstance(model.raw_data, dict) else {}
             if not should_scrape_comments(
                 model.title or "",
@@ -141,6 +182,93 @@ class VideoRepository:
         if changed:
             await self.session.flush()
         return changed
+
+    async def clear_analysis_for_non_karaoke(
+        self,
+        channel_id: str,
+        *,
+        max_attempts: int,
+    ) -> list[str]:
+        """Clear comment/setlist data for videos that are not karaoke streams.
+
+        Also sets ``analyze_attempts`` to ``max_attempts`` so the background
+        updater never re-queues them. Does not commit. Returns cleared video ids.
+        """
+        result = await self.session.execute(
+            select(Videos).where(Videos.channel_id == channel_id)
+        )
+        rows = result.scalars().all()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        cleared_ids: list[str] = []
+        for row in rows:
+            raw = row.raw_data if isinstance(row.raw_data, dict) else {}
+            live_status = raw.get("live_status")
+            duration = raw.get("duration")
+            # Keep stored type in sync while deciding.
+            new_type = classify_video_type(
+                row.title or "",
+                live_status=live_status,
+                duration=duration,
+            )
+            if row.type != new_type:
+                row.type = new_type
+
+            if should_scrape_comments(
+                row.title or "",
+                live_status=live_status,
+                duration=duration,
+                stored_type=new_type,
+            ):
+                continue
+
+            row.comments_raw_data = None
+            row.song_list_comment_raw_data = None
+            row.cleaned_song_list_comment = None
+            row.has_song_list_comment = False
+            # Exhaust attempts so the periodic updater never re-queues this row.
+            row.analyze_attempts = max_attempts
+            row.updated_at = now
+            cleared_ids.append(row.id)
+
+        if cleared_ids:
+            await self.session.flush()
+        return cleared_ids
+
+    async def delete_non_persisted_for_channel(self, channel_id: str) -> int:
+        """Delete videos that are not song/karaoke (type ``other`` or legacy).
+
+        Cascades to ``songs``. Does not commit. Returns number of rows deleted.
+        """
+        # Reclassify first so type reflects current title rules.
+        await self.reclassify_for_channel(channel_id)
+
+        result = await self.session.execute(
+            select(Videos).where(Videos.channel_id == channel_id)
+        )
+        rows = result.scalars().all()
+        to_delete: list[str] = []
+        for row in rows:
+            raw = row.raw_data if isinstance(row.raw_data, dict) else {}
+            classified = classify_video_type(
+                row.title or "",
+                live_status=raw.get("live_status"),
+                duration=raw.get("duration"),
+            )
+            if classified in PERSISTED_VIDEO_TYPES:
+                if row.type != classified:
+                    row.type = classified
+                continue
+            to_delete.append(row.id)
+
+        if not to_delete:
+            await self.session.flush()
+            return 0
+
+        await self.session.execute(
+            delete(Videos).where(Videos.id.in_(to_delete))
+        )
+        await self.session.flush()
+        return len(to_delete)
 
     async def upsert(self, video: YouTubeVideo) -> YouTubeVideo:
         """Insert or update video metadata by primary key ``id``.

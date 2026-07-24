@@ -39,8 +39,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     let detail = res.statusText
     try {
-      const body = (await res.json()) as { detail?: string }
-      if (body.detail) detail = body.detail
+      const body = (await res.json()) as { detail?: unknown }
+      if (typeof body.detail === "string") {
+        detail = body.detail
+      } else if (Array.isArray(body.detail)) {
+        detail = body.detail
+          .map((item) =>
+            typeof item === "object" && item && "msg" in item
+              ? String((item as { msg: unknown }).msg)
+              : String(item),
+          )
+          .join("; ")
+      }
     } catch {
       /* ignore non-JSON error bodies */
     }
@@ -68,10 +78,24 @@ export const api = {
       `/v1/channels?${pageQuery(limit, offset)}`,
     ),
 
-  listChannelVideos: (channelId: string, limit: number, offset: number) =>
-    request<Paginated<YouTubeVideo>>(
-      `/v1/channels/${encodeURIComponent(channelId)}/videos?${pageQuery(limit, offset)}`,
-    ),
+  createChannel: (url: string) =>
+    request<YouTubeChannel>("/v1/channels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    }),
+
+  listChannelVideos: (
+    channelId: string,
+    limit: number,
+    offset: number,
+    type?: "karaoke" | "song",
+  ) => {
+    const typeQuery = type ? `&type=${encodeURIComponent(type)}` : ""
+    return request<Paginated<YouTubeVideo>>(
+      `/v1/channels/${encodeURIComponent(channelId)}/videos?${pageQuery(limit, offset)}${typeQuery}`,
+    )
+  },
 
   refreshChannelVideos: (channelId: string) =>
     request<ChannelVideoRefresh>(
@@ -83,4 +107,7 @@ export const api = {
     request<Paginated<Song>>(
       `/v1/videos/${encodeURIComponent(videoId)}/songs?${pageQuery(limit, offset)}`,
     ),
+
+  getVideo: (videoId: string) =>
+    request<YouTubeVideo>(`/v1/videos/${encodeURIComponent(videoId)}`),
 }

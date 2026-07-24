@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChannelsIndexRouteImport } from './routes/channels.index'
 import { Route as ChannelsChannelIdRouteImport } from './routes/channels.$channelId'
+import { Route as ChannelsNewRouteImport } from './routes/channels.new'
 import { Route as SongsSongIdRouteImport } from './routes/songs.$songId'
 import { Route as VideosVideoIdRouteImport } from './routes/videos.$videoId'
 
@@ -30,6 +31,11 @@ const ChannelsChannelIdRoute = ChannelsChannelIdRouteImport.update({
   path: '/channels/$channelId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChannelsNewRoute = ChannelsNewRouteImport.update({
+  id: '/channels/new',
+  path: '/channels/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SongsSongIdRoute = SongsSongIdRouteImport.update({
   id: '/songs/$songId',
   path: '/songs/$songId',
@@ -44,6 +50,7 @@ const VideosVideoIdRoute = VideosVideoIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/channels/$channelId': typeof ChannelsChannelIdRoute
+  '/channels/new': typeof ChannelsNewRoute
   '/songs/$songId': typeof SongsSongIdRoute
   '/videos/$videoId': typeof VideosVideoIdRoute
   '/channels/': typeof ChannelsIndexRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/channels/$channelId': typeof ChannelsChannelIdRoute
+  '/channels/new': typeof ChannelsNewRoute
   '/songs/$songId': typeof SongsSongIdRoute
   '/videos/$videoId': typeof VideosVideoIdRoute
   '/channels': typeof ChannelsIndexRoute
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/channels/$channelId': typeof ChannelsChannelIdRoute
+  '/channels/new': typeof ChannelsNewRoute
   '/songs/$songId': typeof SongsSongIdRoute
   '/videos/$videoId': typeof VideosVideoIdRoute
   '/channels/': typeof ChannelsIndexRoute
@@ -68,6 +77,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/channels/$channelId'
+    | '/channels/new'
     | '/songs/$songId'
     | '/videos/$videoId'
     | '/channels/'
@@ -75,6 +85,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/channels/$channelId'
+    | '/channels/new'
     | '/songs/$songId'
     | '/videos/$videoId'
     | '/channels'
@@ -82,6 +93,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/channels/$channelId'
+    | '/channels/new'
     | '/songs/$songId'
     | '/videos/$videoId'
     | '/channels/'
@@ -90,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ChannelsChannelIdRoute: typeof ChannelsChannelIdRoute
+  ChannelsNewRoute: typeof ChannelsNewRoute
   SongsSongIdRoute: typeof SongsSongIdRoute
   VideosVideoIdRoute: typeof VideosVideoIdRoute
   ChannelsIndexRoute: typeof ChannelsIndexRoute
@@ -118,6 +131,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChannelsChannelIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/channels/new': {
+      id: '/channels/new'
+      path: '/channels/new'
+      fullPath: '/channels/new'
+      preLoaderRoute: typeof ChannelsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/songs/$songId': {
       id: '/songs/$songId'
       path: '/songs/$songId'
@@ -138,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChannelsChannelIdRoute: ChannelsChannelIdRoute,
+  ChannelsNewRoute: ChannelsNewRoute,
   SongsSongIdRoute: SongsSongIdRoute,
   VideosVideoIdRoute: VideosVideoIdRoute,
   ChannelsIndexRoute: ChannelsIndexRoute,

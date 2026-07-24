@@ -1,7 +1,26 @@
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+class ChannelCreate(BaseModel):
+    """Request body for adding a channel by YouTube URL."""
+
+    url: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="YouTube channel URL (e.g. https://www.youtube.com/@handle)",
+    )
+
+    @field_validator("url")
+    @classmethod
+    def strip_url(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("url must not be empty")
+        return cleaned
 
 
 class YouTubeChannel(BaseModel):

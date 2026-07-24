@@ -42,7 +42,8 @@ from services.yt_scraper.errors import (
     raise_if_block_error,
 )
 from services.yt_scraper.video_comment_scraper import YouTubeVideoCommentScraper
-from utils.video_type import should_scrape_comments
+from utils.video_type import PERSISTED_VIDEO_TYPES, should_scrape_comments
+from utils.youtube_upload_date import upload_date_from_entry
 
 
 @dataclass(frozen=True)
@@ -53,6 +54,7 @@ class ChannelVideoRefreshResult:
     mode: str  # "scrape" | "reclassify"
     scraped: int
     reclassified: int
+    cleared: int
     message: str
 
 logger = logging.getLogger(__name__)
@@ -166,21 +168,21 @@ class DataUpdater:
     async def refresh_channel_video_list(
         self, channel: YouTubeChannel
     ) -> ChannelVideoRefreshResult:
-        """Scrape/upsert the channel video list and reclassify types.
+        """Scrape/upsert the channel video list, reclassify, clear non-karaoke.
 
-        Does **not** scrape comments (karaoke analysis stays on the periodic
-        updater). On YouTube cooldown or scrape failure, still reclassifies
-        existing rows from stored title + ``raw_data``.
+        Does **not** scrape comments. For song/other videos, clears any prior
+        comment/setlist data and marks them exhausted so the background updater
+        will not analyze them again.
         """
         remaining = self.youtube_cooldown_remaining()
         scraped_count = 0
         mode = "reclassify"
-        message = "Reclassified types from stored metadata."
+        message = "Reclassified types and cleared non-karaoke analysis."
 
         if remaining > 0:
             message = (
                 f"YouTube cooldown active ({remaining:.0f}s left); "
-                "reclassified types from stored metadata only."
+                "reclassified + cleared non-karaoke analysis only."
             )
             logger.warning(
                 "Channel %s refresh: cooldown %.0fs; reclassify-only",
@@ -193,14 +195,14 @@ class DataUpdater:
                 scraped_count = len(videos)
                 mode = "scrape"
                 message = (
-                    f"Scraped and upserted {scraped_count} video(s), "
-                    "then reclassified types."
+                    f"Scraped {scraped_count} video(s), reclassified types, "
+                    "cleared non-karaoke comments/setlists."
                 )
             except YouTubeAccessBlocked as exc:
                 self.set_youtube_cooldown()
                 message = (
                     f"YouTube blocked ({exc}); "
-                    "reclassified types from stored metadata only."
+                    "reclassified + cleared non-karaoke analysis only."
                 )
                 logger.warning(
                     "Channel %s refresh blocked; reclassify-only: %s",
@@ -214,23 +216,38 @@ class DataUpdater:
                 )
                 message = (
                     "YouTube scrape failed; "
-                    "reclassified types from stored metadata only."
+                    "reclassified + cleared non-karaoke analysis only."
                 )
 
         reclassified = await self.video_repo.reclassify_for_channel(channel.id)
+        deleted = await self.video_repo.delete_non_persisted_for_channel(channel.id)
+        cleared_ids = await self.video_repo.clear_analysis_for_non_karaoke(
+            channel.id,
+            max_attempts=UPDATE_MAX_ANALYZE_ATTEMPTS,
+        )
+        for video_id in cleared_ids:
+            await self.song_repo.replace_for_video(video_id, [])
+
         logger.info(
-            "Channel %s refresh done mode=%s scraped=%s reclassified=%s",
+            "Channel %s refresh done mode=%s scraped=%s reclassified=%s "
+            "deleted_other=%s cleared=%s",
             channel.id,
             mode,
             scraped_count,
             reclassified,
+            deleted,
+            len(cleared_ids),
         )
         return ChannelVideoRefreshResult(
             channel_id=channel.id,
             mode=mode,
             scraped=scraped_count,
             reclassified=reclassified,
-            message=message,
+            cleared=len(cleared_ids) + deleted,
+            message=(
+                f"{message} Removed {deleted} other video(s); "
+                f"cleared analysis on {len(cleared_ids)}."
+            ),
         )
 
     async def _process_channel(self, channel: YouTubeChannel) -> None:
@@ -244,6 +261,23 @@ class DataUpdater:
         if not videos:
             logger.info("No videos to consider for channel %s", channel.id)
             return
+
+        # Keep types aligned; drop chatter/other; clear stray song analysis.
+        await self.video_repo.reclassify_for_channel(channel.id)
+        deleted = await self.video_repo.delete_non_persisted_for_channel(channel.id)
+        cleared_ids = await self.video_repo.clear_analysis_for_non_karaoke(
+            channel.id,
+            max_attempts=UPDATE_MAX_ANALYZE_ATTEMPTS,
+        )
+        for video_id in cleared_ids:
+            await self.song_repo.replace_for_video(video_id, [])
+        if deleted or cleared_ids:
+            logger.info(
+                "Channel %s: deleted %s other video(s), cleared analysis on %s",
+                channel.id,
+                deleted,
+                len(cleared_ids),
+            )
 
         remaining_scrapes = UPDATE_MAX_COMMENT_SCRAPES - self._comment_scrapes_this_cycle
         if remaining_scrapes <= 0:
@@ -320,17 +354,26 @@ class DataUpdater:
             raise_if_block_error(exc)
             raise
 
-        # Prefer recent uploads; empty upload_date sorts last when reverse=True.
+        # Prefer recent uploads across Streams + Videos; empty dates sort last.
         scraped_sorted = sorted(
             scraped,
-            key=lambda v: v.upload_date or "",
+            key=lambda v: v.upload_date
+            or upload_date_from_entry(
+                v.raw_data if isinstance(v.raw_data, dict) else None
+            )
+            or "",
             reverse=True,
         )
-        limited = scraped_sorted[:UPDATE_MAX_VIDEOS]
+        # Only persist song + karaoke stream records (drop chatter / other).
+        persisted = [
+            v for v in scraped_sorted if (v.type or "") in PERSISTED_VIDEO_TYPES
+        ]
+        limited = persisted[:UPDATE_MAX_VIDEOS]
         logger.info(
-            "Channel %s: scraped %s videos, upserting %s (UPDATE_MAX_VIDEOS)",
+            "Channel %s: scraped %s, kept %s song/karaoke, upserting %s",
             channel.id,
             len(scraped),
+            len(persisted),
             len(limited),
         )
 

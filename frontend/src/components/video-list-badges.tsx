@@ -3,7 +3,7 @@ import { m } from "@/paraglide/messages"
 
 type VideoType = string | null | undefined
 
-function typeBadge(type: VideoType): {
+export function videoTypeBadge(type: VideoType): {
   label: string
   variant: "karaoke" | "song" | "muted" | "default"
 } {
@@ -23,18 +23,28 @@ function typeBadge(type: VideoType): {
 
 type Props = {
   type: VideoType
-  hasSetlist: boolean | null | undefined
+  hasSetlist?: boolean | null | undefined
+  /** When false, hide setlist badge (e.g. song videos have no comments). */
+  showSetlist?: boolean
 }
 
-/** Type + setlist badges for a channel video row. */
-export function VideoListBadges({ type, hasSetlist }: Props) {
-  const kind = typeBadge(type)
+/** Type (+ optional setlist) badges for a video row or detail header. */
+export function VideoListBadges({
+  type,
+  hasSetlist,
+  showSetlist = true,
+}: Props) {
+  const kind = videoTypeBadge(type)
+  const isSong = (type ?? "").toLowerCase() === "song"
+  const showSetlistBadge = showSetlist && !isSong
   return (
     <span className="flex flex-wrap items-center gap-1.5">
       <Badge variant={kind.variant}>{kind.label}</Badge>
-      <Badge variant={hasSetlist ? "success" : "muted"}>
-        {hasSetlist ? m.has_setlist() : m.no_setlist()}
-      </Badge>
+      {showSetlistBadge ? (
+        <Badge variant={hasSetlist ? "success" : "muted"}>
+          {hasSetlist ? m.has_setlist() : m.no_setlist()}
+        </Badge>
+      ) : null}
     </span>
   )
 }
