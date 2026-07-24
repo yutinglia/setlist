@@ -1,0 +1,43 @@
+{
+  "name": "vtuber-karaoke-search",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "forwardPorts": [8000, 5432],
+  "portsAttributes": {
+    "8000": {
+      "label": "FastAPI",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "Postgres",
+      "onAutoForward": "silent"
+    }
+  },
+  "remoteEnv": {
+    "APP_ENV": "dev",
+    "DB_HOST": "db",
+    "DB_PORT": "5432",
+    "DB_NAME": "vks_db",
+    "DB_USER": "vks_db_user",
+    "DB_PASSWORD": "vks_db_pwd",
+    "DATABASE_URL": "postgresql+asyncpg://vks_db_user:vks_db_pwd@db:5432/vks_db"
+  },
+  "postCreateCommand": "pip install -r data_updater/requirements.txt",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker",
+        "ms-azuretools.vscode-containers"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.extraPaths": ["/workspace/data_updater"],
+        "terminal.integrated.cwd": "/workspace"
+      }
+    }
+  }
+}

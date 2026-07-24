@@ -1,26 +1,28 @@
 # yt-scraper — Notes
 
-Personal notes for the YouTube scraper used in this project.
+Personal notes for the YouTube scrapers under `services/yt_scraper/`.
 
 ## Overview
 
-This small scraper collects metadata / videos for VTuber karaoke search experiments. Keep this file for quick setup and usage tips.
+yt-dlp wrappers collect channel metadata, video lists, and top comments for VTuber karaoke experiments. Prefer the **Dev Container** (Python 3.12) over ad-hoc conda when possible — see repo [README.md](../README.md).
 
 ## Environment
 
--   Conda environment name: `vks-yt-scraper`
--   Python: `3.14` (if `3.14` isn't available on your platform, use `3.11` or the latest supported Python 3.x in your conda channel)
+| Option | Detail |
+|--------|--------|
+| Dev Container | Python **3.12** (recommended) |
+| Local / conda | Python **3.11–3.12** recommended; avoid bleeding-edge versions unless you need them |
+| Deps | `pip install -r requirements.txt` from `data_updater/` |
 
-## Quick setup
-
-Open PowerShell and run:
-
-```pwsh
-conda create -n vks-yt-scraper python=3.14 -y
+```bash
+# Local example (conda)
+conda create -n vks-yt-scraper python=3.12 -y
 conda activate vks-yt-scraper
-# If you have a requirements file, install it; otherwise install the packages you need
+cd data_updater
 pip install -r requirements.txt
 ```
+
+Manual scratch script (not a real test suite): `services/yt_scraper/test.py`.
 
 ## YouTube comment dict structure
 
@@ -40,7 +42,7 @@ pip install -r requirements.txt
         "is_favorited": False,
         "_time_text": "",
         "timestamp": 0,
-        "is_pinned": False
+        "is_pinned": False,
     },
 ]
 ```
@@ -59,4 +61,14 @@ dict_keys(['id', 'channel', 'channel_id', 'title', 'availability', 'channel_foll
 
 # video info entry
 dict_keys(['_type', 'ie_key', 'id', 'url', 'title', 'description', 'duration', 'channel_id', 'channel', 'channel_url', 'uploader', 'uploader_id', 'uploader_url', 'thumbnails', 'timestamp', 'release_timestamp', 'availability', 'view_count', 'live_status', 'channel_is_verified', '__x_forwarded_for_ip'])
+```
+
+## Bumping yt-dlp
+
+YouTube extractors break often. After a scrape failure:
+
+```bash
+cd data_updater
+pip install -U yt-dlp
+# then pin the new version in requirements.txt
 ```

@@ -2,12 +2,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
+import logging
 
-from config import IS_DEV, DATA_UPDATE_INTERVAL
+from config import IS_DEV, DATA_UPDATE_INTERVAL, CORS_ORIGINS
 from db import async_session_factory
 from repositories import ChannelRepository, VideoRepository, SongRepository
 from routers.v1 import router as v1_router
 from services.data_updater import DataUpdater
+
+logger = logging.getLogger(__name__)
 
 docs_url = "/docs" if IS_DEV else None
 redoc_url = "/redoc" if IS_DEV else None
@@ -16,21 +19,23 @@ openapi_url = "/openapi.json" if IS_DEV else None
 
 async def run_periodic_data_updater():
     while True:
-        print("Updating song list data...")
+        logger.info("Updating song list data...")
         try:
             async with async_session_factory() as session:
                 channel_repo = ChannelRepository(session)
                 video_repo = VideoRepository(session)
                 song_repo = SongRepository(session)
-                data_updater = DataUpdater(channel_repo, video_repo, song_repo)
+                data_updater = DataUpdater(
+                    session, channel_repo, video_repo, song_repo
+                )
                 await data_updater.update()
-            print("Song list data updated successfully.")
+            logger.info("Song list data updated successfully.")
         except asyncio.CancelledError:
-            print("Data updater task cancelled. Terminating loop.")
+            logger.info("Data updater task cancelled. Terminating loop.")
             break
-        except Exception as e:
-            print(f"Error updating song list data: {e}")
-        print("Waiting for the next update cycle...")
+        except Exception:
+            logger.exception("Error updating song list data")
+        logger.info("Waiting for the next update cycle...")
         await asyncio.sleep(DATA_UPDATE_INTERVAL)
 
 
@@ -39,17 +44,17 @@ async def run_periodic_data_updater():
 async def lifespan(app: FastAPI):
     # 啟動背景任務
     updater_task = asyncio.create_task(run_periodic_data_updater())
-    print("Background data updater task started.")
+    logger.info("Background data updater task started.")
 
     yield  # 應用程式運行中
 
     # 關閉時取消背景任務
-    print("Shutting down background data updater task...")
+    logger.info("Shutting down background data updater task...")
     updater_task.cancel()
     try:
         await updater_task
     except asyncio.CancelledError:
-        print("Background data updater task cancelled successfully.")
+        logger.info("Background data updater task cancelled successfully.")
 
 
 app = FastAPI(
@@ -62,14 +67,23 @@ app = FastAPI(
     openapi_url=openapi_url,
 )
 
-# CORS 設定
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS: loose only in APP_ENV=dev; prod uses explicit CORS_ORIGINS
+if IS_DEV:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ORIGINS,
+        allow_credentials=bool(CORS_ORIGINS),
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # 註冊 v1 路由
 app.include_router(v1_router)

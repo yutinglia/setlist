@@ -1,1 +1,7 @@
-name: vtuber-karaoke-search-docker-compose-dev
+# Dev stack lives in .devcontainer/docker-compose.yml (used by Dev Containers).
+# This file exists so `docker compose -f docker-compose.dev.yml` still points somewhere useful.
+
+name: vtuber-karaoke-search-dev
+
+include:
+  - path: .devcontainer/docker-compose.yml

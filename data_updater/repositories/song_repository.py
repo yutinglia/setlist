@@ -1,4 +1,7 @@
-from sqlalchemy import select
+from datetime import datetime, timezone
+
+from sqlalchemy import delete, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import Songs
@@ -6,7 +9,12 @@ from models.song import Song
 
 
 class SongRepository:
-    """負責 Song 資料的存取操作"""
+    """Song read/write access. Does not commit — caller owns transactions.
+
+    Write policy for a video's setlist: ``replace_for_video`` deletes all
+    existing songs for that ``video_id`` and inserts the new list. Prefer this
+    over per-row upsert so re-analysis can shrink or reorder the setlist cleanly.
+    """
 
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -32,3 +40,34 @@ class SongRepository:
         )
         songs = result.scalars().all()
         return [Song.model_validate(song) for song in songs]
+
+    async def replace_for_video(self, video_id: str, songs: list[Song]) -> list[Song]:
+        """Replace all songs for ``video_id`` (delete + insert). Does not commit.
+
+        Each song's ``video_id`` is forced to the given ``video_id``.
+        """
+        await self.session.execute(delete(Songs).where(Songs.video_id == video_id))
+
+        if not songs:
+            await self.session.flush()
+            return []
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        rows = [
+            {
+                "title": song.title,
+                "video_id": video_id,
+                "timestamp": song.timestamp,
+                "analyzed_by_llm": (
+                    song.analyzed_by_llm if song.analyzed_by_llm is not None else False
+                ),
+                "created_at": now,
+                "updated_at": now,
+            }
+            for song in songs
+        ]
+        stmt = insert(Songs).values(rows).returning(Songs)
+        result = await self.session.execute(stmt)
+        inserted = result.scalars().all()
+        await self.session.flush()
+        return [Song.model_validate(row) for row in inserted]

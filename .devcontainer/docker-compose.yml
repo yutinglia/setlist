@@ -1,0 +1,69 @@
+name: vtuber-karaoke-search-dev
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    environment:
+      APP_ENV: dev
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: vks_db
+      DB_USER: vks_db_user
+      DB_PASSWORD: vks_db_pwd
+      DATABASE_URL: postgresql+asyncpg://vks_db_user:vks_db_pwd@db:5432/vks_db
+    depends_on:
+      db:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+    networks:
+      - vks
+
+  db:
+    image: postgres:18-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vks_db
+      POSTGRES_USER: vks_db_user
+      POSTGRES_PASSWORD: vks_db_pwd
+    ports:
+      - "5432:5432"
+    volumes:
+      # Postgres 18+ images expect the volume on /var/lib/postgresql (not .../data)
+      - vks-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vks_db_user -d vks_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - vks
+
+  flyway:
+    image: flyway/flyway:11-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../db/migrations:/flyway/sql:ro
+    command: >
+      -url=jdbc:postgresql://db:5432/vks_db
+      -user=vks_db_user
+      -password=vks_db_pwd
+      -connectRetries=10
+      migrate
+    networks:
+      - vks
+
+volumes:
+  vks-pgdata:
+
+networks:
+  vks:
+    driver: bridge

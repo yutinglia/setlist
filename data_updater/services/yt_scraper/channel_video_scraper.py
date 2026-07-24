@@ -1,11 +1,16 @@
+import logging
+
 import yt_dlp
 
 from models.video import YouTubeVideo
 
+logger = logging.getLogger(__name__)
+
 
 class YouTubeChannelVideoScraper:
-    def __init__(self, channel_url: str) -> None:
+    def __init__(self, channel_url: str, *, max_videos: int | None = None) -> None:
         self.channel_url = channel_url
+        self.max_videos = max_videos
         self.videos: list[YouTubeVideo] = []
 
     def get_channel_videos(self) -> list[YouTubeVideo]:
@@ -29,21 +34,35 @@ class YouTubeChannelVideoScraper:
 
             return None
 
-        ydl_opts = {
+        ydl_opts: dict = {
             "skip_download": True,
             "extract_flat": "in_playlist",  # Use in_playlist mode for better performance
-            # "quiet": True,
+            "quiet": True,
+            "no_warnings": True,
             # speed limit
             "sleep_interval": 1,
             "max_sleep_interval": 2,
             "match_filter": filter_videos,
             "ignoreerrors": True,  # Continue on errors
         }
+        # Cap how many playlist entries yt-dlp walks (Tier B / prefer recent).
+        if self.max_videos is not None and self.max_videos > 0:
+            # Extra headroom so shorts/live filtered out still leave enough.
+            ydl_opts["playlistend"] = self.max_videos * 2
 
+        logger.info(
+            "Scraping channel video list: %s (playlistend=%s)",
+            self.channel_url,
+            ydl_opts.get("playlistend", "all"),
+        )
         all_videos = []
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(self.channel_url, download=False)
-            entries = info.get("entries", [])
+            if not info:
+                raise RuntimeError(
+                    f"Failed to extract video list for {self.channel_url}"
+                )
+            entries = info.get("entries", []) or []
 
             # Handle nested playlists (Videos, Live, Shorts)
             for entry in entries:
@@ -52,7 +71,7 @@ class YouTubeChannelVideoScraper:
 
                 # If entry has its own entries, it's a playlist
                 if "entries" in entry:
-                    sub_entries = entry.get("entries", [])
+                    sub_entries = entry.get("entries", []) or []
                     all_videos.extend([v for v in sub_entries if v is not None])
                 else:
                     # It's a direct video entry
@@ -70,17 +89,29 @@ class YouTubeChannelVideoScraper:
             # Convert to YouTubeVideo models
             video_models = []
             for video in all_videos:
+                video_id = video.get("id")
+                if not video_id:
+                    continue
                 video_model = YouTubeVideo(
-                    id=video.get("id"),
-                    title=video.get("title", ""),
-                    url=video.get("url") or f"https://www.youtube.com/watch?v={video.get('id')}",
-                    channel_id=video.get("channel_id") or video.get("uploader_id", ""),
+                    id=video_id,
+                    title=video.get("title") or video_id,
+                    url=video.get("url")
+                    or f"https://www.youtube.com/watch?v={video_id}",
+                    channel_id=video.get("channel_id")
+                    or video.get("uploader_id")
+                    or "",
                     upload_date=video.get("upload_date"),
-                    type="was_live" if video.get("live_status") == "was_live" else "video",
+                    type=(
+                        "was_live"
+                        if video.get("live_status") == "was_live"
+                        else "video"
+                    ),
                     raw_data=video,
                 )
                 video_models.append(video_model)
 
             self.videos = video_models
-
+            logger.info(
+                "Scraped %s videos from %s", len(video_models), self.channel_url
+            )
             return video_models
