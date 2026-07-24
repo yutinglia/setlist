@@ -1,11 +1,7 @@
 -- Seed 1–2 known karaoke-friendly VTuber channels for manual Phase 2 testing.
 -- Not a Flyway migration: run manually after migrations (see README).
 --
--- Usage (Compose/Dev Container DB published on localhost:5433):
---   psql "postgresql://vks_db_user:vks_db_pwd@localhost:5433/vks_db" \
---     -f db/devscript/seed_channels.sql
---
--- Or from inside the db container:
+-- Usage (Compose/Dev Container DB is not published on the host):
 --   docker compose -f .devcontainer/docker-compose.yml exec -T db \
 --     psql -U vks_db_user -d vks_db < db/devscript/seed_channels.sql
 

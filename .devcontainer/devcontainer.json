@@ -4,15 +4,11 @@
   "service": "app",
   "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
-  "forwardPorts": [8000, 5432],
+  "forwardPorts": [8000],
   "portsAttributes": {
     "8000": {
       "label": "FastAPI",
       "onAutoForward": "notify"
-    },
-    "5432": {
-      "label": "Postgres",
-      "onAutoForward": "silent"
     }
   },
   "remoteEnv": {

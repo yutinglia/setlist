@@ -31,7 +31,12 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 | App (async) | `postgresql+asyncpg://vks_db_user:vks_db_pwd@db:5432/vks_db` |
 | sqlacodegen (sync) | `postgresql://vks_db_user:vks_db_pwd@db:5432/vks_db` |
 
-Host is `db` inside Compose; from the host machine use `localhost:5433` (mapped to container 5432).
+Host is `db` inside Compose (not published on the host). From the host:
+
+```bash
+docker compose -f .devcontainer/docker-compose.yml exec -T db \
+  psql -U vks_db_user -d vks_db
+```
 
 ## Compose without the IDE
 
