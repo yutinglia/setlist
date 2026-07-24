@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import case, func, select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import Videos
 from models.video import YouTubeVideo
+from utils.video_type import VIDEO_TYPE_KARAOKE, classify_video_type, should_scrape_comments
 
 # Columns refreshed from channel/video list scrapes. Analysis fields are preserved.
 _METADATA_UPDATE_KEYS = (
@@ -75,35 +76,71 @@ class VideoRepository:
         max_attempts: int,
         limit: int,
     ) -> list[YouTubeVideo]:
-        """Videos that still need comment analysis.
+        """Karaoke stream records that still need comment analysis.
 
-        Prefers karaoke-ish titles, then newest ``upload_date``.
-        Skips rows that already have a song-list comment or have exhausted
-        ``analyze_attempts`` (>= ``max_attempts``).
+        Prefers ``type=karaoke`` rows, then re-checks title/metadata so song /
+        MV / cover uploads are never queued even if ``type`` is stale.
         """
         if limit <= 0:
             return []
 
-        karaoke_rank = case(
-            (Videos.title.ilike("%歌枠%"), 0),
-            (Videos.title.ilike("%karaoke%"), 0),
-            (Videos.title.ilike("%カラOK%"), 0),
-            (Videos.title.ilike("%歌回%"), 0),
-            else_=1,
-        )
+        # Over-fetch then filter: song titles must not consume the analyze quota.
         stmt = (
             select(Videos)
             .where(
                 Videos.channel_id == channel_id,
+                Videos.type == VIDEO_TYPE_KARAOKE,
                 Videos.has_song_list_comment.is_(False),
                 Videos.analyze_attempts < max_attempts,
             )
-            .order_by(karaoke_rank, Videos.upload_date.desc().nulls_last())
-            .limit(limit)
+            .order_by(Videos.upload_date.desc().nulls_last())
+            .limit(max(limit * 3, limit))
         )
         result = await self.session.execute(stmt)
         videos = result.scalars().all()
-        return [YouTubeVideo.model_validate(video) for video in videos]
+        out: list[YouTubeVideo] = []
+        for video in videos:
+            model = YouTubeVideo.model_validate(video)
+            raw = model.raw_data if isinstance(model.raw_data, dict) else {}
+            if not should_scrape_comments(
+                model.title or "",
+                live_status=raw.get("live_status"),
+                duration=raw.get("duration"),
+                stored_type=model.type,
+            ):
+                continue
+            out.append(model)
+            if len(out) >= limit:
+                break
+        return out
+
+    async def reclassify_for_channel(self, channel_id: str) -> int:
+        """Recompute ``type`` from title + stored raw_data for all channel videos.
+
+        Uses ``live_status`` / ``duration`` from ``raw_data`` when present (soft
+        karaoke confirms). Does not commit. Returns how many rows changed.
+        """
+        result = await self.session.execute(
+            select(Videos).where(Videos.channel_id == channel_id)
+        )
+        rows = result.scalars().all()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        changed = 0
+        for row in rows:
+            raw = row.raw_data if isinstance(row.raw_data, dict) else {}
+            new_type = classify_video_type(
+                row.title or "",
+                live_status=raw.get("live_status"),
+                duration=raw.get("duration"),
+            )
+            if new_type == row.type:
+                continue
+            row.type = new_type
+            row.updated_at = now
+            changed += 1
+        if changed:
+            await self.session.flush()
+        return changed
 
     async def upsert(self, video: YouTubeVideo) -> YouTubeVideo:
         """Insert or update video metadata by primary key ``id``.

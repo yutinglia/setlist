@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from deps import get_session, pagination_params
@@ -7,8 +8,19 @@ from models.search import Paginated, SongSearchResult
 from models.song import Song
 from models.video import YouTubeVideo
 from repositories import ChannelRepository, SongRepository, VideoRepository
+from services.data_updater import DataUpdater
 
 router = APIRouter(tags=["Songs"])
+
+
+class ChannelVideoRefreshResponse(BaseModel):
+    channel_id: str
+    mode: str = Field(
+        description="'scrape' when YouTube list was fetched, else 'reclassify'"
+    )
+    scraped: int = Field(ge=0)
+    reclassified: int = Field(ge=0, description="Rows whose type changed")
+    message: str
 
 
 @router.get("/songs/search", response_model=Paginated[SongSearchResult])
@@ -66,6 +78,45 @@ async def list_channel_videos(
     )
     total = await video_repo.count_by_channel_id(channel_id)
     return Paginated(items=items, total=total, limit=limit, offset=offset)
+
+
+@router.post(
+    "/channels/{channel_id}/videos/refresh",
+    response_model=ChannelVideoRefreshResponse,
+)
+async def refresh_channel_videos(
+    channel_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Scrape this channel's video list and reclassify karaoke/song types.
+
+    Does not scrape comments or extract setlists.
+    """
+    channel_repo = ChannelRepository(session)
+    channel = await channel_repo.get_by_id(channel_id)
+    if channel is None:
+        raise HTTPException(status_code=404, detail="Channel not found")
+
+    updater = DataUpdater(
+        session,
+        channel_repo,
+        VideoRepository(session),
+        SongRepository(session),
+    )
+    try:
+        result = await updater.refresh_channel_video_list(channel)
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+
+    return ChannelVideoRefreshResponse(
+        channel_id=result.channel_id,
+        mode=result.mode,
+        scraped=result.scraped,
+        reclassified=result.reclassified,
+        message=result.message,
+    )
 
 
 @router.get("/videos/{video_id}/songs", response_model=Paginated[Song])

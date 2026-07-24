@@ -6,6 +6,7 @@ import asyncio
 import logging
 import random
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,6 +42,18 @@ from services.yt_scraper.errors import (
     raise_if_block_error,
 )
 from services.yt_scraper.video_comment_scraper import YouTubeVideoCommentScraper
+from utils.video_type import should_scrape_comments
+
+
+@dataclass(frozen=True)
+class ChannelVideoRefreshResult:
+    """Outcome of a manual channel video-list refresh (no comment analysis)."""
+
+    channel_id: str
+    mode: str  # "scrape" | "reclassify"
+    scraped: int
+    reclassified: int
+    message: str
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +163,76 @@ class DataUpdater:
             await self.session.rollback()
             raise
 
+    async def refresh_channel_video_list(
+        self, channel: YouTubeChannel
+    ) -> ChannelVideoRefreshResult:
+        """Scrape/upsert the channel video list and reclassify types.
+
+        Does **not** scrape comments (karaoke analysis stays on the periodic
+        updater). On YouTube cooldown or scrape failure, still reclassifies
+        existing rows from stored title + ``raw_data``.
+        """
+        remaining = self.youtube_cooldown_remaining()
+        scraped_count = 0
+        mode = "reclassify"
+        message = "Reclassified types from stored metadata."
+
+        if remaining > 0:
+            message = (
+                f"YouTube cooldown active ({remaining:.0f}s left); "
+                "reclassified types from stored metadata only."
+            )
+            logger.warning(
+                "Channel %s refresh: cooldown %.0fs; reclassify-only",
+                channel.id,
+                remaining,
+            )
+        else:
+            try:
+                videos = await self._scrape_and_upsert_videos(channel)
+                scraped_count = len(videos)
+                mode = "scrape"
+                message = (
+                    f"Scraped and upserted {scraped_count} video(s), "
+                    "then reclassified types."
+                )
+            except YouTubeAccessBlocked as exc:
+                self.set_youtube_cooldown()
+                message = (
+                    f"YouTube blocked ({exc}); "
+                    "reclassified types from stored metadata only."
+                )
+                logger.warning(
+                    "Channel %s refresh blocked; reclassify-only: %s",
+                    channel.id,
+                    exc,
+                )
+            except Exception:
+                logger.exception(
+                    "Channel %s video scrape failed; falling back to reclassify",
+                    channel.id,
+                )
+                message = (
+                    "YouTube scrape failed; "
+                    "reclassified types from stored metadata only."
+                )
+
+        reclassified = await self.video_repo.reclassify_for_channel(channel.id)
+        logger.info(
+            "Channel %s refresh done mode=%s scraped=%s reclassified=%s",
+            channel.id,
+            mode,
+            scraped_count,
+            reclassified,
+        )
+        return ChannelVideoRefreshResult(
+            channel_id=channel.id,
+            mode=mode,
+            scraped=scraped_count,
+            reclassified=reclassified,
+            message=message,
+        )
+
     async def _process_channel(self, channel: YouTubeChannel) -> None:
         logger.info("Processing channel %s (%s)", channel.name, channel.id)
 
@@ -258,9 +341,25 @@ class DataUpdater:
         return await self.video_repo.upsert_many(limited)
 
     async def _analyze_video(self, video: YouTubeVideo) -> None:
+        # Re-check from title + raw_data: song/MV/cover must never scrape comments.
+        raw = video.raw_data if isinstance(video.raw_data, dict) else {}
+        if not should_scrape_comments(
+            video.title or "",
+            live_status=raw.get("live_status"),
+            duration=raw.get("duration"),
+            stored_type=video.type,
+        ):
+            logger.info(
+                "Skipping comment analysis for %s video %s (%s)",
+                video.type or "unknown",
+                video.id,
+                video.title,
+            )
+            return
+
         self._comment_scrapes_this_cycle += 1
         logger.info(
-            "Comment scrape %s/%s for video %s (%s)",
+            "Comment scrape %s/%s for karaoke stream %s (%s)",
             self._comment_scrapes_this_cycle,
             UPDATE_MAX_COMMENT_SCRAPES,
             video.id,

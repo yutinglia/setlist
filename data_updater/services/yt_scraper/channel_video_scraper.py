@@ -3,6 +3,7 @@ import logging
 import yt_dlp
 
 from models.video import YouTubeVideo
+from utils.video_type import classify_video_type
 
 logger = logging.getLogger(__name__)
 
@@ -92,19 +93,21 @@ class YouTubeChannelVideoScraper:
                 video_id = video.get("id")
                 if not video_id:
                     continue
+                title = video.get("title") or video_id
                 video_model = YouTubeVideo(
                     id=video_id,
-                    title=video.get("title") or video_id,
+                    title=title,
                     url=video.get("url")
                     or f"https://www.youtube.com/watch?v={video_id}",
                     channel_id=video.get("channel_id")
                     or video.get("uploader_id")
                     or "",
                     upload_date=video.get("upload_date"),
-                    type=(
-                        "was_live"
-                        if video.get("live_status") == "was_live"
-                        else "video"
+                    # Title keywords + soft live_status / duration confirms for karaoke.
+                    type=classify_video_type(
+                        title,
+                        live_status=video.get("live_status"),
+                        duration=video.get("duration"),
                     ),
                     raw_data=video,
                 )
