@@ -8,12 +8,12 @@ Turn the current scaffold into a working **data pipeline** that scrapes VTuber k
 
 | Area | Status |
 |------|--------|
-| Postgres schema (Flyway V1) | Done |
-| yt-dlp scrapers (channel / videos / comments) | Done, unused |
+| Postgres schema (Flyway V1 + V2 title index) | Done |
+| yt-dlp scrapers (channel / videos / comments) | Done, used by DataUpdater |
 | Comment → song-list heuristics | Done (`video_id` required; unit tests) |
 | Repositories | Read + upsert / `replace_for_video` (updater-owned commits) |
 | `DataUpdater.update()` | Wired (scrape → analyze → persist) + Tier B pacing |
-| Search / UI | Missing |
+| Search / UI | Search API done; UI missing |
 | Requirements (`data_updater/requirements.txt`) | Direct deps updated (Jul 2026) |
 | Dev Container + Compose (Postgres + Flyway) | Done |
 | README / AGENTS / TODO docs | Done (keep in sync when behavior changes) |
@@ -172,9 +172,9 @@ Do **not** rely only on yt-dlp `sleep_interval`. Implement updater-level pacing 
 }
 ```
 
-- [ ] Convert `mm:ss` / `hh:mm:ss` → YouTube `&t=` seconds helper.
-- [ ] Add DB index on `songs.title` (trigram or simple `LOWER(title)` btree) via Flyway `V2__...sql`, then regenerate ORM if needed.
-- [ ] Pagination (`limit`/`offset` or cursor).
+- [x] Convert `mm:ss` / `hh:mm:ss` → YouTube `&t=` seconds helper.
+- [x] Add DB index on `songs.title` (trigram or simple `LOWER(title)` btree) via Flyway `V2__...sql`, then regenerate ORM if needed.
+- [x] Pagination (`limit`/`offset` or cursor).
 
 **Exit:** Querying a known song title returns a clickable deep link.
 
@@ -206,7 +206,7 @@ Defer LLM until regex path is useful.
 2. Phase 1 — analyzer fix + write repos + tests  
 3. Phase 2 — `DataUpdater` pipeline + seed channel  
 4. Phase 3 — CORS/logging + production API image + `.gitignore` ✅  
-5. Phase 4 — search endpoints + title index  
+5. Phase 4 — search endpoints + title index ✅  
 6. Phase 5 — extraction improvements / LLM (optional)
 
 ---

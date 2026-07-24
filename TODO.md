@@ -13,6 +13,7 @@ Checklist aligned with [PLAN.md](PLAN.md). Check items off as they land.
 - [x] Repository upserts / `replace_for_video`; updater-owned commits; `async_sessionmaker`
 - [x] Phase 2: `DataUpdater` pipeline + Tier B pacing + seed channels
 - [x] Phase 3: CORS, health DB ping, `.gitignore`, production `data_updater` image/service
+- [x] Phase 4: search API + title trigram index + pagination
 
 ## Phase 0 — Docs & local run
 
@@ -52,11 +53,11 @@ Checklist aligned with [PLAN.md](PLAN.md). Check items off as they land.
 
 ## Phase 4 — Search API
 
-- [ ] `GET /v1/songs/search?q=`
-- [ ] Song / channel / video list endpoints
-- [ ] Timestamp → YouTube `&t=` helper
-- [ ] Title index migration (`V2__...`)
-- [ ] Pagination
+- [x] `GET /v1/songs/search?q=`
+- [x] Song / channel / video list endpoints
+- [x] Timestamp → YouTube `&t=` helper
+- [x] Title index migration (`V2__...`)
+- [x] Pagination
 
 ## Phase 5 — Extraction quality (optional)
 

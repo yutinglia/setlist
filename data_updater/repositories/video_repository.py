@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import case, select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,13 +38,35 @@ class VideoRepository:
         video = result.scalar_one_or_none()
         return YouTubeVideo.model_validate(video) if video else None
 
-    async def get_by_channel_id(self, channel_id: str) -> list[YouTubeVideo]:
-        """根據頻道 ID 取得該頻道的所有影片"""
-        result = await self.session.execute(
-            select(Videos).where(Videos.channel_id == channel_id)
+    async def get_by_channel_id(
+        self,
+        channel_id: str,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[YouTubeVideo]:
+        """根據頻道 ID 取得該頻道的影片列表 (optional pagination)."""
+        stmt = (
+            select(Videos)
+            .where(Videos.channel_id == channel_id)
+            .order_by(Videos.upload_date.desc().nulls_last(), Videos.id)
         )
+        if limit is not None:
+            stmt = stmt.limit(limit).offset(offset)
+        elif offset:
+            stmt = stmt.offset(offset)
+        result = await self.session.execute(stmt)
         videos = result.scalars().all()
         return [YouTubeVideo.model_validate(video) for video in videos]
+
+    async def count_by_channel_id(self, channel_id: str) -> int:
+        """Count videos for ``channel_id``."""
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(Videos)
+            .where(Videos.channel_id == channel_id)
+        )
+        return int(result.scalar_one())
 
     async def get_needing_analysis(
         self,

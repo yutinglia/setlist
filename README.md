@@ -1,8 +1,8 @@
 # vtuber-karaoke-search
 
-Scrape VTuber karaoke streams, detect setlist comments (timestamp lists), store songs, and (eventually) search them.
+Scrape VTuber karaoke streams, detect setlist comments (timestamp lists), store songs, and search them via a minimal HTTP API.
 
-**Status:** Phase 3 hardening is in place (CORS, health DB ping, `.gitignore`, optional production `data_updater` Compose service). Updater pipeline is wired with Tier B YouTube pacing. Search API is not built yet (Phase 4). See [PLAN.md](PLAN.md) and [TODO.md](TODO.md).
+**Status:** Phase 4 search API is in place (`GET /v1/songs/search`, song/channel/video lists, title trigram index, pagination). Updater pipeline is wired with Tier B YouTube pacing. No UI yet (Phase 6). See [PLAN.md](PLAN.md) and [TODO.md](TODO.md).
 
 ## Stack
 
@@ -26,6 +26,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 | URL | Purpose |
 |-----|---------|
 | http://localhost:8000/v1/health | Health check |
+| http://localhost:8000/v1/songs/search?q=... | Search songs by title |
 | http://localhost:8000/docs | OpenAPI (when `APP_ENV=dev`) |
 
 More detail: [.devcontainer/README.md](.devcontainer/README.md).
@@ -50,6 +51,25 @@ docker compose up --build data_updater
 ```
 
 Without Compose, Windows one-shot DB scripts live under `db/devscript/`.
+
+## Search API (v1)
+
+List/search endpoints accept `limit` (1–100, default 20) and `offset` (default 0).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/v1/songs/search?q=` | ILIKE on `songs.title`; returns `video_url` with `&t=` deep link |
+| GET | `/v1/songs/{id}` | Song detail + deep link + channel |
+| GET | `/v1/channels` | Tracked channels |
+| GET | `/v1/channels/{id}/videos` | Videos for a channel |
+| GET | `/v1/videos/{id}/songs` | Songs for a video |
+
+Example:
+
+```bash
+curl 'http://localhost:8000/v1/songs/search?q=Stellar'
+# → video_url like https://www.youtube.com/watch?v=...&t=300s
+```
 
 ## Environment
 
@@ -89,7 +109,7 @@ docker compose -f .devcontainer/docker-compose.yml exec -T db \
   psql -U vks_db_user -d vks_db < db/devscript/seed_channels.sql
 ```
 
-Then start the API from `data_updater/` (prefer `DATA_UPDATE_INTERVAL=1800`). One cycle scrapes recent videos, analyzes up to `UPDATE_MAX_COMMENT_SCRAPES` of them, and writes songs when a setlist comment is found. Logs show caps, jitter, and cooldown.
+Then start the API from `data_updater/` (prefer `DATA_UPDATE_INTERVAL=1800`). One cycle scrapes recent videos, analyzes up to `UPDATE_MAX_COMMENT_SCRAPES` of them, and writes songs when a setlist comment is found. Logs show caps, jitter, and cooldown. After songs exist, try `GET /v1/songs/search?q=...`.
 
 ### Tests
 
@@ -100,7 +120,7 @@ pip install -r requirements.txt
 pytest
 ```
 
-Analyzer unit tests always run. Repository write smoke tests skip if Postgres is unreachable.
+Analyzer and timestamp-helper unit tests always run. Repository write smoke tests skip if Postgres is unreachable.
 
 ## Layout
 
@@ -108,7 +128,7 @@ Analyzer unit tests always run. Repository write smoke tests skip if Postgres is
 vtuber-karaoke-search/
 ├── .devcontainer/     # Dev Container (app + Postgres + Flyway)
 ├── data_updater/      # FastAPI service (run with cwd = this dir)
-├── db/migrations/     # Flyway SQL (schema source of truth)
+├── db/migrations/     # Flyway SQL (schema source of truth; V1 + V2 title index)
 ├── .env.example       # Sample env vars (copy to .env)
 ├── AGENTS.md          # Instructions for coding agents
 ├── PLAN.md            # Phased implementation plan

@@ -78,7 +78,8 @@ class Songs(Base):
     __tablename__ = 'songs'
     __table_args__ = (
         ForeignKeyConstraint(['video_id'], ['videos.id'], ondelete='CASCADE', name='fk_songs_video'),
-        PrimaryKeyConstraint('id', name='songs_pkey')
+        PrimaryKeyConstraint('id', name='songs_pkey'),
+        Index('idx_songs_title_trgm', 'title', postgresql_using='gin'),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

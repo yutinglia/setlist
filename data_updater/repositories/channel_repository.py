@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,11 +14,26 @@ class ChannelRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_all(self) -> list[YouTubeChannel]:
-        """從資料庫取得所有頻道列表"""
-        result = await self.session.execute(select(Channels))
+    async def get_all(
+        self,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[YouTubeChannel]:
+        """從資料庫取得頻道列表 (optional pagination)."""
+        stmt = select(Channels).order_by(Channels.name)
+        if limit is not None:
+            stmt = stmt.limit(limit).offset(offset)
+        elif offset:
+            stmt = stmt.offset(offset)
+        result = await self.session.execute(stmt)
         channels = result.scalars().all()
         return [YouTubeChannel.model_validate(channel) for channel in channels]
+
+    async def count_all(self) -> int:
+        """Total number of tracked channels."""
+        result = await self.session.execute(select(func.count()).select_from(Channels))
+        return int(result.scalar_one())
 
     async def get_by_id(self, channel_id: str) -> YouTubeChannel | None:
         """根據 ID 取得單一頻道"""

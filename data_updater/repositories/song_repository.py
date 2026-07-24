@@ -1,11 +1,13 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import Songs
+from db.models import Channels, Songs, Videos
+from models.search import SongSearchResult
 from models.song import Song
+from utils.youtube_timestamp import youtube_url_with_timestamp
 
 
 class SongRepository:
@@ -33,13 +35,90 @@ class SongRepository:
         song = result.scalar_one_or_none()
         return Song.model_validate(song) if song else None
 
-    async def get_by_video_id(self, video_id: str) -> list[Song]:
-        """根據影片 ID 取得該影片的所有歌曲"""
-        result = await self.session.execute(
-            select(Songs).where(Songs.video_id == video_id)
-        )
+    async def get_by_video_id(
+        self,
+        video_id: str,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[Song]:
+        """根據影片 ID 取得該影片的所有歌曲 (optional pagination)."""
+        stmt = select(Songs).where(Songs.video_id == video_id).order_by(Songs.id)
+        if limit is not None:
+            stmt = stmt.limit(limit).offset(offset)
+        elif offset:
+            stmt = stmt.offset(offset)
+        result = await self.session.execute(stmt)
         songs = result.scalars().all()
         return [Song.model_validate(song) for song in songs]
+
+    async def count_by_video_id(self, video_id: str) -> int:
+        """Count songs belonging to ``video_id``."""
+        result = await self.session.execute(
+            select(func.count()).select_from(Songs).where(Songs.video_id == video_id)
+        )
+        return int(result.scalar_one())
+
+    async def search_by_title(
+        self,
+        query: str,
+        *,
+        limit: int,
+        offset: int = 0,
+    ) -> tuple[list[SongSearchResult], int]:
+        """ILIKE search on ``songs.title`` with video/channel context.
+
+        Returns ``(items, total)``. Empty ``query`` yields no rows.
+        """
+        q = query.strip()
+        if not q:
+            return [], 0
+
+        pattern = f"%{q}%"
+        base = (
+            select(Songs, Videos, Channels)
+            .join(Videos, Songs.video_id == Videos.id)
+            .join(Channels, Videos.channel_id == Channels.id)
+            .where(Songs.title.ilike(pattern))
+        )
+        count_stmt = select(func.count()).select_from(base.subquery())
+        total = int((await self.session.execute(count_stmt)).scalar_one())
+
+        page_stmt = base.order_by(Songs.id).limit(limit).offset(offset)
+        rows = (await self.session.execute(page_stmt)).all()
+        items = [
+            SongSearchResult.from_parts(
+                song=Song.model_validate(song),
+                video_url=video.url,
+                video_title=video.title,
+                channel_id=channel.id,
+                channel_name=channel.name,
+                deep_link_url=youtube_url_with_timestamp(video.url, song.timestamp),
+            )
+            for song, video, channel in rows
+        ]
+        return items, total
+
+    async def get_detail(self, song_id: int) -> SongSearchResult | None:
+        """Song detail with video deep link and channel info."""
+        stmt = (
+            select(Songs, Videos, Channels)
+            .join(Videos, Songs.video_id == Videos.id)
+            .join(Channels, Videos.channel_id == Channels.id)
+            .where(Songs.id == song_id)
+        )
+        row = (await self.session.execute(stmt)).one_or_none()
+        if row is None:
+            return None
+        song, video, channel = row
+        return SongSearchResult.from_parts(
+            song=Song.model_validate(song),
+            video_url=video.url,
+            video_title=video.title,
+            channel_id=channel.id,
+            channel_name=channel.name,
+            deep_link_url=youtube_url_with_timestamp(video.url, song.timestamp),
+        )
 
     async def replace_for_video(self, video_id: str, songs: list[Song]) -> list[Song]:
         """Replace all songs for ``video_id`` (delete + insert). Does not commit.
