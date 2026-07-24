@@ -4,10 +4,14 @@
   "service": "app",
   "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
-  "forwardPorts": [8000],
+  "forwardPorts": [8000, 5173],
   "portsAttributes": {
     "8000": {
       "label": "FastAPI",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Vite",
       "onAutoForward": "notify"
     }
   },

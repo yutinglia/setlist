@@ -23,6 +23,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 |-----|---------|
 | http://localhost:8000/v1/health | Health |
 | http://localhost:8000/docs | OpenAPI (`APP_ENV=dev`) |
+| http://localhost:5173 | Search UI (`cd frontend && npm run dev`) |
 
 ## Database
 
