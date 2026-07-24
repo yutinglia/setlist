@@ -13,7 +13,8 @@ Turn the current scaffold into a working **data pipeline** that scrapes VTuber k
 | Comment → song-list heuristics | Done (`video_id` required; unit tests) |
 | Repositories | Read + upsert / `replace_for_video` (updater-owned commits) |
 | `DataUpdater.update()` | Wired (scrape → analyze → persist) + Tier B pacing |
-| Search / UI | Search API done; UI missing |
+| Search / UI | Search API + Phase 5 extraction + Phase 6 search UI MVP |
+
 | Requirements (`data_updater/requirements.txt`) | Direct deps updated (Jul 2026) |
 | Dev Container + Compose (Postgres + Flyway) | Done |
 | README / AGENTS / TODO docs | Done (keep in sync when behavior changes) |
@@ -184,19 +185,22 @@ Do **not** rely only on yt-dlp `sleep_interval`. Implement updater-level pacing 
 
 Defer LLM until regex path is useful.
 
-- [ ] Prefer pinned / uploader comments when choosing song list.
-- [ ] Support more line formats (`01. Title 0:12:00`, `Title - 1:23`, etc.).
-- [ ] Optional LLM cleaning using existing schema columns (`cleaning_attempts`, `cleaned_song_list_comment`, `analyzed_by_llm`).
-- [ ] Dedupe songs within a video; conflict policy if re-analysis changes the list.
+- [x] Prefer pinned / uploader comments when choosing song list.
+- [x] Support more line formats (`01. Title 0:12:00`, `Title - 1:23`, parenthesized timestamps, full-width colons, etc.).
+- [x] Optional LLM cleaning using existing schema columns (`cleaning_attempts`, `cleaned_song_list_comment`, `analyzed_by_llm`) — behind `LLM_CLEANING_ENABLED` (default off).
+- [x] Dedupe songs within a video; conflict policy if re-analysis changes the list (`replace_for_video` last-write-wins; intra-extract dedupe by `(timestamp, casefold(title))`).
 
 ---
 
-## Phase 6 — Future (out of scope unless requested)
+## Phase 6 — Search UI (MVP)
 
-- Search UI / frontend
-- Auth, multi-user, public deployment hardening
-- Switching Flyway → Alembic or Poetry/uv package layout
-- Celery/RQ instead of in-process asyncio loop (only if scrape volume demands it)
+- [x] React (Vite + TypeScript) app under `frontend/`
+- [x] TanStack Router + TanStack Query + Zustand (UI prefs) + Paraglide (`en` / `zh-hant`) + Tailwind + shadcn/ui
+- [x] Search page → `GET /v1/songs/search` with debounce, pagination, deep links
+- [x] Song detail + channel → videos → video songs browse
+- [x] Dev proxy / `VITE_API_BASE_URL` + CORS notes (`APP_ENV=dev` or `CORS_ORIGINS`)
+
+**Still out of scope:** auth, multi-user, public deploy hardening, Flyway→Alembic / Poetry/uv rewrite, Celery/RQ, Tier C proxies/cookies.
 
 ---
 
@@ -207,7 +211,8 @@ Defer LLM until regex path is useful.
 3. Phase 2 — `DataUpdater` pipeline + seed channel  
 4. Phase 3 — CORS/logging + production API image + `.gitignore` ✅  
 5. Phase 4 — search endpoints + title index ✅  
-6. Phase 5 — extraction improvements / LLM (optional)
+6. Phase 5 — extraction improvements / optional LLM ✅  
+7. Phase 6 — search UI MVP ✅
 
 ---
 
@@ -229,4 +234,5 @@ Defer LLM until regex path is useful.
 1. Seeded channel → automatic songs in DB within one update cycle.  
 2. `GET /v1/songs/search?q=...` returns results with timestamp deep links.  
 3. `docker compose up` (or documented manual path) is reproducible on a clean machine.  
-4. Updater failures are logged and do not crash the API process.
+4. Updater failures are logged and do not crash the API process.  
+5. Search UI can query the API and open YouTube deep links (Phase 6).

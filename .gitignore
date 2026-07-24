@@ -38,3 +38,9 @@ Thumbs.db
 # Logs / local scratch
 *.log
 *.tmp
+
+# Frontend (Vite / Node)
+frontend/node_modules/
+frontend/dist/
+frontend/*.local
+frontend/*.tsbuildinfo

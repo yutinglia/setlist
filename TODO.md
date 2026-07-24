@@ -14,6 +14,8 @@ Checklist aligned with [PLAN.md](PLAN.md). Check items off as they land.
 - [x] Phase 2: `DataUpdater` pipeline + Tier B pacing + seed channels
 - [x] Phase 3: CORS, health DB ping, `.gitignore`, production `data_updater` image/service
 - [x] Phase 4: search API + title trigram index + pagination
+- [x] Phase 5: pinned/uploader preference, more line formats, dedupe, optional LLM cleaning
+- [x] Phase 6: search UI (`frontend/` — Vite React, TanStack, Paraglide, Tailwind, shadcn)
 
 ## Phase 0 — Docs & local run
 
@@ -61,14 +63,24 @@ Checklist aligned with [PLAN.md](PLAN.md). Check items off as they land.
 
 ## Phase 5 — Extraction quality (optional)
 
-- [ ] Prefer pinned / uploader comments
-- [ ] More line formats
-- [ ] Optional LLM cleaning (schema columns already exist)
-- [ ] Dedupe / re-analysis policy
+- [x] Prefer pinned / uploader comments
+- [x] More line formats
+- [x] Optional LLM cleaning (schema columns already exist; `LLM_CLEANING_ENABLED`)
+- [x] Dedupe / re-analysis policy (`replace_for_video` last-write-wins)
+
+## Phase 6 — Search UI
+
+- [x] `frontend/` Vite + React + TypeScript
+- [x] TanStack Router / Query, Zustand UI prefs, Paraglide `en` + `zh-hant`
+- [x] Tailwind + shadcn/ui (input, button, skeleton)
+- [x] Search + song detail + channel/video browse
+- [x] Debounced search, loading/empty/error, pagination
+- [x] Dev proxy / `VITE_API_BASE_URL` + docs
 
 ## Out of scope for now
 
-- Search UI / frontend
-- Auth / public hardening
+- Auth / multi-user / public hardening
 - Alembic or Poetry/uv rewrite
 - Celery/RQ (unless scrape volume demands it)
+- Tier C YouTube proxies/cookies (only if Tier B still fails)
+- CI

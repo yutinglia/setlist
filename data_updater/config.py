@@ -52,3 +52,18 @@ YTDLP_COMMENT_MAX_SLEEP_INTERVAL = float(
 
 # How many top comments to fetch per video
 UPDATE_MAX_COMMENTS_PER_VIDEO = int(os.getenv("UPDATE_MAX_COMMENTS_PER_VIDEO", "50"))
+
+# Phase 5 — optional LLM setlist cleaning (off by default; regex path is primary)
+LLM_CLEANING_ENABLED = os.getenv("LLM_CLEANING_ENABLED", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+LLM_API_URL = os.getenv(
+    "LLM_API_URL",
+    "https://api.openai.com/v1/chat/completions",
+)
+LLM_API_KEY = os.getenv("LLM_API_KEY", "")
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
+LLM_MAX_CLEANING_ATTEMPTS = int(os.getenv("LLM_MAX_CLEANING_ATTEMPTS", "2"))

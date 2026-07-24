@@ -13,9 +13,11 @@ from utils.youtube_timestamp import youtube_url_with_timestamp
 class SongRepository:
     """Song read/write access. Does not commit — caller owns transactions.
 
-    Write policy for a video's setlist: ``replace_for_video`` deletes all
-    existing songs for that ``video_id`` and inserts the new list. Prefer this
-    over per-row upsert so re-analysis can shrink or reorder the setlist cleanly.
+    **Re-analysis / conflict policy:** ``replace_for_video`` is authoritative.
+    Each successful analysis deletes all songs for that ``video_id`` and inserts
+    the new list — there is no merge with the previous setlist. Last successful
+    write wins. Within a single extract, ``CommentAnalyzer`` already drops
+    duplicate ``(timestamp, casefold(title))`` rows (first occurrence kept).
     """
 
     def __init__(self, session: AsyncSession):

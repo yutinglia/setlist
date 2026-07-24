@@ -154,6 +154,13 @@ class VideoRepository:
                     else False
                 ),
                 song_list_comment_raw_data=video.song_list_comment_raw_data,
+                cleaning_attempts=(
+                    video.cleaning_attempts
+                    if video.cleaning_attempts is not None
+                    else 0
+                ),
+                last_cleaned_at=video.last_cleaned_at,
+                cleaned_song_list_comment=video.cleaned_song_list_comment,
                 updated_at=now,
             )
             .returning(Videos)

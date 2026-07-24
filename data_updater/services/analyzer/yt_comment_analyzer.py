@@ -1,26 +1,44 @@
-from typing import Any
+"""Detect setlist comments and extract songs from timestamped lines."""
+
+from __future__ import annotations
+
 import logging
 import re
+from typing import Any
 
 from models.song import Song
 
 logger = logging.getLogger(__name__)
 
-# Regex pattern to match timestamps in the format mm:ss or hh:mm:ss
-youtube_timestamp_pattern = r"\d{1,2}:\d{2}(?::\d{2})?"
+# mm:ss or hh:mm:ss (after normalizing full-width colons)
+_TIMESTAMP_RE = re.compile(r"\d{1,2}:\d{2}(?::\d{2})?")
 
 # Separators commonly placed around timestamps in setlist comments
-_SEPARATORS = r"[-~～–—|｜・·\s]+"
+_SEPARATORS = r"[-~～–—|｜・·／/\s]+"
+
+# Leading list numbers: "01. ", "1) ", "1、", "(1) ", "[1] "
+# Do not treat "1:23" as numbering (colon is reserved for timestamps).
+_NUMBERING_RE = re.compile(
+    r"^(?:"
+    r"[(\[【]\d+[)\]】]|"
+    r"\d+[.)\]、．]"
+    r")\s*"
+)
 
 
 class CommentAnalyzer:
+    """Pick the best setlist comment and parse timestamped song lines.
+
+    Selection preference (highest first): pinned → uploader → timestamp count → likes.
+    Within one extract, songs are deduped by ``(timestamp, casefold(title))``; first wins.
+    """
+
     def __init__(
         self,
         comments: list[dict[str, Any]],
         video_id: str,
         minimum_timestamp_count: int = 3,
     ) -> None:
-        # at least n timestamps to consider it a song list comment
         self.minimum_timestamp_count: int = minimum_timestamp_count
         self.video_id: str = video_id
         self.comments: list[dict[str, Any]] = comments
@@ -29,45 +47,85 @@ class CommentAnalyzer:
         self.song_list: list[Song] = []
 
     def has_song_list_comment(self) -> bool:
-        logger.debug("Analyzing %s comments for video %s", len(self.comments), self.video_id)
+        logger.debug(
+            "Analyzing %s comments for video %s", len(self.comments), self.video_id
+        )
 
+        best: tuple[tuple[int, int, int, int], dict[str, Any]] | None = None
         for comment in self.comments:
-            text: str = comment.get("text", "")
-            if self._contains_timestamp(text):
-                self.has_song_list = True
-                self.song_list_comment = comment
-                logger.info("Song list comment found for video %s", self.video_id)
-                return True
+            text = self._normalize_text(comment.get("text", "") or "")
+            if not self._contains_timestamp(text):
+                continue
+            score = self._score_comment(comment, text)
+            if best is None or score > best[0]:
+                best = (score, comment)
 
-        return False
+        if best is None:
+            return False
+
+        self.has_song_list = True
+        self.song_list_comment = best[1]
+        logger.info(
+            "Song list comment found for video %s (score pinned=%s uploader=%s)",
+            self.video_id,
+            best[0][0],
+            best[0][1],
+        )
+        return True
+
+    def _score_comment(
+        self, comment: dict[str, Any], text: str
+    ) -> tuple[int, int, int, int]:
+        """Higher is better: pinned, uploader, timestamp density, likes."""
+        pinned = 1 if comment.get("is_pinned") else 0
+        uploader = 1 if comment.get("author_is_uploader") else 0
+        ts_count = len(_TIMESTAMP_RE.findall(text))
+        likes = int(comment.get("like_count") or 0)
+        return (pinned, uploader, ts_count, likes)
 
     def _contains_timestamp(self, text: str) -> bool:
-        matches = re.findall(youtube_timestamp_pattern, text)
+        matches = _TIMESTAMP_RE.findall(text)
         return len(matches) >= self.minimum_timestamp_count
+
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        # Full-width colon → ASCII so one timestamp regex covers JP setlists
+        return text.replace("：", ":")
 
     def extract_song_list(self) -> list[Song]:
         if not self.has_song_list or not self.song_list_comment:
             return []
 
-        text: str = self.song_list_comment.get("text", "")
-        self.song_list = []
+        text = self.song_list_comment.get("text", "") or ""
+        self.song_list = self.extract_from_text(text)
+        return self.song_list
 
-        for line in text.split("\n"):
+    def extract_from_text(
+        self,
+        text: str,
+        *,
+        analyzed_by_llm: bool = False,
+    ) -> list[Song]:
+        """Parse songs from arbitrary setlist text (regex path or LLM-cleaned)."""
+        songs: list[Song] = []
+        for line in self._normalize_text(text).split("\n"):
             song = self._parse_song_line(line)
             if song is not None:
-                self.song_list.append(song)
-
-        return self.song_list
+                if analyzed_by_llm:
+                    song.analyzed_by_llm = True
+                songs.append(song)
+        return self._dedupe_songs(songs)
 
     def _parse_song_line(self, line: str) -> Song | None:
         line = line.strip()
         if not line:
             return None
 
-        # Remove optional numbering at the start (e.g., "01. " or "1) ")
-        line = re.sub(r"^\d+[.)、]\s*", "", line)
+        line = _NUMBERING_RE.sub("", line, count=1).strip()
+        if not line:
+            return None
 
-        match = re.search(youtube_timestamp_pattern, line)
+        match = _TIMESTAMP_RE.search(line)
         if not match:
             return None
 
@@ -75,13 +133,34 @@ class CommentAnalyzer:
         before = line[: match.start()].strip()
         after = line[match.end() :].strip()
 
-        # Strip separators on both sides of the timestamp
+        # Drop brackets that wrapped the timestamp: "(1:23)", "【1:23】", etc.
+        before = re.sub(r"[(\[【（]+$", "", before).strip()
+        after = re.sub(r"^[)\]】）]+", "", after).strip()
+
         before = re.sub(rf"^{_SEPARATORS}|{_SEPARATORS}$", "", before).strip()
         after = re.sub(rf"^{_SEPARATORS}|{_SEPARATORS}$", "", after).strip()
 
         # Prefer title after timestamp; fall back to title before
+        # (covers "1:23 Title", "Title - 1:23", "01. Title 0:12:00").
         title = after or before
         if not title:
             return None
 
+        # Reject titles that are only leftover punctuation / separators
+        if not re.search(r"[\w\u3040-\u30ff\u3400-\u9fff]", title):
+            return None
+
         return Song(title=title, timestamp=timestamp, video_id=self.video_id)
+
+    @staticmethod
+    def _dedupe_songs(songs: list[Song]) -> list[Song]:
+        """Keep first occurrence of each (timestamp, casefold(title))."""
+        seen: set[tuple[str, str]] = set()
+        out: list[Song] = []
+        for song in songs:
+            key = (song.timestamp or "", (song.title or "").casefold().strip())
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(song)
+        return out

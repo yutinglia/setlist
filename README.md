@@ -1,8 +1,8 @@
 # vtuber-karaoke-search
 
-Scrape VTuber karaoke streams, detect setlist comments (timestamp lists), store songs, and search them via a minimal HTTP API.
+Scrape VTuber karaoke streams, detect setlist comments (timestamp lists), store songs, and search them via a minimal HTTP API + React search UI.
 
-**Status:** Phase 4 search API is in place (`GET /v1/songs/search`, song/channel/video lists, title trigram index, pagination). Updater pipeline is wired with Tier B YouTube pacing. No UI yet (Phase 6). See [PLAN.md](PLAN.md) and [TODO.md](TODO.md).
+**Status:** Phases 0–6 MVP are in place (pipeline + Tier B pacing, search API, extraction quality, search UI). Optional LLM cleaning is off by default (`LLM_CLEANING_ENABLED`). See [PLAN.md](PLAN.md) and [TODO.md](TODO.md).
 
 ## Stack
 
@@ -10,6 +10,7 @@ Scrape VTuber karaoke streams, detect setlist comments (timestamp lists), store 
 - **PostgreSQL 18** + **Flyway** migrations (`db/migrations/`)
 - **yt-dlp** — channel / video / comment scraping
 - **SQLAlchemy 2** (async) + **sqlacodegen** for ORM models
+- **React / Vite** (`frontend/`) — search UI (TanStack Router/Query, Zustand, Paraglide, Tailwind, shadcn/ui)
 
 ## Quick start (Dev Container)
 
@@ -20,16 +21,25 @@ Scrape VTuber karaoke streams, detect setlist comments (timestamp lists), store 
 
 ```bash
 cd data_updater
-uvicorn main:app --host 0.0.0.0 --port 8000
+APP_ENV=dev uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+5. Run the UI (Node 20+):
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 | URL | Purpose |
 |-----|---------|
+| http://localhost:5173 | Search UI |
 | http://localhost:8000/v1/health | Health check |
 | http://localhost:8000/v1/songs/search?q=... | Search songs by title |
 | http://localhost:8000/docs | OpenAPI (when `APP_ENV=dev`) |
 
-More detail: [.devcontainer/README.md](.devcontainer/README.md).
+More detail: [.devcontainer/README.md](.devcontainer/README.md) · [frontend/README.md](frontend/README.md).
 
 ## Quick start (local Docker)
 
@@ -41,6 +51,10 @@ docker compose -f .devcontainer/docker-compose.yml up -d db flyway
 cd data_updater
 pip install -r requirements.txt
 APP_ENV=dev uvicorn main:app --host 0.0.0.0 --port 8000
+
+# UI (separate terminal)
+cd frontend
+npm install && npm run dev
 ```
 
 Or run the production-oriented API container (uvicorn + background updater):
@@ -51,6 +65,15 @@ docker compose up --build data_updater
 ```
 
 Without Compose, Windows one-shot DB scripts live under `db/devscript/`.
+
+## Search UI
+
+Brand name in the UI: **Setlist** (`vtuber-karaoke-search`). Locales: English + Traditional Chinese (`en` / `zh-hant`).
+
+- Debounced song search with pagination and YouTube `&t=` deep links
+- Song detail, channel list → videos → video songs
+- Vite proxies `/v1` to `http://127.0.0.1:8000` in dev; or set `VITE_API_BASE_URL`
+- Use `APP_ENV=dev` for loose CORS, or set `CORS_ORIGINS` to the Vite origin (e.g. `http://localhost:5173`) in prod
 
 ## Search API (v1)
 
@@ -92,6 +115,12 @@ Copy [`.env.example`](.env.example) to `.env` and adjust. Do not commit a real `
 | `UPDATE_MAX_ANALYZE_ATTEMPTS` | `3` | Skip videos after this many failed/empty analyses |
 | `UPDATE_YOUTUBE_COOLDOWN_SECONDS` | `3600` | Skip all YouTube work after a suspected block |
 | `YTDLP_COMMENT_SLEEP_INTERVAL` / `MAX` | `2` / `10` | yt-dlp sleeps for comment scrapes |
+| `LLM_CLEANING_ENABLED` | `false` | Optional OpenAI-compatible setlist cleaning after regex extract |
+| `LLM_API_URL` | OpenAI chat completions URL | Used only when cleaning is enabled |
+| `LLM_API_KEY` | _(empty)_ | Required when `LLM_CLEANING_ENABLED=true` |
+| `LLM_MODEL` | `gpt-4o-mini` | Chat model id |
+| `LLM_MAX_CLEANING_ATTEMPTS` | `2` | Cap LLM clean tries per video |
+| `VITE_API_BASE_URL` | _(empty)_ | Frontend only; leave empty in Vite dev (proxy). See `frontend/.env.example` |
 
 ## Seed karaoke channels
 
@@ -109,7 +138,7 @@ docker compose -f .devcontainer/docker-compose.yml exec -T db \
   psql -U vks_db_user -d vks_db < db/devscript/seed_channels.sql
 ```
 
-Then start the API from `data_updater/` (prefer `DATA_UPDATE_INTERVAL=1800`). One cycle scrapes recent videos, analyzes up to `UPDATE_MAX_COMMENT_SCRAPES` of them, and writes songs when a setlist comment is found. Logs show caps, jitter, and cooldown. After songs exist, try `GET /v1/songs/search?q=...`.
+Then start the API from `data_updater/` (prefer `DATA_UPDATE_INTERVAL=1800`). One cycle scrapes recent videos, analyzes up to `UPDATE_MAX_COMMENT_SCRAPES` of them, and writes songs when a setlist comment is found. Logs show caps, jitter, and cooldown. After songs exist, try the UI or `GET /v1/songs/search?q=...`.
 
 ### Tests
 
@@ -120,13 +149,20 @@ pip install -r requirements.txt
 pytest
 ```
 
-Analyzer and timestamp-helper unit tests always run. Repository write smoke tests skip if Postgres is unreachable.
+Analyzer and timestamp-helper unit tests always run (including pinned/uploader preference and extra setlist formats). Repository write smoke tests skip if Postgres is unreachable.
+
+### Setlist extraction notes
+
+- Comment choice prefers **pinned**, then **uploader**, then timestamp density / likes.
+- Line formats include `1:23 Title`, `Title - 1:23`, `01. Title 0:12:00`, parenthesized timestamps, and full-width `：`.
+- Songs are deduped within a video by `(timestamp, casefold(title))`. Re-analysis uses `replace_for_video` (delete + insert); last successful analysis wins — no merge.
 
 ## Layout
 
 ```
 vtuber-karaoke-search/
 ├── .devcontainer/     # Dev Container (app + Postgres + Flyway)
+├── frontend/          # Vite React search UI
 ├── data_updater/      # FastAPI service (run with cwd = this dir)
 ├── db/migrations/     # Flyway SQL (schema source of truth; V1 + V2 title index)
 ├── .env.example       # Sample env vars (copy to .env)
@@ -139,4 +175,5 @@ vtuber-karaoke-search/
 
 - [AGENTS.md](AGENTS.md) — conventions and do-nots
 - [PLAN.md](PLAN.md) — phases 0–6
+- [frontend/README.md](frontend/README.md) — UI run / proxy
 - [data_updater/NOTE.md](data_updater/NOTE.md) — yt-dlp payload shape notes

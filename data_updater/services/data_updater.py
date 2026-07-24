@@ -11,6 +11,10 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import (
+    LLM_API_KEY,
+    LLM_CLEANING_ENABLED,
+    LLM_MAX_CLEANING_ATTEMPTS,
+    LLM_MODEL,
     UPDATE_MAX_ANALYZE_ATTEMPTS,
     UPDATE_MAX_COMMENT_SCRAPES,
     UPDATE_MAX_COMMENTS_PER_VIDEO,
@@ -22,10 +26,12 @@ from config import (
     YTDLP_COMMENT_SLEEP_INTERVAL,
 )
 from models.channel import YouTubeChannel
+from models.song import Song
 from models.video import YouTubeVideo
 from repositories.channel_repository import ChannelRepository
 from repositories.song_repository import SongRepository
 from repositories.video_repository import VideoRepository
+from services.analyzer.llm_cleaner import maybe_clean_song_list_comment
 from services.analyzer.yt_comment_analyzer import CommentAnalyzer
 from services.yt_scraper.channel_scraper import YouTubeChannelScraper
 from services.yt_scraper.channel_video_scraper import YouTubeChannelVideoScraper
@@ -291,6 +297,7 @@ class DataUpdater:
             songs = analyzer.extract_song_list()
             video.has_song_list_comment = True
             video.song_list_comment_raw_data = analyzer.song_list_comment
+            songs = await self._maybe_llm_clean(video, analyzer, songs)
             await self.song_repo.replace_for_video(video.id, songs)
             logger.info(
                 "Video %s: found setlist with %s song(s)", video.id, len(songs)
@@ -301,6 +308,75 @@ class DataUpdater:
             logger.info("Video %s: no setlist comment found", video.id)
 
         await self.video_repo.update_analysis(video)
+
+    async def _maybe_llm_clean(
+        self,
+        video: YouTubeVideo,
+        analyzer: CommentAnalyzer,
+        songs: list[Song],
+    ) -> list[Song]:
+        """Optionally LLM-clean the setlist; keep regex songs on skip/failure."""
+        if not LLM_CLEANING_ENABLED:
+            return songs
+
+        if not LLM_API_KEY:
+            logger.warning(
+                "LLM_CLEANING_ENABLED set but LLM_API_KEY empty; skipping clean"
+            )
+            return songs
+
+        attempts = video.cleaning_attempts or 0
+        if attempts >= LLM_MAX_CLEANING_ATTEMPTS:
+            logger.info(
+                "Video %s: LLM cleaning skipped (attempts=%s >= max=%s)",
+                video.id,
+                attempts,
+                LLM_MAX_CLEANING_ATTEMPTS,
+            )
+            return songs
+
+        raw_text = ""
+        if analyzer.song_list_comment:
+            raw_text = analyzer.song_list_comment.get("text", "") or ""
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        video.cleaning_attempts = attempts + 1
+        video.last_cleaned_at = now
+
+        cleaned = await maybe_clean_song_list_comment(raw_text)
+        if cleaned is None:
+            return songs
+
+        video.cleaned_song_list_comment = {
+            "text": cleaned,
+            "source": "llm",
+            "model": LLM_MODEL,
+        }
+        llm_songs = analyzer.extract_from_text(cleaned, analyzed_by_llm=True)
+        if not llm_songs:
+            logger.warning(
+                "Video %s: LLM clean returned no parseable songs; keeping regex list",
+                video.id,
+            )
+            return songs
+
+        # Prefer LLM list when it parses at least as many songs as regex.
+        if len(llm_songs) >= len(songs):
+            logger.info(
+                "Video %s: using LLM-cleaned setlist (%s songs, was %s)",
+                video.id,
+                len(llm_songs),
+                len(songs),
+            )
+            return llm_songs
+
+        logger.info(
+            "Video %s: LLM setlist shorter (%s < %s); keeping regex list",
+            video.id,
+            len(llm_songs),
+            len(songs),
+        )
+        return songs
 
     async def _jitter_sleep(self) -> None:
         low = min(UPDATE_SCRAPE_SLEEP_MIN, UPDATE_SCRAPE_SLEEP_MAX)
