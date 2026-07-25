@@ -25,7 +25,11 @@ start_service() {
 
   (
     cd "${working_directory}"
-    nohup "$@" >>"${log_file}" 2>&1 </dev/null &
+    # Lifecycle commands run in a short-lived editor shell. Give each server
+    # its own session so descendants (notably Vite/Node) are not terminated
+    # when that shell closes. --wait keeps the tracked PID alive for as long
+    # as the server process.
+    nohup setsid --fork --wait "$@" >>"${log_file}" 2>&1 </dev/null &
     echo "$!" >"${pid_file}"
   )
 
@@ -49,4 +53,4 @@ start_service \
 start_service \
   "frontend" \
   "${WORKSPACE}/frontend" \
-  npm run dev -- --host 0.0.0.0 --port 5173
+  ./node_modules/.bin/vite --host 0.0.0.0 --port 5173
