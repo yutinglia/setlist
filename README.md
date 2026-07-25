@@ -110,7 +110,9 @@ Copy [`.env.example`](.env.example) to `.env` and adjust. Do not commit a real `
 | `DATABASE_URL` | built from `DB_*` | `postgresql+asyncpg://...` |
 | `DATA_UPDATE_INTERVAL` | `10` (dev) / `1800` (prod) | Seconds between updater cycles; use `1800+` once scraping is on |
 | `UPDATE_MAX_COMMENT_SCRAPES` | `5` | Max comment scrapes per updater cycle |
-| `UPDATE_MAX_VIDEOS` | `20` | Max videos upserted/considered per channel per cycle |
+| `UPDATE_MAX_VIDEOS` | `20` | Max videos upserted/considered per channel per cycle (recent refresh) |
+| `UPDATE_BACKFILL_PAGE_SIZE` | same as `UPDATE_MAX_VIDEOS` | Playlist window size when backfilling a new channel |
+| `UPDATE_BACKFILL_CHANNELS_PER_CYCLE` | `1` | Max channels that take a backfill page per updater cycle |
 | `UPDATE_SCRAPE_SLEEP_MIN` / `MAX` | `3` / `8` | Jitter sleep (seconds) between comment scrapes |
 | `UPDATE_MAX_ANALYZE_ATTEMPTS` | `3` | Skip videos after this many failed/empty analyses |
 | `UPDATE_YOUTUBE_COOLDOWN_SECONDS` | `3600` | Skip all YouTube work after a suspected block |

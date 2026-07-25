@@ -20,6 +20,15 @@ class Channels(Base):
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     thumbnail_url: Mapped[Optional[str]] = mapped_column(String(500))
     raw_data: Mapped[Optional[dict]] = mapped_column(JSONB)
+    video_backfill_status: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default=text("'done'")
+    )
+    video_backfill_offset: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text('1')
+    )
+    video_backfill_updated_at: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime
+    )
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
     updated_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
 

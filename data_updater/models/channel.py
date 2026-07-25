@@ -1,7 +1,18 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
+
+VideoBackfillStatus = Literal["pending", "running", "done", "failed"]
+
+VIDEO_BACKFILL_PENDING: VideoBackfillStatus = "pending"
+VIDEO_BACKFILL_RUNNING: VideoBackfillStatus = "running"
+VIDEO_BACKFILL_DONE: VideoBackfillStatus = "done"
+VIDEO_BACKFILL_FAILED: VideoBackfillStatus = "failed"
+
+VIDEO_BACKFILL_ACTIVE: frozenset[str] = frozenset(
+    {VIDEO_BACKFILL_PENDING, VIDEO_BACKFILL_RUNNING}
+)
 
 
 class ChannelCreate(BaseModel):
@@ -31,6 +42,19 @@ class YouTubeChannel(BaseModel):
     url: str = Field(..., max_length=500)
     thumbnail_url: Optional[str] = Field(default=None, max_length=500)
     raw_data: Optional[dict[str, Any]] = None
+    video_backfill_status: VideoBackfillStatus = Field(
+        default=VIDEO_BACKFILL_DONE,
+        description=(
+            "pending/running = paced full-catalog ingest; "
+            "done = recent-only refresh"
+        ),
+    )
+    video_backfill_offset: int = Field(
+        default=1,
+        ge=1,
+        description="Next 1-based yt-dlp playliststart for backfill pages",
+    )
+    video_backfill_updated_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

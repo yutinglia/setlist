@@ -35,6 +35,12 @@ export function SiteHeader() {
         >
           {m.nav_channels()}
         </Link>
+        <Link
+          to="/status"
+          className="rounded-md px-2.5 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground data-[status=active]:bg-secondary data-[status=active]:text-foreground"
+        >
+          {m.nav_status()}
+        </Link>
       </nav>
 
       <div className="flex items-center gap-2">

@@ -1,11 +1,15 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import Channels
-from models.channel import YouTubeChannel
+from models.channel import (
+    VIDEO_BACKFILL_DONE,
+    VideoBackfillStatus,
+    YouTubeChannel,
+)
 
 
 class ChannelRepository:
@@ -44,7 +48,11 @@ class ChannelRepository:
         return YouTubeChannel.model_validate(channel) if channel else None
 
     async def upsert(self, channel: YouTubeChannel) -> YouTubeChannel:
-        """Insert or update a channel by primary key ``id``. Does not commit."""
+        """Insert or update a channel by primary key ``id``. Does not commit.
+
+        Backfill columns are written on insert only so metadata refreshes do not
+        reset paced full-catalog progress.
+        """
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         values = {
             "id": channel.id,
@@ -54,9 +62,17 @@ class ChannelRepository:
             "raw_data": channel.raw_data,
             "updated_at": now,
         }
+        insert_values = {
+            **values,
+            "created_at": now,
+            "video_backfill_status": channel.video_backfill_status
+            or VIDEO_BACKFILL_DONE,
+            "video_backfill_offset": channel.video_backfill_offset or 1,
+            "video_backfill_updated_at": channel.video_backfill_updated_at,
+        }
         stmt = (
             insert(Channels)
-            .values(**values, created_at=now)
+            .values(**insert_values)
             .on_conflict_do_update(
                 index_elements=[Channels.id],
                 set_={
@@ -73,3 +89,28 @@ class ChannelRepository:
         row = result.scalar_one()
         await self.session.flush()
         return YouTubeChannel.model_validate(row)
+
+    async def update_video_backfill(
+        self,
+        channel_id: str,
+        *,
+        status: VideoBackfillStatus,
+        offset: int,
+    ) -> YouTubeChannel | None:
+        """Persist paced video-list backfill cursor. Does not commit."""
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        stmt = (
+            update(Channels)
+            .where(Channels.id == channel_id)
+            .values(
+                video_backfill_status=status,
+                video_backfill_offset=max(1, offset),
+                video_backfill_updated_at=now,
+                updated_at=now,
+            )
+            .returning(Channels)
+        )
+        result = await self.session.execute(stmt)
+        row = result.scalar_one_or_none()
+        await self.session.flush()
+        return YouTubeChannel.model_validate(row) if row else None

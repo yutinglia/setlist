@@ -9,6 +9,7 @@ from db import async_session_factory
 from repositories import ChannelRepository, VideoRepository, SongRepository
 from routers.v1 import router as v1_router
 from services.data_updater import DataUpdater
+from services.updater_status import UpdaterPhase, updater_status
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,12 @@ openapi_url = "/openapi.json" if IS_DEV else None
 
 
 async def run_periodic_data_updater():
+    updater_status.set(
+        UpdaterPhase.WAITING,
+        detail="Waiting for first update cycle",
+        clear_channel=True,
+        clear_video=True,
+    )
     while True:
         logger.info("Updating song list data...")
         try:
@@ -32,10 +39,32 @@ async def run_periodic_data_updater():
             logger.info("Song list data updated successfully.")
         except asyncio.CancelledError:
             logger.info("Data updater task cancelled. Terminating loop.")
+            updater_status.set(
+                UpdaterPhase.IDLE,
+                detail="Updater stopped",
+                clear_channel=True,
+                clear_video=True,
+            )
             break
-        except Exception:
+        except Exception as exc:
             logger.exception("Error updating song list data")
+            updater_status.end_cycle(error=str(exc))
         logger.info("Waiting for the next update cycle...")
+        remaining = DataUpdater.youtube_cooldown_remaining()
+        if remaining > 0:
+            updater_status.set(
+                UpdaterPhase.COOLDOWN,
+                detail=f"YouTube cooldown ({remaining:.0f}s remaining)",
+                clear_channel=True,
+                clear_video=True,
+            )
+        else:
+            updater_status.set(
+                UpdaterPhase.WAITING,
+                detail=f"Waiting {DATA_UPDATE_INTERVAL}s for next cycle",
+                clear_channel=True,
+                clear_video=True,
+            )
         await asyncio.sleep(DATA_UPDATE_INTERVAL)
 
 

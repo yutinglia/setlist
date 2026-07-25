@@ -24,6 +24,9 @@ export type YouTubeChannel = {
   name: string
   url: string
   thumbnail_url: string | null
+  video_backfill_status?: "pending" | "running" | "done" | "failed"
+  video_backfill_offset?: number
+  video_backfill_updated_at?: string | null
   created_at: string | null
   updated_at: string | null
 }
@@ -64,4 +67,40 @@ export type ChannelVideoRefresh = {
   reclassified: number
   cleared: number
   message: string
+}
+
+/** Live scraper / analyzer phase from GET /v1/updater/status */
+export type UpdaterPhase =
+  | "idle"
+  | "waiting"
+  | "cooldown"
+  | "starting"
+  | "fetching_channels"
+  | "refreshing_channel"
+  | "scraping_videos"
+  | "backfilling_videos"
+  | "reclassifying"
+  | "scraping_comments"
+  | "analyzing"
+  | "llm_cleaning"
+  | "jitter"
+  | "committing"
+  | "error"
+
+export type UpdaterStatus = {
+  phase: UpdaterPhase | string
+  detail: string | null
+  channel_id: string | null
+  channel_name: string | null
+  video_id: string | null
+  video_title: string | null
+  cycle_started_at: string | null
+  last_cycle_finished_at: string | null
+  last_error: string | null
+  comment_scrapes_this_cycle: number
+  comment_scrape_cap: number
+  is_cycle_active: boolean
+  youtube_cooldown_remaining_seconds: number
+  update_interval_seconds: number
+  updated_at: string | null
 }

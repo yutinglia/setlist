@@ -13,6 +13,16 @@ export function useHealth() {
   })
 }
 
+export function useUpdaterStatus() {
+  return useQuery({
+    queryKey: ["updater", "status"],
+    queryFn: () => api.updaterStatus(),
+    refetchInterval: 2_000,
+    refetchIntervalInBackground: true,
+    retry: 1,
+  })
+}
+
 export function useSongSearch(q: string, page: number) {
   const offset = page * PAGE_SIZE
   return useQuery({

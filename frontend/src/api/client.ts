@@ -4,6 +4,7 @@ import type {
   Paginated,
   Song,
   SongSearchResult,
+  UpdaterStatus,
   YouTubeChannel,
   YouTubeVideo,
 } from "@/api/types"
@@ -65,6 +66,8 @@ function pageQuery(limit: number, offset: number): string {
 
 export const api = {
   health: () => request<HealthResponse>("/v1/health"),
+
+  updaterStatus: () => request<UpdaterStatus>("/v1/updater/status"),
 
   searchSongs: (q: string, limit: number, offset: number) =>
     request<Paginated<SongSearchResult>>(

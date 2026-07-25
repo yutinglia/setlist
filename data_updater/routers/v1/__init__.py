@@ -1,12 +1,13 @@
 from fastapi import APIRouter
 
 from config import IS_DEV
-from routers.v1 import health, search
+from routers.v1 import health, search, updater
 
 router = APIRouter(prefix="/v1")
 
 router.include_router(health.router)
 router.include_router(search.router)
+router.include_router(updater.router)
 
 # Placeholder example routes only in APP_ENV=dev
 if IS_DEV:

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from deps import get_session, pagination_params
-from models.channel import ChannelCreate, YouTubeChannel
+from models.channel import ChannelCreate, VIDEO_BACKFILL_PENDING, YouTubeChannel
 from models.search import Paginated, SongSearchResult
 from models.song import Song
 from models.video import YouTubeVideo
@@ -88,8 +88,9 @@ async def create_channel(
 ):
     """Scrape a YouTube channel URL and add it to the tracked list.
 
-    Does not scrape videos; the background updater (or video refresh) will
-    pick them up. Returns 409 if the channel id is already tracked.
+    Does not scrape videos in this request; sets ``video_backfill_status=pending``
+    so the background updater walks the full catalog one page per cycle.
+    Returns 409 if the channel id is already tracked.
     """
 
     def _scrape() -> YouTubeChannel:
@@ -136,8 +137,16 @@ async def create_channel(
             detail=f"Channel already tracked: {existing.name} ({existing.id})",
         )
 
+    to_create = scraped.model_copy(
+        update={
+            "video_backfill_status": VIDEO_BACKFILL_PENDING,
+            "video_backfill_offset": 1,
+            "video_backfill_updated_at": None,
+        }
+    )
+
     try:
-        created = await repo.upsert(scraped)
+        created = await repo.upsert(to_create)
         await session.commit()
     except Exception:
         await session.rollback()
