@@ -87,13 +87,13 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
 - **Imports assume cwd = `data_updater/`** (e.g. `from config import ...`). Do not introduce package-relative imports without making it a proper installable package.
 - **Frontend** lives under `frontend/` with its own cwd; do not mix Python package imports into the UI tree.
 - **yt-dlp scrapers are synchronous and blocking.** If calling them from async FastAPI code, wrap with `asyncio.to_thread` (or similar). Do not block the event loop.
-- **Background updater** lives in `main.py` lifespan and calls `DataUpdater.update()` on an interval (`DATA_UPDATE_INTERVAL`; default 10s in `APP_ENV=dev`, else 30m; override via env). It defaults off in dev and on in prod via `BACKGROUND_UPDATER_ENABLED`. Keep long scraping work isolated and resilient (one failure should not kill the loop).
-- **Repositories do not commit.** `DataUpdater` owns `session.commit()` / `rollback()` (commit per channel in Phase 2). Read-only search routes open a session via `deps.get_session` and do not commit.
+- **Background updater** lives in `main.py` lifespan and calls `DataUpdater.update()` every `DATA_UPDATE_INTERVAL` (default 5m in every environment). Scraping is opt-in in config; production Compose explicitly enables it. Persisted per-channel due times enforce the 6h steady scan interval. Use `python run_updater_once.py` to test the identical path locally.
+- **Repositories do not commit.** `DataUpdater` owns transactions: each backfill page/cursor and each analysis result is durable, with a final channel commit. Read-only search routes open a session via `deps.get_session` and do not commit.
 - **Song setlist writes** use `SongRepository.replace_for_video` (delete all songs for that video, then insert) so re-analysis can shrink the list cleanly. **Conflict policy:** last successful analysis wins (no merge). Within one extract, duplicates keyed by `(timestamp, casefold(title))` are dropped (first kept).
 - **Video list upserts** only refresh metadata columns; analysis fields are updated via `VideoRepository.update_analysis` (includes optional LLM cleaning columns when used).
-- **New-channel video backfill** is cursor-based and paced. Failed/partial tab pages keep the same offset and retry; active channels rotate by oldest attempt time so one channel cannot starve the rest.
+- **New-channel video backfill** is cursor-based and paced (100 entries/tab/page, up to 3 durable pages/cycle by default). Failed/partial tab pages keep the same offset and retry; active channels rotate by oldest attempt time so one channel cannot starve the rest. Comment analysis is a separate global queue.
 - **Search deep links** use `utils.youtube_timestamp.youtube_url_with_timestamp` (`mm:ss` / `hh:mm:ss` → `&t=Ns`).
-- **Updater status** is process-local at `GET /v1/updater/status`; keep public error text redacted and detailed exceptions in server logs.
+- **Updater status** is process-local at `GET /v1/updater/status`; YouTube cooldown itself is persisted in `scraper_state` so restarts cannot bypass it. Keep public error text redacted and detailed exceptions in server logs.
 - **Setlist comment choice** prefers pinned, then uploader, then denser timestamps / likes (`CommentAnalyzer`).
 - **Optional LLM cleaning** is behind `LLM_CLEANING_ENABLED` (default off); uses schema columns `cleaning_attempts`, `cleaned_song_list_comment`, `analyzed_by_llm`. Regex extract remains primary.
 - **Frontend server cache** = TanStack Query; Zustand is for UI prefs only (locale, recent searches).

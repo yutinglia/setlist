@@ -101,8 +101,8 @@ Copy [`.env.example`](.env.example) to `.env` and adjust. Do not commit a real `
 
 | Variable | Default | Notes |
 |----------|---------|-------|
-| `APP_ENV` | `prod` | `dev` enables docs, loose CORS, and management; `test` disables background work |
-| `BACKGROUND_UPDATER_ENABLED` | `false` (dev) / `true` (prod) | Opt in during development to avoid accidental YouTube traffic |
+| `APP_ENV` | `prod` | `dev` enables docs, loose CORS, and management; scraper policy is unchanged |
+| `BACKGROUND_UPDATER_ENABLED` | `false` | Opt in explicitly; production Compose defaults it to `true` |
 | `MANAGEMENT_API_ENABLED` | `true` (dev) / `false` (prod) | Enables mutating channel/scraper endpoints |
 | `CORS_ORIGINS` | _(empty)_ | Comma-separated browser origins in prod; ignored when `APP_ENV=dev` |
 | `DB_HOST` | `localhost` | Use `db` inside Compose / Dev Container |
@@ -111,15 +111,20 @@ Copy [`.env.example`](.env.example) to `.env` and adjust. Do not commit a real `
 | `DB_USER` | `vks_db_user` | Local/dev only — change for anything public |
 | `DB_PASSWORD` | `vks_db_pwd` | Local/dev only |
 | `DATABASE_URL` | built from `DB_*` | `postgresql+asyncpg://...` |
-| `DATA_UPDATE_INTERVAL` | `10` (dev) / `1800` (prod) | Seconds between updater cycles; use `1800+` once scraping is on |
-| `UPDATE_MAX_COMMENT_SCRAPES` | `5` | Max comment scrapes per updater cycle |
-| `UPDATE_MAX_VIDEOS` | `20` | Max videos upserted/considered per channel per cycle (recent refresh) |
-| `UPDATE_BACKFILL_PAGE_SIZE` | same as `UPDATE_MAX_VIDEOS` | Playlist window size when backfilling a new channel |
-| `UPDATE_BACKFILL_CHANNELS_PER_CYCLE` | `1` | Max channels that take a backfill page per updater cycle |
+| `DATA_UPDATE_INTERVAL` | `300` | Environment-independent worker heartbeat; only due work calls YouTube |
+| `UPDATE_STEADY_SCAN_INTERVAL` | `21600` | Successful recent-record scan interval per channel (6 hours) |
+| `UPDATE_STEADY_CHANNELS_PER_CYCLE` | `3` | Due steady-state channels checked per worker cycle |
+| `UPDATE_MAX_COMMENT_SCRAPES` | `3` | Max comment scrapes per updater cycle |
+| `UPDATE_MAX_VIDEOS` | `40` | Recent entries considered per channel scan |
+| `UPDATE_BACKFILL_PAGE_SIZE` | `100` | Flat playlist entries requested from each tab per durable page |
+| `UPDATE_BACKFILL_PAGES_PER_CYCLE` | `3` | Max pages processed for one backfill channel per worker cycle |
+| `UPDATE_BACKFILL_CHANNELS_PER_CYCLE` | `1` | Max backfill channels processed per worker cycle |
 | `UPDATE_MAX_METADATA_SCRAPES` | `10` | Per-video enrichment cap for manual metadata refresh |
-| `UPDATE_SCRAPE_SLEEP_MIN` / `MAX` | `3` / `8` | Jitter sleep (seconds) between comment scrapes |
-| `UPDATE_MAX_ANALYZE_ATTEMPTS` | `3` | Skip videos after this many failed/empty analyses |
-| `UPDATE_YOUTUBE_COOLDOWN_SECONDS` | `3600` | Skip all YouTube work after a suspected block |
+| `UPDATE_LIST_SLEEP_MIN` / `MAX` | `3` / `7` | Jitter between backfill pages |
+| `UPDATE_SCRAPE_SLEEP_MIN` / `MAX` | `20` / `40` | Jitter between comment scrapes |
+| `UPDATE_MAX_ANALYZE_ATTEMPTS` | `3` | Max content-analysis attempts; blocks do not consume attempts |
+| `UPDATE_ANALYSIS_RECHECK_SECONDS` | `86400` | Delay before rechecking a successful “no setlist” archive |
+| `UPDATE_YOUTUBE_COOLDOWN_SECONDS` | `21600` | Skip all YouTube work after a suspected block (6 hours) |
 | `YTDLP_COMMENT_SLEEP_INTERVAL` / `MAX` | `2` / `10` | yt-dlp sleeps for comment scrapes |
 | `LLM_CLEANING_ENABLED` | `false` | Optional OpenAI-compatible setlist cleaning after regex extract |
 | `LLM_API_URL` | OpenAI chat completions URL | Used only when cleaning is enabled |
@@ -140,14 +145,25 @@ docker compose -f docker-compose.dev.yml exec -T db \
 ```
 
 Then start the API from `data_updater/` with
-`BACKGROUND_UPDATER_ENABLED=true` (prefer `DATA_UPDATE_INTERVAL=1800`). One
-cycle refreshes established channels' recent metadata, analyzes up to
-`UPDATE_MAX_COMMENT_SCRAPES` videos in total, and writes songs when a setlist
-comment is found. Newly added channels instead backfill their full Streams +
-Videos history in bounded pages. Failed or partially failed pages keep their
-cursor, retry automatically, and rotate fairly with other pending channels.
-Logs show caps, jitter, and cooldown. After songs exist, try the UI or
-`GET /v1/songs/search?q=...`.
+`BACKGROUND_UPDATER_ENABLED=true`. Development and production use the same
+five-minute worker heartbeat and scraping policy. A persisted per-channel due
+time means established channels call YouTube at most every six hours. Newly
+added channels instead backfill full Streams + Videos history in 100-entry,
+durable pages (up to three pages per cycle); failed/partial pages retain their
+cursor and retry fairly. Comment analysis is a separate global queue, limited
+to three archives per cycle with 20–40 second jitter. Live, upcoming, and
+post-live records are ignored until yt-dlp reports an archive. Playlist
+position preserves newest-first ordering when flat yt-dlp entries omit dates,
+and a block cooldown is persisted across process restarts.
+
+To test the exact background path once without leaving a scheduler running:
+
+```bash
+cd data_updater
+python run_updater_once.py
+```
+
+After songs exist, try the UI or `GET /v1/songs/search?q=...`.
 
 ### Tests
 
@@ -168,6 +184,7 @@ migrations, the frontend lint/build, and a production runtime image build.
 
 - Comment choice prefers **pinned**, then **uploader**, then timestamp density / likes.
 - Line formats include `1:23 Title`, `Title - 1:23`, `01. Title 0:12:00`, parenthesized timestamps, and full-width `：`.
+- An explicit setlist section stops at a later stream-chapter heading, avoiding chat/announcement timestamps in mixed community comments.
 - Songs are deduped within a video by `(timestamp, casefold(title))`. Re-analysis uses `replace_for_video` (delete + insert); last successful analysis wins — no merge.
 
 ## Layout
@@ -177,7 +194,7 @@ vtuber-karaoke-search/
 ├── .devcontainer/     # Dev Container (app + Postgres + Flyway)
 ├── frontend/          # Vite React search UI
 ├── data_updater/      # FastAPI service (run with cwd = this dir)
-├── db/migrations/     # Flyway SQL (schema source of truth; V1–V4)
+├── db/migrations/     # Flyway SQL (schema source of truth; V1–V7)
 ├── .env.example       # Sample env vars (copy to .env)
 ├── AGENTS.md          # Instructions for coding agents
 ├── PLAN.md            # Phased implementation plan

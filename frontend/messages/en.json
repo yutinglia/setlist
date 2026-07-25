@@ -77,6 +77,8 @@
   "status_video": "Video",
   "status_comment_scrapes": "Comment scrapes this cycle",
   "status_cycle_interval": "Cycle interval",
+  "status_steady_interval": "Per-channel steady scan",
+  "status_backfill_batch": "Backfill page × pages/cycle",
   "status_cooldown": "YouTube cooldown",
   "status_cooldown_clear": "None",
   "status_cycle_active": "Cycle running",

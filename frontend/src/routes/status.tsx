@@ -182,6 +182,14 @@ function StatusPage() {
                   value={formatSeconds(data.update_interval_seconds)}
                 />
                 <StatusField
+                  label={m.status_steady_interval()}
+                  value={formatSeconds(data.steady_scan_interval_seconds)}
+                />
+                <StatusField
+                  label={m.status_backfill_batch()}
+                  value={`${data.backfill_page_size} × ${data.backfill_pages_per_cycle}`}
+                />
+                <StatusField
                   label={m.status_cooldown()}
                   value={
                     data.youtube_cooldown_remaining_seconds > 0

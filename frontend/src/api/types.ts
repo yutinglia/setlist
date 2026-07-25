@@ -100,5 +100,8 @@ export type UpdaterStatus = {
   background_updater_enabled: boolean
   youtube_cooldown_remaining_seconds: number
   update_interval_seconds: number
+  steady_scan_interval_seconds: number
+  backfill_page_size: number
+  backfill_pages_per_cycle: number
   updated_at: string | null
 }

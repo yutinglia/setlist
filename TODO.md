@@ -4,6 +4,7 @@ Checklist aligned with [PLAN.md](PLAN.md). Check items off as they land.
 
 ## Done recently
 
+- [x] Scheduler redesign: fast durable backfill, persisted 6h steady scans, separate delayed analysis queue, dev/prod policy parity
 - [x] Full reliability review: non-destructive refresh, scraper serialization, URL validation, literal search, raw-payload response trimming
 - [x] Config validation, safe dev updater default, prod management gating, DB integrity/index migration V3
 - [x] Backend Ruff + expanded regressions; runtime/dev dependency split; frontend debounce/pagination fixes

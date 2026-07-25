@@ -12,7 +12,7 @@ Turn the current scaffold into a working **data pipeline** that scrapes VTuber k
 | yt-dlp scrapers (channel / videos / comments) | Done, used by DataUpdater |
 | Comment → song-list heuristics | Done (`video_id` required; unit tests) |
 | Repositories | Read + upsert / `replace_for_video` (updater-owned commits) |
-| `DataUpdater.update()` | Wired (scrape → analyze → persist) + Tier B pacing + resumable new-channel backfill |
+| `DataUpdater.update()` | Wired + fast durable backfill + persisted steady discovery + delayed global analysis queue |
 | Search / UI | Search API + Phase 5 extraction + Phase 6 search UI MVP |
 
 | Requirements (`data_updater/requirements.txt`) | Direct deps updated (Jul 2026) |
@@ -98,18 +98,19 @@ Do **not** rely only on yt-dlp `sleep_interval`. Implement updater-level pacing 
 
 | Control | Default (env-tunable) | Behavior |
 |---------|----------------------|----------|
-| Comment scrapes per cycle | `UPDATE_MAX_COMMENT_SCRAPES=5` | Hard stop after N videos scraped for comments |
-| Videos upserted / considered per cycle | `UPDATE_MAX_VIDEOS=20` | Prefer recent uploads first |
-| Inter-scrape jitter | `UPDATE_SCRAPE_SLEEP_MIN/MAX` (e.g. 3–8s) | `asyncio.sleep(random)` **between** comment scrapes |
+| Comment scrapes per cycle | `UPDATE_MAX_COMMENT_SCRAPES=3` | Hard stop after N videos scraped for comments |
+| Videos upserted / considered per scan | `UPDATE_MAX_VIDEOS=40` | Prefer recent uploads first |
+| Inter-comment jitter | `UPDATE_SCRAPE_SLEEP_MIN/MAX=20/40` | `asyncio.sleep(random)` between comment scrapes |
 | Skip / retry | `analyze_attempts >= 3` | Skip successful extracts; stop retrying exhausted videos |
 | yt-dlp sleeps (comments) | raise to ~2–5s / max ~10s | Keep existing opts; make configurable |
 | Block detection | — | Treat as block: yt-dlp bot/HTTP errors, or comments unexpectedly empty when other signals suggest failure |
 | Cycle abort on block | — | Stop further YouTube calls this cycle; bump attempts / set `last_analyzed_at` on the failing video |
-| Cooldown | `UPDATE_YOUTUBE_COOLDOWN_SECONDS` (e.g. 3600) | After a block, skip all YouTube work until cooldown expires (in-memory flag OK for v1; optional DB/env later) |
+| Cooldown | `UPDATE_YOUTUBE_COOLDOWN_SECONDS=21600` | After a block, skip all YouTube work for six hours; blocks do not exhaust video attempts |
 
 **Out of scope for Phase 2:** proxies, multi-account rotation, cookies (Tier C — only if Tier B still gets limited).
 
-**Dev note:** do not run with `DATA_UPDATE_INTERVAL=10` while scraping is enabled; use a safer interval or disable the background loop when testing scrapers manually.
+**Dev note:** dev/prod use the same defaults. Keep the background updater opt-in
+locally and run `python run_updater_once.py` for one production-equivalent cycle.
 
 ### Implementation checklist
 

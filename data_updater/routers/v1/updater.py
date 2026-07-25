@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from config import (
     BACKGROUND_UPDATER_ENABLED,
     DATA_UPDATE_INTERVAL,
+    SCRAPE_POLICY,
     UPDATE_MAX_COMMENT_SCRAPES,
 )
 from models.updater import UpdaterStatusResponse
@@ -29,4 +30,7 @@ async def get_updater_status() -> UpdaterStatusResponse:
         background_updater_enabled=BACKGROUND_UPDATER_ENABLED,
         youtube_cooldown_remaining_seconds=DataUpdater.youtube_cooldown_remaining(),
         update_interval_seconds=DATA_UPDATE_INTERVAL,
+        steady_scan_interval_seconds=SCRAPE_POLICY.steady_scan_interval_seconds,
+        backfill_page_size=SCRAPE_POLICY.backfill_page_size,
+        backfill_pages_per_cycle=SCRAPE_POLICY.backfill_pages_per_cycle,
     )

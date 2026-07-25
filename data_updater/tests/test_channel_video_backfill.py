@@ -184,8 +184,40 @@ class TestChannelVideoPage:
             )
 
         assert [entry["id"] for entry in entries] == ["kept"]
+        assert entries[0]["_vks_playlist_position"] == 1
         assert raw_count == 3
         assert ok is True
+
+    def test_playlist_position_accounts_for_page_offset(self):
+        scraper = YouTubeChannelVideoScraper("https://www.youtube.com/@demo")
+
+        class FakeYdl:
+            def __init__(self, _opts):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def extract_info(self, _url, *, download):
+                del download
+                return {"entries": [{"id": "old", "title": "歌枠"}]}
+
+        with patch(
+            "services.yt_scraper.channel_video_scraper.yt_dlp.YoutubeDL",
+            FakeYdl,
+        ):
+            entries, _, _ = scraper._extract_tab_entries(
+                "https://www.youtube.com/@demo/streams",
+                playlist_start=101,
+                playlist_end=200,
+                use_match_filter=False,
+            )
+
+        assert entries[0]["_vks_source_tab"] == "streams"
+        assert entries[0]["_vks_playlist_position"] == 101
 
     def test_rejects_invalid_window(self):
         scraper = YouTubeChannelVideoScraper("https://www.youtube.com/@demo")

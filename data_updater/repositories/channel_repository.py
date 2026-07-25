@@ -4,7 +4,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import Channels
+from db.models import Channels, ScraperState
 from models.channel import (
     VIDEO_BACKFILL_DONE,
     VideoBackfillStatus,
@@ -69,6 +69,9 @@ class ChannelRepository:
             or VIDEO_BACKFILL_DONE,
             "video_backfill_offset": channel.video_backfill_offset or 1,
             "video_backfill_updated_at": channel.video_backfill_updated_at,
+            "last_video_scan_at": channel.last_video_scan_at,
+            "next_video_scan_at": channel.next_video_scan_at,
+            "video_scan_failures": channel.video_scan_failures,
         }
         stmt = (
             insert(Channels)
@@ -114,3 +117,55 @@ class ChannelRepository:
         row = result.scalar_one_or_none()
         await self.session.flush()
         return YouTubeChannel.model_validate(row) if row else None
+
+    async def schedule_video_scan(
+        self,
+        channel_id: str,
+        *,
+        next_scan_at: datetime,
+        succeeded: bool,
+    ) -> YouTubeChannel | None:
+        """Persist steady-state discovery cadence. Does not commit."""
+        now = datetime.now(UTC).replace(tzinfo=None)
+        values: dict = {
+            "next_video_scan_at": next_scan_at,
+            "updated_at": now,
+        }
+        if succeeded:
+            values.update(last_video_scan_at=now, video_scan_failures=0)
+        else:
+            values["video_scan_failures"] = Channels.video_scan_failures + 1
+        stmt = (
+            update(Channels)
+            .where(Channels.id == channel_id)
+            .values(**values)
+            .returning(Channels)
+        )
+        result = await self.session.execute(stmt)
+        row = result.scalar_one_or_none()
+        await self.session.flush()
+        return YouTubeChannel.model_validate(row) if row else None
+
+    async def get_youtube_cooldown_until(self) -> datetime | None:
+        """Return the process-independent YouTube cooldown deadline."""
+        result = await self.session.execute(
+            select(ScraperState.youtube_cooldown_until).where(ScraperState.id == 1)
+        )
+        return result.scalar_one_or_none()
+
+    async def set_youtube_cooldown_until(self, until: datetime) -> None:
+        """Persist the global YouTube cooldown. Does not commit."""
+        now = datetime.now(UTC).replace(tzinfo=None)
+        stmt = (
+            insert(ScraperState)
+            .values(id=1, youtube_cooldown_until=until, updated_at=now)
+            .on_conflict_do_update(
+                index_elements=[ScraperState.id],
+                set_={
+                    "youtube_cooldown_until": until,
+                    "updated_at": now,
+                },
+            )
+        )
+        await self.session.execute(stmt)
+        await self.session.flush()

@@ -4,7 +4,7 @@ from urllib.parse import urlsplit
 
 import yt_dlp
 
-from models.video import YouTubeVideo
+from models.video import ANALYSIS_PENDING, ANALYSIS_SKIPPED, YouTubeVideo
 from services.yt_scraper.errors import raise_if_block_error
 from utils.video_type import classify_video_type
 from utils.youtube_channel_url import channel_list_urls
@@ -61,6 +61,8 @@ class YouTubeChannelVideoScraper:
         metadata_limit: int | None = None,
         playlist_start: int | None = None,
         playlist_end: int | None = None,
+        sleep_interval: float = 1.0,
+        max_sleep_interval: float = 2.0,
     ) -> None:
         self.channel_url = channel_url
         self.max_videos = max_videos
@@ -70,6 +72,8 @@ class YouTubeChannelVideoScraper:
         self.metadata_limit = metadata_limit
         self.playlist_start = playlist_start
         self.playlist_end = playlist_end
+        self.sleep_interval = sleep_interval
+        self.max_sleep_interval = max_sleep_interval
         self.videos: list[YouTubeVideo] = []
 
     @staticmethod
@@ -248,8 +252,8 @@ class YouTubeChannelVideoScraper:
             "extract_flat": "in_playlist",
             "quiet": True,
             "no_warnings": True,
-            "sleep_interval": 1,
-            "max_sleep_interval": 2,
+            "sleep_interval": self.sleep_interval,
+            "max_sleep_interval": self.max_sleep_interval,
         }
         if use_match_filter:
             ydl_opts["match_filter"] = should_exclude_channel_list_entry
@@ -282,19 +286,32 @@ class YouTubeChannelVideoScraper:
         entries = info.get("entries", []) or []
         flat: list[dict] = []
         raw_count = 0
+        position = playlist_start or 1
+        tab_name = urlsplit(tab_url).path.rstrip("/").rsplit("/", 1)[-1].casefold()
         for entry in entries:
             if not isinstance(entry, dict):
                 # Unavailable/deleted playlist slots still count toward the
                 # requested page window and must not signal early exhaustion.
                 raw_count += 1
+                position += 1
                 continue
             if "entries" in entry:
                 sub_entries = entry.get("entries", []) or []
                 raw_count += len(sub_entries)
-                flat.extend([v for v in sub_entries if isinstance(v, dict)])
+                for sub_entry in sub_entries:
+                    if isinstance(sub_entry, dict):
+                        marked = dict(sub_entry)
+                        marked["_vks_source_tab"] = tab_name
+                        marked["_vks_playlist_position"] = position
+                        flat.append(marked)
+                    position += 1
             else:
                 raw_count += 1
-                flat.append(entry)
+                marked = dict(entry)
+                marked["_vks_source_tab"] = tab_name
+                marked["_vks_playlist_position"] = position
+                flat.append(marked)
+                position += 1
         return flat, raw_count, True
 
     def _entries_to_models(self, all_videos: list[dict]) -> list[YouTubeVideo]:
@@ -328,6 +345,11 @@ class YouTubeChannelVideoScraper:
                 continue
             title = video.get("title") or video_id
             safe_video = yt_dlp.YoutubeDL.sanitize_info(video)
+            video_type = classify_video_type(
+                title,
+                live_status=video.get("live_status"),
+                duration=video.get("duration"),
+            )
             video_model = YouTubeVideo(
                 id=video_id,
                 title=title,
@@ -335,13 +357,15 @@ class YouTubeChannelVideoScraper:
                 channel_id=video.get("channel_id") or video.get("uploader_id") or "",
                 # Flat extracts omit upload_date; derive from timestamp fields.
                 upload_date=upload_date_from_entry(video),
+                playlist_position=video.get("_vks_playlist_position"),
                 # Title keywords + soft duration / live_status confirms.
-                type=classify_video_type(
-                    title,
-                    live_status=video.get("live_status"),
-                    duration=video.get("duration"),
-                ),
+                type=video_type,
                 raw_data=safe_video,
+                analysis_status=(
+                    ANALYSIS_PENDING
+                    if video_type == "karaoke"
+                    else ANALYSIS_SKIPPED
+                ),
             )
             video_models.append(video_model)
 
@@ -358,8 +382,8 @@ class YouTubeChannelVideoScraper:
             "skip_download": True,
             "quiet": True,
             "no_warnings": True,
-            "sleep_interval": 1,
-            "max_sleep_interval": 2,
+            "sleep_interval": self.sleep_interval,
+            "max_sleep_interval": self.max_sleep_interval,
         }
         enriched: list[dict] = []
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:

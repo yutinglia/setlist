@@ -1,12 +1,13 @@
 import asyncio
 import logging
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import MANAGEMENT_API_ENABLED
+from config import MANAGEMENT_API_ENABLED, SCRAPE_POLICY
 from deps import get_session, pagination_params
 from models.channel import VIDEO_BACKFILL_PENDING, ChannelCreate, YouTubeChannel
 from models.search import ChannelRead, Paginated, SongSearchResult, VideoRead
@@ -98,12 +99,29 @@ async def create_channel(
     """Scrape a YouTube channel URL and add it to the tracked list.
 
     Does not scrape videos in this request; sets ``video_backfill_status=pending``
-    so the background updater walks the full catalog one page per cycle.
+    so the background updater walks the full catalog in bounded, durable pages.
     Returns 409 if the channel id is already tracked.
     """
 
     def _scrape() -> YouTubeChannel:
         return YouTubeChannelScraper().get_channel_info(body.url)
+
+    repo = ChannelRepository(session)
+    persisted_cooldown = await repo.get_youtube_cooldown_until()
+    if persisted_cooldown is not None:
+        remaining = (
+            persisted_cooldown - datetime.now(UTC).replace(tzinfo=None)
+        ).total_seconds()
+        if remaining > DataUpdater.youtube_cooldown_remaining():
+            DataUpdater.set_youtube_cooldown(remaining)
+
+    async def _persist_cooldown() -> None:
+        seconds = SCRAPE_POLICY.youtube_cooldown_seconds
+        DataUpdater.set_youtube_cooldown(seconds)
+        await repo.set_youtube_cooldown_until(
+            datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=seconds)
+        )
+        await session.commit()
 
     try:
         async with youtube_operation_lock:
@@ -122,7 +140,7 @@ async def create_channel(
         try:
             raise_if_block_error(scrape_exc)
         except YouTubeAccessBlocked as block_exc:
-            DataUpdater.set_youtube_cooldown()
+            await _persist_cooldown()
             logger.warning(
                 "YouTube blocked while adding channel %s: %s", body.url, block_exc
             )
@@ -131,7 +149,7 @@ async def create_channel(
                 detail="YouTube temporarily blocked this request; try again later",
             ) from block_exc
         if isinstance(scrape_exc, YouTubeAccessBlocked):
-            DataUpdater.set_youtube_cooldown()
+            await _persist_cooldown()
             logger.warning(
                 "YouTube blocked while adding channel %s: %s", body.url, scrape_exc
             )
@@ -151,7 +169,6 @@ async def create_channel(
             detail="Could not resolve a channel id from that URL",
         )
 
-    repo = ChannelRepository(session)
     existing = await repo.get_by_id(scraped.id)
     if existing is not None:
         raise HTTPException(

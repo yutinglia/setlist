@@ -30,6 +30,19 @@ _NUMBERING_RE = re.compile(
     r")\s*"
 )
 
+# Some excellent community comments contain a clean setlist followed by a
+# general stream chapter list. When a setlist heading is explicit, keep that
+# section and stop at the next clearly non-setlist heading.
+_SETLIST_HEADER_RE = re.compile(
+    r"(?:set\s*list|setlist|song\s*list|track\s*list|tracklist|"
+    r"セトリ|セットリスト|曲目|歌った曲)",
+    flags=re.IGNORECASE,
+)
+_NON_SETLIST_HEADER_RE = re.compile(
+    r"(?:配信内容|配信チャプター|チャプター|chapters?|stream\s+contents?)",
+    flags=re.IGNORECASE,
+)
+
 
 class CommentAnalyzer:
     """Pick the best setlist comment and parse timestamped song lines.
@@ -157,13 +170,32 @@ class CommentAnalyzer:
     ) -> list[Song]:
         """Parse songs from arbitrary setlist text (regex path or LLM-cleaned)."""
         songs: list[Song] = []
-        for line in self._normalize_text(text).splitlines():
+        lines = self._song_section_lines(self._normalize_text(text).splitlines())
+        for line in lines:
             song = self._parse_song_line(line)
             if song is not None:
                 if analyzed_by_llm:
                     song.analyzed_by_llm = True
                 songs.append(song)
         return self._dedupe_songs(songs)
+
+    @staticmethod
+    def _song_section_lines(lines: list[str]) -> list[str]:
+        """Keep an explicit setlist section out of a mixed setlist/chapter post."""
+        start: int | None = None
+        for index, line in enumerate(lines):
+            if _SETLIST_HEADER_RE.search(line):
+                start = index + 1
+                break
+        if start is None:
+            return lines
+
+        end = len(lines)
+        for index in range(start, len(lines)):
+            if _NON_SETLIST_HEADER_RE.search(lines[index]):
+                end = index
+                break
+        return lines[start:end]
 
     def _parse_song_line(self, line: str) -> Song | None:
         line = line.strip()

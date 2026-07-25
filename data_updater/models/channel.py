@@ -54,6 +54,9 @@ class YouTubeChannel(BaseModel):
         description="Next 1-based yt-dlp playliststart for backfill pages",
     )
     video_backfill_updated_at: datetime | None = None
+    last_video_scan_at: datetime | None = None
+    next_video_scan_at: datetime | None = None
+    video_scan_failures: int = Field(default=0, ge=0)
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

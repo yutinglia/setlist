@@ -51,6 +51,11 @@ VIDEO_TYPE_KARAOKE = "karaoke"
 VIDEO_TYPE_SONG = "song"
 VIDEO_TYPE_OTHER = "other"
 
+# yt-dlp statuses that are not safe archive records. ``post_live`` is the
+# short processing window after a broadcast ends; comments/duration may still
+# be incomplete, so discovery waits for ``was_live``.
+ACTIVE_LIVE_STATUSES = frozenset({"is_live", "is_upcoming", "post_live"})
+
 # Only these types are stored in the videos table / shown in channel lists.
 PERSISTED_VIDEO_TYPES = frozenset({VIDEO_TYPE_KARAOKE, VIDEO_TYPE_SONG})
 
@@ -173,6 +178,8 @@ def is_karaoke_stream(
 
     Outing titles like 「カラオケ行ってみた」 are excluded.
     """
+    if (live_status or "").casefold() in ACTIVE_LIVE_STATUSES:
+        return False
     if not _karaoke_duration_ok(duration):
         return False
     if is_strong_karaoke_title(title):

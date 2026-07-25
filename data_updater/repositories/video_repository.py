@@ -5,7 +5,11 @@ from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import Videos
-from models.video import YouTubeVideo
+from models.video import (
+    ANALYSIS_PENDING,
+    ANALYSIS_SKIPPED,
+    YouTubeVideo,
+)
 from utils.video_type import (
     PERSISTED_VIDEO_TYPES,
     VIDEO_TYPE_KARAOKE,
@@ -21,6 +25,7 @@ _METADATA_UPDATE_KEYS = (
     "url",
     "channel_id",
     "upload_date",
+    "playlist_position",
     "type",
     "raw_data",
 )
@@ -81,6 +86,8 @@ class VideoRepository:
             stmt = stmt.where(Videos.type == video_type)
         stmt = stmt.order_by(
             _effective_upload_date_order().desc().nulls_last(),
+            Videos.playlist_position.asc().nulls_last(),
+            Videos.created_at.desc().nulls_last(),
             Videos.id,
         )
         if limit is not None:
@@ -129,16 +136,75 @@ class VideoRepository:
             .where(
                 Videos.channel_id == channel_id,
                 Videos.type == VIDEO_TYPE_KARAOKE,
-                Videos.has_song_list_comment.is_(False),
+                Videos.analysis_status.in_(("pending", "retry", "no_setlist")),
                 func.coalesce(Videos.analyze_attempts, 0) < max_attempts,
+                (
+                    Videos.next_analysis_at.is_(None)
+                    | (
+                        Videos.next_analysis_at
+                        <= datetime.now(UTC).replace(tzinfo=None)
+                    )
+                ),
             )
-            .order_by(_effective_upload_date_order().desc().nulls_last())
+            .order_by(
+                _effective_upload_date_order().desc().nulls_last(),
+                Videos.playlist_position.asc().nulls_last(),
+                Videos.created_at.desc().nulls_last(),
+            )
             .limit(max(limit * 3, limit))
         )
         result = await self.session.execute(stmt)
         videos = result.scalars().all()
         out: list[YouTubeVideo] = []
         for video in videos:
+            model = self._to_model(video)
+            raw = model.raw_data if isinstance(model.raw_data, dict) else {}
+            if not should_scrape_comments(
+                model.title or "",
+                live_status=raw.get("live_status"),
+                duration=raw.get("duration"),
+                stored_type=model.type,
+            ):
+                continue
+            out.append(model)
+            if len(out) >= limit:
+                break
+        return out
+
+    async def get_analysis_queue(
+        self,
+        *,
+        max_attempts: int,
+        limit: int,
+        now: datetime | None = None,
+    ) -> list[YouTubeVideo]:
+        """Globally fair, newest-first queue of due karaoke archives."""
+        if limit <= 0:
+            return []
+        due = now or datetime.now(UTC).replace(tzinfo=None)
+        stmt = (
+            select(Videos)
+            .where(
+                Videos.type == VIDEO_TYPE_KARAOKE,
+                Videos.analysis_status.in_(("pending", "retry", "no_setlist")),
+                func.coalesce(Videos.analyze_attempts, 0) < max_attempts,
+                (
+                    Videos.next_analysis_at.is_(None)
+                    | (Videos.next_analysis_at <= due)
+                ),
+            )
+            .order_by(
+                Videos.next_analysis_at.asc().nulls_first(),
+                _effective_upload_date_order().desc().nulls_last(),
+                Videos.playlist_position.asc().nulls_last(),
+                Videos.created_at.desc().nulls_last(),
+                Videos.id,
+            )
+            .limit(max(limit * 3, limit))
+        )
+        result = await self.session.execute(stmt)
+        out: list[YouTubeVideo] = []
+        for video in result.scalars().all():
             model = self._to_model(video)
             raw = model.raw_data if isinstance(model.raw_data, dict) else {}
             if not should_scrape_comments(
@@ -181,6 +247,11 @@ class VideoRepository:
                 # once corrected metadata/title classifies it as karaoke.
                 row.analyze_attempts = 0
                 row.last_analyzed_at = None
+                row.analysis_status = ANALYSIS_PENDING
+                row.next_analysis_at = None
+            elif new_type != VIDEO_TYPE_KARAOKE:
+                row.analysis_status = ANALYSIS_SKIPPED
+                row.next_analysis_at = None
             row.updated_at = now
             changed += 1
         if changed:
@@ -249,6 +320,8 @@ class VideoRepository:
             row.last_analyzed_at = None
             row.cleaning_attempts = 0
             row.last_cleaned_at = None
+            row.analysis_status = ANALYSIS_SKIPPED
+            row.next_analysis_at = None
             row.updated_at = now
             cleared_ids.append(row.id)
 
@@ -315,6 +388,10 @@ class VideoRepository:
             insert_values["upload_date"],
             Videos.upload_date,
         )
+        update_values["playlist_position"] = func.coalesce(
+            insert_values["playlist_position"],
+            Videos.playlist_position,
+        )
         # Periodic channel-tab extracts are intentionally flat and omit fields
         # such as duration/live_status. Merge their JSON over the previous full
         # payload instead of destroying richer metadata used for classification.
@@ -360,6 +437,8 @@ class VideoRepository:
                 cleaning_attempts=video.cleaning_attempts,
                 last_cleaned_at=video.last_cleaned_at,
                 cleaned_song_list_comment=video.cleaned_song_list_comment,
+                analysis_status=video.analysis_status,
+                next_analysis_at=video.next_analysis_at,
                 updated_at=now,
             )
             .returning(Videos)
@@ -377,6 +456,7 @@ class VideoRepository:
             "url": video.url,
             "channel_id": video.channel_id,
             "upload_date": video.upload_date,
+            "playlist_position": video.playlist_position,
             "type": video.type,
             "raw_data": video.raw_data,
             "comments_raw_data": video.comments_raw_data,
@@ -387,6 +467,8 @@ class VideoRepository:
             "cleaning_attempts": video.cleaning_attempts,
             "last_cleaned_at": video.last_cleaned_at,
             "cleaned_song_list_comment": video.cleaned_song_list_comment,
+            "analysis_status": video.analysis_status,
+            "next_analysis_at": video.next_analysis_at,
             "created_at": video.created_at or now,
             "updated_at": now,
         }

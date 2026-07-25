@@ -77,6 +77,8 @@
   "status_video": "影片",
   "status_comment_scrapes": "本輪留言抓取次數",
   "status_cycle_interval": "更新間隔",
+  "status_steady_interval": "各頻道正常掃描間隔",
+  "status_backfill_batch": "回填每頁 × 每輪頁數",
   "status_cooldown": "YouTube 冷卻",
   "status_cooldown_clear": "無",
   "status_cycle_active": "週期進行中",

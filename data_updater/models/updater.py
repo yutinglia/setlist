@@ -41,6 +41,15 @@ class UpdaterStatusResponse(BaseModel):
     update_interval_seconds: int = Field(
         ge=0, description="Seconds between update cycles (DATA_UPDATE_INTERVAL)"
     )
+    steady_scan_interval_seconds: int = Field(
+        ge=0, description="Minimum successful discovery interval per channel"
+    )
+    backfill_page_size: int = Field(
+        ge=1, description="Playlist entries requested from each tab per page"
+    )
+    backfill_pages_per_cycle: int = Field(
+        ge=1, description="Maximum durable pages per backfill channel per cycle"
+    )
     updated_at: datetime | None = Field(
         default=None, description="When this status snapshot was last mutated"
     )

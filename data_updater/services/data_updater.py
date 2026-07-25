@@ -7,7 +7,7 @@ import logging
 import random
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,18 +17,7 @@ from config import (
     LLM_CLEANING_ENABLED,
     LLM_MAX_CLEANING_ATTEMPTS,
     LLM_MODEL,
-    UPDATE_BACKFILL_CHANNELS_PER_CYCLE,
-    UPDATE_BACKFILL_PAGE_SIZE,
-    UPDATE_MAX_ANALYZE_ATTEMPTS,
-    UPDATE_MAX_COMMENT_SCRAPES,
-    UPDATE_MAX_COMMENTS_PER_VIDEO,
-    UPDATE_MAX_METADATA_SCRAPES,
-    UPDATE_MAX_VIDEOS,
-    UPDATE_SCRAPE_SLEEP_MAX,
-    UPDATE_SCRAPE_SLEEP_MIN,
-    UPDATE_YOUTUBE_COOLDOWN_SECONDS,
-    YTDLP_COMMENT_MAX_SLEEP_INTERVAL,
-    YTDLP_COMMENT_SLEEP_INTERVAL,
+    SCRAPE_POLICY,
 )
 from models.channel import (
     VIDEO_BACKFILL_ACTIVE,
@@ -38,12 +27,20 @@ from models.channel import (
     YouTubeChannel,
 )
 from models.song import Song
-from models.video import YouTubeVideo
+from models.video import (
+    ANALYSIS_DONE,
+    ANALYSIS_EXHAUSTED,
+    ANALYSIS_NO_SETLIST,
+    ANALYSIS_RETRY,
+    ANALYSIS_SKIPPED,
+    YouTubeVideo,
+)
 from repositories.channel_repository import ChannelRepository
 from repositories.song_repository import SongRepository
 from repositories.video_repository import VideoRepository
 from services.analyzer.llm_cleaner import maybe_clean_song_list_comment
 from services.analyzer.yt_comment_analyzer import CommentAnalyzer
+from services.scrape_policy import ScrapePolicy
 from services.updater_status import UpdaterPhase, updater_status
 from services.yt_scraper.channel_scraper import YouTubeChannelScraper
 from services.yt_scraper.channel_video_scraper import YouTubeChannelVideoScraper
@@ -73,8 +70,8 @@ class ChannelVideoRefreshResult:
 logger = logging.getLogger(__name__)
 
 # One process must not run the periodic updater and manual scraper operations at
-# the same time. Deployments should still use one Uvicorn worker because this
-# lock and the cooldown are intentionally process-local.
+# the same time. Deployments should still use one Uvicorn worker because the
+# lock is process-local; the cooldown itself is also persisted in PostgreSQL.
 youtube_operation_lock = asyncio.Lock()
 
 
@@ -85,7 +82,7 @@ class DataUpdater:
     Pipeline: channel → videos → comments → CommentAnalyzer → songs.
     """
 
-    # In-memory YouTube cooldown (process-local; Tier B v1).
+    # Fast monotonic cache of the PostgreSQL-backed global cooldown.
     _youtube_cooldown_until: float | None = None
 
     def __init__(
@@ -94,13 +91,16 @@ class DataUpdater:
         channel_repo: ChannelRepository,
         video_repo: VideoRepository,
         song_repo: SongRepository,
+        policy: ScrapePolicy | None = None,
     ):
         self.session = session
         self.channel_repo = channel_repo
         self.video_repo = video_repo
         self.song_repo = song_repo
+        self.policy = policy or SCRAPE_POLICY
         self._comment_scrapes_this_cycle = 0
         self._backfill_channels_this_cycle = 0
+        self._steady_channels_this_cycle = 0
 
     @classmethod
     def youtube_cooldown_remaining(cls) -> float:
@@ -115,7 +115,9 @@ class DataUpdater:
 
     @classmethod
     def set_youtube_cooldown(cls, seconds: float | None = None) -> None:
-        seconds = UPDATE_YOUTUBE_COOLDOWN_SECONDS if seconds is None else seconds
+        seconds = (
+            SCRAPE_POLICY.youtube_cooldown_seconds if seconds is None else seconds
+        )
         cls._youtube_cooldown_until = time.monotonic() + max(0.0, seconds)
         logger.warning(
             "YouTube cooldown set for %ss (until monotonic+%.0f)",
@@ -128,6 +130,7 @@ class DataUpdater:
             await self._update_without_lock()
 
     async def _update_without_lock(self) -> None:
+        await self._sync_persisted_cooldown()
         remaining = self.youtube_cooldown_remaining()
         if remaining > 0:
             logger.warning(
@@ -144,18 +147,19 @@ class DataUpdater:
 
         self._comment_scrapes_this_cycle = 0
         self._backfill_channels_this_cycle = 0
+        self._steady_channels_this_cycle = 0
         updater_status.begin_cycle()
         logger.info(
             "Starting update cycle (max_videos=%s, max_comment_scrapes=%s, "
             "backfill_page=%s, backfill_channels=%s, jitter=%.1f–%.1fs, "
             "max_attempts=%s)",
-            UPDATE_MAX_VIDEOS,
-            UPDATE_MAX_COMMENT_SCRAPES,
-            UPDATE_BACKFILL_PAGE_SIZE,
-            UPDATE_BACKFILL_CHANNELS_PER_CYCLE,
-            UPDATE_SCRAPE_SLEEP_MIN,
-            UPDATE_SCRAPE_SLEEP_MAX,
-            UPDATE_MAX_ANALYZE_ATTEMPTS,
+            self.policy.recent_videos_per_channel,
+            self.policy.comment_scrapes_per_cycle,
+            self.policy.backfill_page_size,
+            self.policy.backfill_channels_per_cycle,
+            self.policy.inter_comment_sleep_min,
+            self.policy.inter_comment_sleep_max,
+            self.policy.max_analysis_attempts,
         )
 
         try:
@@ -202,7 +206,8 @@ class DataUpdater:
                         exc,
                     )
                     await self.session.commit()
-                    self.set_youtube_cooldown()
+                    await self._activate_youtube_cooldown()
+                    await self.session.commit()
                     updater_status.set(
                         UpdaterPhase.COOLDOWN,
                         detail="YouTube temporarily blocked scraper requests",
@@ -224,6 +229,20 @@ class DataUpdater:
                         channel_id=channel.id,
                         channel_name=channel.name,
                         last_error="A channel update failed",
+                    )
+            if self.youtube_cooldown_remaining() <= 0:
+                try:
+                    await self._process_analysis_queue()
+                except YouTubeAccessBlocked as exc:
+                    await self.session.commit()
+                    await self._activate_youtube_cooldown()
+                    await self.session.commit()
+                    logger.warning("YouTube block in analysis queue: %s", exc)
+                    updater_status.set(
+                        UpdaterPhase.COOLDOWN,
+                        detail="YouTube temporarily blocked comment requests",
+                        clear_channel=True,
+                        last_error="YouTube access was temporarily blocked",
                     )
             remaining = self.youtube_cooldown_remaining()
             if remaining > 0:
@@ -287,6 +306,8 @@ class DataUpdater:
                 raise
             except YouTubeAccessBlocked:
                 await self.session.rollback()
+                await self._activate_youtube_cooldown()
+                await self.session.commit()
                 raise
             except Exception:
                 await self.session.rollback()
@@ -306,6 +327,24 @@ class DataUpdater:
     @staticmethod
     def _manual_operation_resting_phase() -> UpdaterPhase:
         return UpdaterPhase.WAITING if BACKGROUND_UPDATER_ENABLED else UpdaterPhase.IDLE
+
+    async def _sync_persisted_cooldown(self) -> None:
+        getter = getattr(self.channel_repo, "get_youtube_cooldown_until", None)
+        if getter is None:
+            return
+        until = await getter()
+        if until is None:
+            return
+        remaining = (until - self._utc_now()).total_seconds()
+        if remaining > self.youtube_cooldown_remaining():
+            self.set_youtube_cooldown(remaining)
+
+    async def _activate_youtube_cooldown(self) -> None:
+        seconds = self.policy.youtube_cooldown_seconds
+        self.set_youtube_cooldown(seconds)
+        setter = getattr(self.channel_repo, "set_youtube_cooldown_until", None)
+        if setter is not None:
+            await setter(self._utc_now() + timedelta(seconds=seconds))
 
     async def _refresh_channel_video_list_without_lock(
         self, channel: YouTubeChannel
@@ -343,7 +382,7 @@ class DataUpdater:
         try:
             scraped = await self._scrape_channel_videos(channel, full_metadata=True)
         except YouTubeAccessBlocked:
-            self.set_youtube_cooldown()
+            self.set_youtube_cooldown(self.policy.youtube_cooldown_seconds)
             updater_status.set(
                 UpdaterPhase.COOLDOWN,
                 detail=f"YouTube blocked while refreshing {channel.name}",
@@ -411,35 +450,94 @@ class DataUpdater:
             )
             channel = await self._refresh_channel(channel)
 
+        discovered = False
         backfill_active = channel.video_backfill_status in VIDEO_BACKFILL_ACTIVE
         if backfill_active:
-            if self._backfill_channels_this_cycle >= UPDATE_BACKFILL_CHANNELS_PER_CYCLE:
+            if (
+                self._backfill_channels_this_cycle
+                >= self.policy.backfill_channels_per_cycle
+            ):
                 logger.info(
                     "Backfill channel cap reached (%s); "
                     "deferring video backfill for %s",
-                    UPDATE_BACKFILL_CHANNELS_PER_CYCLE,
+                    self.policy.backfill_channels_per_cycle,
                     channel.id,
                 )
             else:
-                if self._backfill_channels_this_cycle > 0:
-                    await self._jitter_sleep()
-                await self._backfill_channel_video_page(channel)
                 self._backfill_channels_this_cycle += 1
-                # Reload cursor/status after backfill write.
-                refreshed = await self.channel_repo.get_by_id(channel.id)
-                if refreshed is not None:
+                for page_index in range(self.policy.backfill_pages_per_cycle):
+                    if page_index:
+                        await self._list_jitter_sleep()
+                    refreshed = await self._backfill_channel_video_page(channel)
+                    discovered = True
+                    # Each page/cursor is durable, so a later interruption
+                    # resumes at the next safe playlist window.
+                    await self.session.commit()
+                    if refreshed is None:
+                        break
                     channel = refreshed
+                    if channel.video_backfill_status != VIDEO_BACKFILL_RUNNING:
+                        break
         else:
-            updater_status.set(
-                UpdaterPhase.SCRAPING_VIDEOS,
-                detail=f"Scraping video list for {channel.name}",
-                channel_id=channel.id,
-                channel_name=channel.name,
-                clear_video=True,
-            )
-            videos = await self._scrape_and_upsert_videos(channel)
-            if not videos:
-                logger.info("No videos to consider for channel %s", channel.id)
+            if not self._channel_scan_is_due(channel):
+                return
+            if (
+                self._steady_channels_this_cycle
+                >= self.policy.steady_channels_per_cycle
+            ):
+                return
+            self._steady_channels_this_cycle += 1
+            try:
+                updater_status.set(
+                    UpdaterPhase.SCRAPING_VIDEOS,
+                    detail=f"Checking recent archives for {channel.name}",
+                    channel_id=channel.id,
+                    channel_name=channel.name,
+                    clear_video=True,
+                )
+                videos = await self._scrape_and_upsert_videos(channel)
+                next_scan = self._utc_now() + timedelta(
+                    seconds=self.policy.steady_scan_interval_seconds
+                )
+                await self.channel_repo.schedule_video_scan(
+                    channel.id,
+                    next_scan_at=next_scan,
+                    succeeded=True,
+                )
+                discovered = True
+                if not videos:
+                    logger.info("No new song/archive records for %s", channel.id)
+            except YouTubeAccessBlocked:
+                raise
+            except Exception:
+                failures = max(0, channel.video_scan_failures) + 1
+                retry_seconds = min(
+                    self.policy.steady_scan_interval_seconds,
+                    self.policy.steady_retry_base_seconds
+                    * (2 ** min(failures - 1, 5)),
+                )
+                await self.channel_repo.schedule_video_scan(
+                    channel.id,
+                    next_scan_at=self._utc_now()
+                    + timedelta(seconds=retry_seconds),
+                    succeeded=False,
+                )
+                logger.exception(
+                    "Recent archive scan failed for %s; retry in %ss",
+                    channel.id,
+                    retry_seconds,
+                )
+                updater_status.set(
+                    UpdaterPhase.ERROR,
+                    detail="Recent archive scan failed and was rescheduled",
+                    channel_id=channel.id,
+                    channel_name=channel.name,
+                    last_error="A channel discovery scan failed",
+                )
+                return
+
+        if not discovered:
+            return
 
         # Keep types aligned; drop chatter/other; clear stray song analysis.
         updater_status.set(
@@ -454,7 +552,7 @@ class DataUpdater:
         )
         cleared_ids = await self.video_repo.clear_analysis_for_non_karaoke(
             channel.id,
-            max_attempts=UPDATE_MAX_ANALYZE_ATTEMPTS,
+            max_attempts=self.policy.max_analysis_attempts,
         )
         for video_id in cleared_ids:
             await self.song_repo.replace_for_video(video_id, [])
@@ -466,53 +564,66 @@ class DataUpdater:
                 len(cleared_ids),
             )
 
-        remaining_scrapes = (
-            UPDATE_MAX_COMMENT_SCRAPES - self._comment_scrapes_this_cycle
+    @staticmethod
+    def _utc_now() -> datetime:
+        return datetime.now(UTC).replace(tzinfo=None)
+
+    def _channel_scan_is_due(self, channel: YouTubeChannel) -> bool:
+        return (
+            channel.next_video_scan_at is None
+            or channel.next_video_scan_at <= self._utc_now()
         )
-        if remaining_scrapes <= 0:
+
+    async def _process_analysis_queue(self) -> None:
+        """Analyze a global, due queue independently from channel discovery."""
+        remaining = (
+            self.policy.comment_scrapes_per_cycle
+            - self._comment_scrapes_this_cycle
+        )
+        if remaining <= 0:
             return
 
-        needing = await self.video_repo.get_needing_analysis(
-            channel.id,
-            max_attempts=UPDATE_MAX_ANALYZE_ATTEMPTS,
-            limit=min(remaining_scrapes, UPDATE_MAX_VIDEOS),
+        needing = await self.video_repo.get_analysis_queue(
+            max_attempts=self.policy.max_analysis_attempts,
+            limit=remaining,
         )
         logger.info(
-            "Channel %s: %s video(s) need analysis (cap this pass=%s)",
-            channel.id,
+            "Global analysis queue returned %s video(s) (cycle cap=%s)",
             len(needing),
-            remaining_scrapes,
+            self.policy.comment_scrapes_per_cycle,
         )
-
         for video in needing:
-            if self._comment_scrapes_this_cycle >= UPDATE_MAX_COMMENT_SCRAPES:
-                logger.info(
-                    "Hit UPDATE_MAX_COMMENT_SCRAPES=%s; stopping comment scrapes",
-                    UPDATE_MAX_COMMENT_SCRAPES,
-                )
+            if (
+                self._comment_scrapes_this_cycle
+                >= self.policy.comment_scrapes_per_cycle
+            ):
                 break
-
             try:
                 await self._analyze_video(video)
+                await self.session.commit()
             except YouTubeAccessBlocked:
+                # _analyze_video records the attempt/retry state before raising.
+                await self.session.commit()
                 raise
             except Exception:
+                await self.session.commit()
                 logger.exception(
                     "Non-block failure analyzing video %s; continuing", video.id
                 )
                 updater_status.set(
                     UpdaterPhase.ERROR,
                     detail="Video analysis failed; continuing with the next video",
-                    channel_id=channel.id,
-                    channel_name=channel.name,
+                    clear_channel=True,
                     video_id=video.id,
                     video_title=video.title,
                     last_error="A video analysis failed",
                 )
 
-    async def _backfill_channel_video_page(self, channel: YouTubeChannel) -> None:
+    async def _backfill_channel_video_page(
+        self, channel: YouTubeChannel
+    ) -> YouTubeChannel | None:
         """Scrape the next playlist window and advance the persisted cursor."""
-        page_size = max(1, UPDATE_BACKFILL_PAGE_SIZE)
+        page_size = max(1, self.policy.backfill_page_size)
         offset = max(1, channel.video_backfill_offset or 1)
         updater_status.set(
             UpdaterPhase.BACKFILLING_VIDEOS,
@@ -526,7 +637,11 @@ class DataUpdater:
         )
 
         def _scrape_page():
-            return YouTubeChannelVideoScraper(channel.url).get_channel_videos_page(
+            return YouTubeChannelVideoScraper(
+                channel.url,
+                sleep_interval=self.policy.ytdlp_list_sleep_interval,
+                max_sleep_interval=self.policy.ytdlp_list_max_sleep_interval,
+            ).get_channel_videos_page(
                 playlist_start=offset,
                 page_size=page_size,
             )
@@ -538,7 +653,7 @@ class DataUpdater:
             logger.exception(
                 "Backfill page failed for channel %s; scheduling retry", channel.id
             )
-            await self.channel_repo.update_video_backfill(
+            failed = await self.channel_repo.update_video_backfill(
                 channel.id,
                 status=VIDEO_BACKFILL_FAILED,
                 offset=offset,
@@ -550,7 +665,7 @@ class DataUpdater:
                 channel_name=channel.name,
                 last_error="A video history backfill page failed",
             )
-            return
+            return failed
 
         # Prefer recent uploads across Streams + Videos; empty dates sort last.
         scraped_sorted = sorted(
@@ -574,7 +689,7 @@ class DataUpdater:
         if not page.all_tabs_succeeded:
             # Saving the usable rows is safe, but advancing would permanently
             # skip the failed tab's current window.
-            await self.channel_repo.update_video_backfill(
+            failed = await self.channel_repo.update_video_backfill(
                 channel.id,
                 status=VIDEO_BACKFILL_FAILED,
                 offset=offset,
@@ -595,7 +710,7 @@ class DataUpdater:
                 channel_name=channel.name,
                 last_error="A channel tab failed during video history backfill",
             )
-            return
+            return failed
 
         if page.exhausted:
             next_status = VIDEO_BACKFILL_DONE
@@ -619,11 +734,21 @@ class DataUpdater:
                 page.raw_entry_count,
             )
 
-        await self.channel_repo.update_video_backfill(
+        updated = await self.channel_repo.update_video_backfill(
             channel.id,
             status=next_status,
             offset=next_offset,
         )
+        if next_status == VIDEO_BACKFILL_DONE:
+            next_scan = self._utc_now() + timedelta(
+                seconds=self.policy.steady_scan_interval_seconds
+            )
+            updated = await self.channel_repo.schedule_video_scan(
+                channel.id,
+                next_scan_at=next_scan,
+                succeeded=True,
+            )
+        return updated
 
     async def _refresh_channel(self, channel: YouTubeChannel) -> YouTubeChannel:
         logger.info("Refreshing channel metadata for %s", channel.url)
@@ -661,9 +786,11 @@ class DataUpdater:
         def _scrape() -> list[YouTubeVideo]:
             return YouTubeChannelVideoScraper(
                 channel.url,
-                max_videos=UPDATE_MAX_VIDEOS,
+                max_videos=self.policy.recent_videos_per_channel,
                 full_metadata=full_metadata,
-                metadata_limit=UPDATE_MAX_METADATA_SCRAPES,
+                metadata_limit=self.policy.metadata_scrapes_per_refresh,
+                sleep_interval=self.policy.ytdlp_list_sleep_interval,
+                max_sleep_interval=self.policy.ytdlp_list_max_sleep_interval,
             ).get_channel_videos()
 
         try:
@@ -688,7 +815,7 @@ class DataUpdater:
         persisted = [
             v for v in scraped_sorted if (v.type or "") in PERSISTED_VIDEO_TYPES
         ]
-        limited = persisted[:UPDATE_MAX_VIDEOS]
+        limited = persisted[: self.policy.recent_videos_per_channel]
         logger.info(
             "Channel %s: scraped %s, kept %s song/karaoke (full_metadata=%s)",
             channel.id,
@@ -729,6 +856,9 @@ class DataUpdater:
                 video.id,
                 video.title,
             )
+            video.analysis_status = ANALYSIS_SKIPPED
+            video.next_analysis_at = None
+            await self.video_repo.update_analysis(video)
             return
 
         if self._comment_scrapes_this_cycle > 0:
@@ -737,7 +867,7 @@ class DataUpdater:
         logger.info(
             "Comment scrape %s/%s for karaoke stream %s (%s)",
             self._comment_scrapes_this_cycle,
-            UPDATE_MAX_COMMENT_SCRAPES,
+            self.policy.comment_scrapes_per_cycle,
             video.id,
             video.title,
         )
@@ -745,7 +875,8 @@ class DataUpdater:
             UpdaterPhase.SCRAPING_COMMENTS,
             detail=(
                 f"Scraping comments "
-                f"({self._comment_scrapes_this_cycle}/{UPDATE_MAX_COMMENT_SCRAPES})"
+                f"({self._comment_scrapes_this_cycle}/"
+                f"{self.policy.comment_scrapes_per_cycle})"
             ),
             video_id=video.id,
             video_title=video.title,
@@ -755,10 +886,10 @@ class DataUpdater:
         def _scrape_comments() -> list:
             scraper = YouTubeVideoCommentScraper(
                 video.url,
-                sleep_interval=YTDLP_COMMENT_SLEEP_INTERVAL,
-                max_sleep_interval=YTDLP_COMMENT_MAX_SLEEP_INTERVAL,
+                sleep_interval=self.policy.ytdlp_comment_sleep_interval,
+                max_sleep_interval=self.policy.ytdlp_comment_max_sleep_interval,
             )
-            return scraper.get_video_top_comments(UPDATE_MAX_COMMENTS_PER_VIDEO)
+            return scraper.get_video_top_comments(self.policy.max_comments_per_video)
 
         now = datetime.now(UTC).replace(tzinfo=None)
         attempts = (video.analyze_attempts or 0) + 1
@@ -766,11 +897,31 @@ class DataUpdater:
         try:
             comments = await asyncio.to_thread(_scrape_comments)
         except Exception as exc:
-            video.analyze_attempts = attempts
             video.last_analyzed_at = now
-            await self.video_repo.update_analysis(video)
-            if isinstance(exc, YouTubeAccessBlocked) or is_youtube_block_error(exc):
+            blocked = isinstance(
+                exc, YouTubeAccessBlocked
+            ) or is_youtube_block_error(exc)
+            if blocked:
+                # A process/IP block says nothing about this video's content and
+                # must not permanently exhaust the record's analysis attempts.
+                video.analysis_status = ANALYSIS_RETRY
+                video.next_analysis_at = now + timedelta(
+                    seconds=self.policy.youtube_cooldown_seconds
+                )
+                await self.video_repo.update_analysis(video)
                 raise YouTubeAccessBlocked(str(exc)) from exc
+
+            video.analyze_attempts = attempts
+            if attempts >= self.policy.max_analysis_attempts:
+                video.analysis_status = ANALYSIS_EXHAUSTED
+                video.next_analysis_at = None
+            else:
+                retry_seconds = self.policy.analysis_retry_base_seconds * (
+                    2 ** min(attempts - 1, 5)
+                )
+                video.analysis_status = ANALYSIS_RETRY
+                video.next_analysis_at = now + timedelta(seconds=retry_seconds)
+            await self.video_repo.update_analysis(video)
             raise
 
         video.comments_raw_data = {"comments": comments}
@@ -789,6 +940,8 @@ class DataUpdater:
             songs = analyzer.extract_song_list()
             if songs:
                 video.has_song_list_comment = True
+                video.analysis_status = ANALYSIS_DONE
+                video.next_analysis_at = None
                 video.song_list_comment_raw_data = analyzer.song_list_comment
                 # This analysis is authoritative; never retain an older LLM
                 # payload if the current cleaning pass is skipped or fails.
@@ -804,6 +957,7 @@ class DataUpdater:
                 video.cleaned_song_list_comment = None
                 video.cleaning_attempts = 0
                 video.last_cleaned_at = None
+                self._schedule_no_setlist_recheck(video, now, attempts)
                 await self.song_repo.replace_for_video(video.id, [])
                 logger.info(
                     "Video %s: timestamp comment had no parseable songs", video.id
@@ -814,12 +968,30 @@ class DataUpdater:
             video.cleaned_song_list_comment = None
             video.cleaning_attempts = 0
             video.last_cleaned_at = None
+            self._schedule_no_setlist_recheck(video, now, attempts)
             # Re-analysis is authoritative: a successful "no setlist" result
             # must not leave songs from an older analysis behind.
             await self.song_repo.replace_for_video(video.id, [])
             logger.info("Video %s: no setlist comment found", video.id)
 
         await self.video_repo.update_analysis(video)
+
+    def _schedule_no_setlist_recheck(
+        self,
+        video: YouTubeVideo,
+        now: datetime,
+        attempts: int,
+    ) -> None:
+        if attempts >= self.policy.max_analysis_attempts:
+            video.analysis_status = ANALYSIS_EXHAUSTED
+            video.next_analysis_at = None
+            return
+        # Comments often gain a setlist after archive publication. Recheck later,
+        # never immediately on the next five-minute worker tick.
+        video.analysis_status = ANALYSIS_NO_SETLIST
+        video.next_analysis_at = now + timedelta(
+            seconds=self.policy.analysis_recheck_seconds * attempts
+        )
 
     async def _maybe_llm_clean(
         self,
@@ -897,13 +1069,32 @@ class DataUpdater:
         return songs
 
     async def _jitter_sleep(self) -> None:
-        low = min(UPDATE_SCRAPE_SLEEP_MIN, UPDATE_SCRAPE_SLEEP_MAX)
-        high = max(UPDATE_SCRAPE_SLEEP_MIN, UPDATE_SCRAPE_SLEEP_MAX)
+        low = min(
+            self.policy.inter_comment_sleep_min,
+            self.policy.inter_comment_sleep_max,
+        )
+        high = max(
+            self.policy.inter_comment_sleep_min,
+            self.policy.inter_comment_sleep_max,
+        )
         delay = random.uniform(low, high)
         logger.info("Inter-scrape jitter: sleeping %.1fs", delay)
         updater_status.set(
             UpdaterPhase.JITTER,
             detail=f"Inter-scrape pause ({delay:.1f}s)",
+            clear_video=True,
+            comment_scrapes_this_cycle=self._comment_scrapes_this_cycle,
+        )
+        await asyncio.sleep(delay)
+
+    async def _list_jitter_sleep(self) -> None:
+        low = min(self.policy.inter_list_sleep_min, self.policy.inter_list_sleep_max)
+        high = max(self.policy.inter_list_sleep_min, self.policy.inter_list_sleep_max)
+        delay = random.uniform(low, high)
+        logger.info("Backfill page pause: sleeping %.1fs", delay)
+        updater_status.set(
+            UpdaterPhase.JITTER,
+            detail=f"Backfill page pause ({delay:.1f}s)",
             clear_video=True,
             comment_scrapes_this_cycle=self._comment_scrapes_this_cycle,
         )

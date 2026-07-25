@@ -264,6 +264,30 @@ class TestCommentAnalyzerParsing:
         analyzer = CommentAnalyzer([_comment("nope")], video_id=VIDEO_ID)
         assert analyzer.extract_song_list() == []
 
+    def test_explicit_setlist_excludes_following_stream_chapters(self):
+        text = _setlist(
+            "セトリ [Set list]",
+            "00:09:12 Song A / Artist",
+            "00:13:24 Song B / Artist",
+            "00:17:13 Song C / Artist",
+            "",
+            "─── 配信内容 ───",
+            "00:02:16 greeting",
+            "00:20:00 announcement",
+        )
+        songs = self._songs_from(text)
+        assert [song.title for song in songs] == [
+            "Song A / Artist",
+            "Song B / Artist",
+            "Song C / Artist",
+        ]
+
+    def test_no_heading_keeps_existing_all_timestamp_behavior(self):
+        songs = self._songs_from(
+            _setlist("0:10 Song A", "0:20 chat", "0:30 Song B")
+        )
+        assert [song.title for song in songs] == ["Song A", "chat", "Song B"]
+
     def test_long_title_is_bounded_to_database_limit(self):
         songs = self._songs_from("0:10 " + ("x" * 600))
         assert len(songs[0].title) == 500

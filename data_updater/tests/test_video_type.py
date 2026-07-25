@@ -58,6 +58,22 @@ class TestSongTitles:
 
 
 class TestKaraokeSoftConfirms:
+    def test_rejects_live_upcoming_and_post_live_even_with_strong_title(self):
+        for status in ("is_live", "is_upcoming", "post_live"):
+            assert (
+                classify_video_type(
+                    "【歌枠】KARAOKE",
+                    live_status=status,
+                    duration=3600,
+                )
+                == VIDEO_TYPE_OTHER
+            )
+            assert not should_scrape_comments(
+                "【歌枠】KARAOKE",
+                live_status=status,
+                duration=3600,
+            )
+
     def test_title_only_when_metadata_missing(self):
         assert is_karaoke_stream("【歌枠】深夜")
         assert classify_video_type("【歌枠】深夜") == VIDEO_TYPE_KARAOKE
