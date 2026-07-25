@@ -233,18 +233,28 @@ async def list_channel_videos(
         None,
         description="Filter by video type (karaoke stream or song upload)",
     ),
+    has_song_list: bool | None = Query(
+        None,
+        description="Filter by whether a setlist comment was found",
+    ),
     session: AsyncSession = Depends(get_session),
 ):
-    """List videos for a tracked channel (optional karaoke/song filter)."""
+    """List videos for a tracked channel (optional type / setlist filters)."""
     channel_repo = ChannelRepository(session)
     if await channel_repo.get_by_id(channel_id) is None:
         raise HTTPException(status_code=404, detail="Channel not found")
     limit, offset = pagination
     video_repo = VideoRepository(session)
     items = await video_repo.get_by_channel_id(
-        channel_id, limit=limit, offset=offset, video_type=type
+        channel_id,
+        limit=limit,
+        offset=offset,
+        video_type=type,
+        has_song_list=has_song_list,
     )
-    total = await video_repo.count_by_channel_id(channel_id, video_type=type)
+    total = await video_repo.count_by_channel_id(
+        channel_id, video_type=type, has_song_list=has_song_list
+    )
     return Paginated(items=items, total=total, limit=limit, offset=offset)
 
 

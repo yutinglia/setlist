@@ -91,11 +91,14 @@ class VideoRepository:
         limit: int | None = None,
         offset: int = 0,
         video_type: str | None = None,
+        has_song_list: bool | None = None,
     ) -> list[YouTubeVideo]:
-        """根據頻道 ID 取得該頻道的影片列表 (optional pagination / type filter)."""
+        """List channel videos (optional pagination / type / setlist filter)."""
         stmt = select(Videos).where(Videos.channel_id == channel_id)
         if video_type is not None:
             stmt = stmt.where(Videos.type == video_type)
+        if has_song_list is not None:
+            stmt = stmt.where(Videos.has_song_list_comment.is_(has_song_list))
         stmt = stmt.order_by(
             _effective_upload_date_order().desc().nulls_last(),
             Videos.playlist_position.asc().nulls_last(),
@@ -115,8 +118,9 @@ class VideoRepository:
         channel_id: str,
         *,
         video_type: str | None = None,
+        has_song_list: bool | None = None,
     ) -> int:
-        """Count videos for ``channel_id`` (optional type filter)."""
+        """Count videos for ``channel_id`` (optional type / setlist filter)."""
         stmt = (
             select(func.count())
             .select_from(Videos)
@@ -124,6 +128,8 @@ class VideoRepository:
         )
         if video_type is not None:
             stmt = stmt.where(Videos.type == video_type)
+        if has_song_list is not None:
+            stmt = stmt.where(Videos.has_song_list_comment.is_(has_song_list))
         result = await self.session.execute(stmt)
         return int(result.scalar_one())
 

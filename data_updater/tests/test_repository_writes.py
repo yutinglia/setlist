@@ -334,3 +334,84 @@ async def test_exact_upload_date_is_never_downgraded_by_flat_refresh(
     )
 
     await session.rollback()
+
+
+@pytest.mark.asyncio
+async def test_get_by_channel_id_filters_has_song_list(session: AsyncSession):
+    suffix = uuid.uuid4().hex[:8]
+    channel_id = f"ch_setlist_{suffix}"
+    channel_repo = ChannelRepository(session)
+    video_repo = VideoRepository(session)
+    await channel_repo.create(
+        YouTubeChannel(
+            id=channel_id,
+            name="Setlist Filter Test",
+            url=f"https://www.youtube.com/channel/{channel_id}",
+        )
+    )
+
+    with_setlist = await video_repo.upsert(
+        YouTubeVideo(
+            id=f"vid_yes_{suffix}",
+            title="With setlist",
+            url=f"https://www.youtube.com/watch?v=vid_yes_{suffix}",
+            channel_id=channel_id,
+            type="karaoke",
+            raw_data={},
+        )
+    )
+    with_setlist.has_song_list_comment = True
+    with_setlist.analysis_status = "done"
+    await video_repo.update_analysis(with_setlist)
+
+    await video_repo.upsert(
+        YouTubeVideo(
+            id=f"vid_no_{suffix}",
+            title="Without setlist",
+            url=f"https://www.youtube.com/watch?v=vid_no_{suffix}",
+            channel_id=channel_id,
+            type="karaoke",
+            raw_data={},
+        )
+    )
+    await video_repo.upsert(
+        YouTubeVideo(
+            id=f"vid_song_{suffix}",
+            title="Song upload",
+            url=f"https://www.youtube.com/watch?v=vid_song_{suffix}",
+            channel_id=channel_id,
+            type="song",
+            raw_data={},
+        )
+    )
+
+    all_karaoke = await video_repo.get_by_channel_id(channel_id, video_type="karaoke")
+    assert {v.id for v in all_karaoke} == {
+        f"vid_yes_{suffix}",
+        f"vid_no_{suffix}",
+    }
+    assert await video_repo.count_by_channel_id(channel_id, video_type="karaoke") == 2
+
+    only_with = await video_repo.get_by_channel_id(
+        channel_id, video_type="karaoke", has_song_list=True
+    )
+    assert [v.id for v in only_with] == [f"vid_yes_{suffix}"]
+    assert (
+        await video_repo.count_by_channel_id(
+            channel_id, video_type="karaoke", has_song_list=True
+        )
+        == 1
+    )
+
+    only_without = await video_repo.get_by_channel_id(
+        channel_id, video_type="karaoke", has_song_list=False
+    )
+    assert [v.id for v in only_without] == [f"vid_no_{suffix}"]
+    assert (
+        await video_repo.count_by_channel_id(
+            channel_id, video_type="karaoke", has_song_list=False
+        )
+        == 1
+    )
+
+    await session.rollback()

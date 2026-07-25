@@ -27,6 +27,7 @@ export const Route = createFileRoute("/channels/$channelId")({
 })
 
 type ChannelTab = "karaoke" | "videos"
+type SetlistFilter = "all" | "yes" | "no"
 type ReloadStatus = "idle" | "loading" | "done" | "error"
 
 const TAB_TO_TYPE = {
@@ -34,14 +35,34 @@ const TAB_TO_TYPE = {
   videos: "song",
 } as const satisfies Record<ChannelTab, "karaoke" | "song">
 
+function setlistParamToFilter(
+  value: "true" | "false" | undefined,
+): SetlistFilter {
+  if (value === "true") return "yes"
+  if (value === "false") return "no"
+  return "all"
+}
+
+function setlistFilterToQuery(
+  filter: SetlistFilter,
+): boolean | undefined {
+  if (filter === "yes") return true
+  if (filter === "no") return false
+  return undefined
+}
+
 function ChannelVideosPage() {
   const { channelId } = Route.useParams()
-  const { page = 0, tab: tabParam } = Route.useSearch()
+  const { page = 0, tab: tabParam, has_song_list: hasSongListParam } =
+    Route.useSearch()
   const tab: ChannelTab = tabParam ?? "karaoke"
+  const setlistFilter =
+    tab === "karaoke" ? setlistParamToFilter(hasSongListParam) : "all"
+  const hasSongList = setlistFilterToQuery(setlistFilter)
   const videoType = TAB_TO_TYPE[tab]
   const navigate = Route.useNavigate()
   const queryClient = useQueryClient()
-  const query = useChannelVideos(channelId, page, videoType)
+  const query = useChannelVideos(channelId, page, videoType, hasSongList)
   const [reloadStatus, setReloadStatus] = useState<ReloadStatus>("idle")
   const [reloadDetail, setReloadDetail] = useState<string>("")
   const changePage = useCallback(
@@ -51,11 +72,15 @@ function ChannelVideosPage() {
           ...prev,
           tab: tab === "karaoke" ? undefined : tab,
           page: next || undefined,
+          has_song_list:
+            tab === "karaoke" && hasSongListParam
+              ? hasSongListParam
+              : undefined,
         }),
         replace: true,
       })
     },
-    [navigate, tab],
+    [navigate, tab, hasSongListParam],
   )
   useClampPage(page, query.data?.total, PAGE_SIZE, changePage)
 
@@ -73,6 +98,19 @@ function ChannelVideosPage() {
       search: () => ({
         tab: next === "karaoke" ? undefined : next,
         page: undefined,
+        has_song_list: undefined,
+      }),
+    })
+  }
+
+  function setSetlistFilter(next: SetlistFilter) {
+    void navigate({
+      search: (prev) => ({
+        ...prev,
+        tab: undefined,
+        page: undefined,
+        has_song_list:
+          next === "yes" ? "true" : next === "no" ? "false" : undefined,
       }),
     })
   }
@@ -108,7 +146,13 @@ function ChannelVideosPage() {
           ? m.reload_failed()
           : m.reload_list()
   const emptyMessage =
-    tab === "karaoke" ? m.karaoke_empty() : m.song_videos_empty()
+    tab === "videos"
+      ? m.song_videos_empty()
+      : setlistFilter === "yes"
+        ? m.karaoke_empty_with_setlist()
+        : setlistFilter === "no"
+          ? m.karaoke_empty_without_setlist()
+          : m.karaoke_empty()
   const videos = sortVideosByUploadDateDesc(query.data?.items ?? [])
 
   return (
@@ -192,6 +236,33 @@ function ChannelVideosPage() {
           {m.channel_tab_videos()}
         </Button>
       </div>
+
+      {tab === "karaoke" ? (
+        <div
+          className="mt-4 inline-flex rounded-md border border-border bg-card/70 p-0.5"
+          role="group"
+          aria-label={m.setlist_filter_label()}
+        >
+          {(
+            [
+              ["all", m.setlist_filter_all()],
+              ["yes", m.setlist_filter_yes()],
+              ["no", m.setlist_filter_no()],
+            ] as const
+          ).map(([value, label]) => (
+            <Button
+              key={value}
+              type="button"
+              size="sm"
+              variant={setlistFilter === value ? "secondary" : "ghost"}
+              aria-pressed={setlistFilter === value}
+              onClick={() => setSetlistFilter(value)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mt-6" role="tabpanel">
         <QueryState

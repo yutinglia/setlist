@@ -96,10 +96,15 @@ export const api = {
     limit: number,
     offset: number,
     type?: "karaoke" | "song",
+    hasSongList?: boolean,
   ) => {
     const typeQuery = type ? `&type=${encodeURIComponent(type)}` : ""
+    const setlistQuery =
+      hasSongList === undefined
+        ? ""
+        : `&has_song_list=${hasSongList ? "true" : "false"}`
     return request<Paginated<YouTubeVideo>>(
-      `/v1/channels/${encodeURIComponent(channelId)}/videos?${pageQuery(limit, offset)}${typeQuery}`,
+      `/v1/channels/${encodeURIComponent(channelId)}/videos?${pageQuery(limit, offset)}${typeQuery}${setlistQuery}`,
     )
   },
 
