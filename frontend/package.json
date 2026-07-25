@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "npm run generate:i18n",
     "dev": "vite",
     "build": "npm run generate:i18n && npm run generate:routes && tsc -b && vite build",
     "lint": "oxlint",

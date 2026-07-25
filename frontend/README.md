@@ -48,10 +48,11 @@ API. Refresh is non-destructive and preserves existing videos and setlists.
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Vite dev server (port 5173) |
+| `npm run dev` | Vite dev server (port 5173); runs `generate:i18n` first via `predev` |
 | `npm run build` | Typecheck + production build |
 | `npm run lint` | Oxlint static checks |
 | `npm run preview` | Preview production build |
+| `npm run generate:i18n` | Recompile Paraglide from `messages/*.json` into `src/paraglide/` |
 | `npx @tanstack/router-cli generate` | Regenerate `src/routeTree.gen.ts` if needed |
 
 ## Routes
