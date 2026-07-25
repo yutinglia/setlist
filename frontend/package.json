@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx @tanstack/router-cli generate && tsc -b && vite build",
+    "build": "npm run generate:i18n && npm run generate:routes && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "generate:routes": "npx @tanstack/router-cli generate"
+    "generate:i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --strategy localStorage cookie preferredLanguage baseLocale --emit-ts-declarations --silent",
+    "generate:routes": "tsr generate"
   },
   "dependencies": {
     "@fontsource-variable/figtree": "^5.3.0",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/router-cli": "1.167.21",
     "@tanstack/router-plugin": "^1.168.23",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",

@@ -33,9 +33,9 @@ vtuber-karaoke-search/
 ├── db/
 │   ├── migrations/        # Flyway SQL (V1__*.sql, V2 title index)
 │   └── devscript/         # PowerShell one-shot Postgres + sqlacodegen
-├── .devcontainer/         # Dev Container (Python 3.12 + Postgres + Flyway)
-├── docker-compose.yml     # Includes .devcontainer/docker-compose.yml
-└── docker-compose.dev.yml # Same include (alias)
+├── .devcontainer/         # Dev Container image/config (Python 3.12 + Node 22)
+├── docker-compose.yml     # Production-oriented API + Postgres + Flyway
+└── docker-compose.dev.yml # Dev Container workspace + Postgres + Flyway
 ```
 
 ## How to run
@@ -44,7 +44,8 @@ vtuber-karaoke-search/
 
 1. Open the repo in Cursor/VS Code → **Reopen in Container**.
 2. Compose starts `db` (Postgres 18), runs Flyway migrations, then attaches to `app`.
-3. Deps install via `postCreateCommand` (`pip install -r data_updater/requirements.txt`).
+3. Python deps are baked into the image; `postCreateCommand` runs `npm ci` into
+   a container-only `node_modules` volume.
 4. From `data_updater/`:
    ```bash
    APP_ENV=dev uvicorn main:app --host 0.0.0.0 --port 8000
@@ -61,7 +62,7 @@ vtuber-karaoke-search/
 
 1. Start Postgres + migrate (Windows scripts under `db/devscript/`, or):
    ```bash
-   docker compose -f .devcontainer/docker-compose.yml up -d db flyway
+   docker compose -f docker-compose.dev.yml up -d db flyway
    ```
 2. Optional: regenerate ORM with `db/devscript/sqlacodegen.ps1` (overwrites `data_updater/db/models.py`)
 3. From `data_updater/`:

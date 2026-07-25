@@ -1,9 +1,11 @@
 {
   "name": "vtuber-karaoke-search",
-  "dockerComposeFile": "docker-compose.yml",
+  "dockerComposeFile": "../docker-compose.dev.yml",
   "service": "app",
   "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
   "forwardPorts": [8000, 5173],
   "portsAttributes": {
     "8000": {
@@ -21,18 +23,7 @@
       "installYarnUsingApt": false
     }
   },
-  "remoteEnv": {
-    "APP_ENV": "dev",
-    "DB_HOST": "db",
-    "DB_PORT": "5432",
-    "DB_NAME": "vks_db",
-    "DB_USER": "vks_db_user",
-    "DB_PASSWORD": "vks_db_pwd",
-    "DATABASE_URL": "postgresql+asyncpg://vks_db_user:vks_db_pwd@db:5432/vks_db"
-  },
-  "postCreateCommand": "pip install -r data_updater/requirements.txt && npm --prefix frontend install",
-  "postStartCommand": "bash .devcontainer/ensure-dev-servers.sh",
-  "overrideCommand": false,
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -44,7 +35,10 @@
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",
         "python.analysis.extraPaths": ["/workspace/data_updater"],
-        "terminal.integrated.cwd": "/workspace"
+        "terminal.integrated.cwd": "/workspace",
+        "files.watcherExclude": {
+          "**/frontend/node_modules/**": true
+        }
       }
     }
   }

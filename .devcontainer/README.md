@@ -6,25 +6,22 @@ Reopen this repo in a container (Cursor/VS Code: **Dev Containers: Reopen in Con
 
 | Service | Role |
 |---------|------|
-| `app` | Python 3.12 workspace (`sleep infinity`); your IDE attaches here |
+| `app` | Python 3.12 + Node 22 workspace; your IDE attaches here |
 | `db` | Postgres 18 (`vks_db` / `vks_db_user` / `vks_db_pwd`) |
 | `flyway` | Applies `db/migrations` once, then exits |
 
-On create: installs Python deps and `frontend` npm packages. Node 22 is provided via the Dev Container Node feature.
+Python packages are baked into the development image. On first create,
+`npm ci` installs frontend packages into a Linux named volume. Keeping
+`node_modules` outside the Windows bind mount prevents host/container package
+and symlink conflicts.
 
-API (`:8000`) and Vite (`:5173`) are started by the Compose **entrypoint** on every container start (not only `postStartCommand`). That avoids a known Dev Containers issue where background processes started from `postStartCommand` are killed when the `docker exec -t` session exits.
-
-`postStartCommand` still runs the same ensure script as a backup (idempotent).
+The container does not start application processes in lifecycle hooks. This
+keeps container startup deterministic and makes server output visible in the
+terminal that owns each process.
 
 ## After attach
 
-API and search UI should already be up. To restart them yourself:
-
-```bash
-bash .devcontainer/ensure-dev-servers.sh
-```
-
-Or manually:
+Start the API and UI in separate terminals:
 
 ```bash
 # API (auto-reloads on Python changes)
@@ -54,13 +51,18 @@ docker compose -f .devcontainer/docker-compose.yml exec -T db \
   psql -U vks_db_user -d vks_db
 ```
 
-## Compose without the IDE
+## Database without the IDE
 
 From the repo root:
 
 ```bash
-docker compose -f .devcontainer/docker-compose.yml up -d db flyway
-docker compose -f .devcontainer/docker-compose.yml up --build app
+docker compose -f docker-compose.dev.yml up -d db flyway
 ```
 
-Root `docker-compose.yml` and `docker-compose.dev.yml` include this file.
+The `app` service gets Node through a Dev Container feature. Create that
+workspace through Cursor/VS Code (or the Dev Container CLI), not through a raw
+`docker compose build app`.
+
+`docker-compose.dev.yml` is dedicated to the Dev Container. The root
+`docker-compose.yml` is a separate production-oriented stack and does not start
+the IDE workspace service.

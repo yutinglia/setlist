@@ -2,7 +2,7 @@
 -- Not a Flyway migration: run manually after migrations (see README).
 --
 -- Usage (Compose/Dev Container DB is not published on the host):
---   docker compose -f .devcontainer/docker-compose.yml exec -T db \
+--   docker compose -f docker-compose.dev.yml exec -T db \
 --     psql -U vks_db_user -d vks_db < db/devscript/seed_channels.sql
 
 INSERT INTO channels (id, name, url, thumbnail_url, raw_data)

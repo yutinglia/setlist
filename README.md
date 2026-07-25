@@ -16,7 +16,7 @@ Scrape VTuber karaoke streams, detect setlist comments (timestamp lists), store 
 
 1. Open this repo in Cursor or VS Code.
 2. **Dev Containers: Reopen in Container**.
-3. Compose starts Postgres, runs Flyway, installs Python deps.
+3. Compose starts Postgres, runs Flyway, and prepares the Python/Node toolchain.
 4. Run the API:
 
 ```bash
@@ -45,7 +45,7 @@ More detail: [.devcontainer/README.md](.devcontainer/README.md) · [frontend/REA
 
 ```bash
 # Postgres + migrations
-docker compose -f .devcontainer/docker-compose.yml up -d db flyway
+docker compose -f docker-compose.dev.yml up -d db flyway
 
 # Python deps (3.12 recommended)
 cd data_updater
@@ -127,7 +127,7 @@ Copy [`.env.example`](.env.example) to `.env` and adjust. Do not commit a real `
 After Postgres + Flyway are up, insert the sample channels (Suisei + Marine):
 
 ```bash
-docker compose -f .devcontainer/docker-compose.yml exec -T db \
+docker compose -f docker-compose.dev.yml exec -T db \
   psql -U vks_db_user -d vks_db < db/devscript/seed_channels.sql
 ```
 

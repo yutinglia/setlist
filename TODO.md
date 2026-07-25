@@ -6,7 +6,7 @@ Checklist aligned with [PLAN.md](PLAN.md). Check items off as they land.
 
 - [x] Direct-dependency `requirements.txt` (FastAPI 0.139, yt-dlp 2026.7, sqlacodegen 4, …)
 - [x] Dev Container (Python 3.12 + Postgres 18 + Flyway)
-- [x] Root compose includes `.devcontainer/docker-compose.yml`
+- [x] Keep development and production Compose stacks separate
 - [x] `AGENTS.md` / `PLAN.md` / README / NOTE refresh
 - [x] `.env.example` + env-configurable `DATA_UPDATE_INTERVAL`
 - [x] `CommentAnalyzer` always sets `video_id`; parsing hardened; unit tests

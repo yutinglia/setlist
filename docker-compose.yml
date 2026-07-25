@@ -1,22 +1,6 @@
-# Local / CI compose entrypoint.
-# Prefer opening the repo in a Dev Container (see .devcontainer/).
-#
-# Postgres + migrations only:
-#   docker compose -f .devcontainer/docker-compose.yml up -d db flyway
-#
-# Production-oriented API (uvicorn, not the IDE sleep container):
-#   docker compose up --build data_updater
-#
-# Dev Container workspace (sleep infinity for the IDE):
-#   docker compose -f .devcontainer/docker-compose.yml up --build app
-
 name: vtuber-karaoke-search
 
-include:
-  - path: .devcontainer/docker-compose.yml
-
 services:
-  # Runs the FastAPI app + background updater. Dev Container `app` stays sleep infinity.
   data_updater:
     build:
       context: ./data_updater
@@ -54,3 +38,44 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
+
+  db:
+    image: postgres:18-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vks_db
+      POSTGRES_USER: vks_db_user
+      POSTGRES_PASSWORD: vks_db_pwd
+    volumes:
+      - vks-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vks_db_user -d vks_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - vks
+
+  flyway:
+    image: flyway/flyway:11-alpine
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./db/migrations:/flyway/sql:ro
+    command:
+      - -url=jdbc:postgresql://db:5432/vks_db
+      - -user=vks_db_user
+      - -password=vks_db_pwd
+      - -connectRetries=5
+      - migrate
+    networks:
+      - vks
+
+volumes:
+  vks-pgdata:
+
+networks:
+  vks:
