@@ -39,3 +39,9 @@ export function buildPageItems(
   }
   return items
 }
+
+/** All 0-based page indices for a page dropdown (`0 .. totalPages-1`). */
+export function buildPageOptions(totalPages: number): number[] {
+  if (totalPages <= 0) return []
+  return Array.from({ length: totalPages }, (_, i) => i)
+}

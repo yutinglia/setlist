@@ -1,5 +1,8 @@
+import { useId } from "react"
+
 import { Button } from "@/components/ui/button"
-import { buildPageItems } from "@/lib/pagination"
+import { buildPageItems, buildPageOptions } from "@/lib/pagination"
+import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
 
 type Props = {
@@ -17,19 +20,47 @@ export function PaginationControls({
   onPageChange,
   disabled,
 }: Props) {
+  const selectId = useId()
   const pages = Math.max(1, Math.ceil(total / pageSize))
   if (total <= pageSize) return null
 
   const items = buildPageItems(page, pages)
+  const options = buildPageOptions(pages)
   const lastPage = pages - 1
   const atStart = page <= 0
   const atEnd = page >= lastPage
 
   return (
     <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm text-muted-foreground">
-        {m.pagination_page({ page: String(page + 1), pages: String(pages) })}
-      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-sm text-muted-foreground">
+          {m.pagination_page({ page: String(page + 1), pages: String(pages) })}
+        </p>
+        <label className="sr-only" htmlFor={selectId}>
+          {m.pagination_select_label()}
+        </label>
+        <select
+          id={selectId}
+          className={cn(
+            "h-8 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none",
+            "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+            "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+          )}
+          value={String(page)}
+          disabled={disabled}
+          aria-label={m.pagination_select_label()}
+          onChange={(e) => {
+            const next = Number(e.target.value)
+            if (Number.isFinite(next) && next !== page) onPageChange(next)
+          }}
+        >
+          {options.map((p) => (
+            <option key={p} value={p}>
+              {p + 1}
+            </option>
+          ))}
+        </select>
+      </div>
       <nav
         className="flex flex-wrap items-center gap-1"
         aria-label={m.pagination_nav_label()}
