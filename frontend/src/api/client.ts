@@ -14,10 +14,10 @@ import type {
  * - Dev: empty → Vite proxies `/v1` to FastAPI (`127.0.0.1:8000`).
  * - Prod / custom: set `VITE_API_BASE_URL` (e.g. `http://localhost:8000`).
  */
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(
-  /\/$/,
-  "",
-) ?? ""
+const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined)
+    ?.trim()
+    .replace(/\/+$/, "") ?? ""
 
 export class ApiError extends Error {
   status: number

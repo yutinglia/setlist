@@ -1,11 +1,13 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { ArrowLeft, ExternalLink } from "lucide-react"
+import { useCallback } from "react"
 
 import { PAGE_SIZE, useVideo, useVideoSongs } from "@/api/hooks"
 import { PaginationControls } from "@/components/pagination-controls"
 import { QueryState } from "@/components/query-state"
 import { buttonVariants } from "@/components/ui/button"
 import { VideoListBadges } from "@/components/video-list-badges"
+import { useClampPage } from "@/hooks/use-clamp-page"
 import { pageSearchSchema } from "@/lib/search-schemas"
 import { formatUploadDate, uploadDateTimeAttr } from "@/lib/upload-date"
 import { cn } from "@/lib/utils"
@@ -25,6 +27,19 @@ function VideoDetailPage() {
   const songsQuery = useVideoSongs(videoId, page, {
     enabled: videoQuery.isSuccess && !isSong,
   })
+  const changePage = useCallback(
+    (next: number) => {
+      void navigate({
+        search: (prev) => ({
+          ...prev,
+          page: next || undefined,
+        }),
+        replace: true,
+      })
+    },
+    [navigate],
+  )
+  useClampPage(page, songsQuery.data?.total, PAGE_SIZE, changePage)
   const uploadDateLabel = formatUploadDate(videoQuery.data?.upload_date)
 
   return (
@@ -180,14 +195,7 @@ function VideoDetailPage() {
                           total={songsQuery.data.total}
                           pageSize={PAGE_SIZE}
                           disabled={songsQuery.isFetching}
-                          onPageChange={(next) =>
-                            void navigate({
-                              search: (prev) => ({
-                                ...prev,
-                                page: next || undefined,
-                              }),
-                            })
-                          }
+                          onPageChange={changePage}
                         />
                       ) : null}
                     </QueryState>

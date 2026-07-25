@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, Check, RefreshCw } from "lucide-react"
@@ -10,12 +10,14 @@ import { PaginationControls } from "@/components/pagination-controls"
 import { QueryState } from "@/components/query-state"
 import { Button } from "@/components/ui/button"
 import { VideoListBadges } from "@/components/video-list-badges"
+import { useClampPage } from "@/hooks/use-clamp-page"
 import { channelVideosSearchSchema } from "@/lib/search-schemas"
 import {
   formatUploadDate,
   sortVideosByUploadDateDesc,
   uploadDateTimeAttr,
 } from "@/lib/upload-date"
+import { MANAGEMENT_UI_ENABLED } from "@/lib/app-config"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
 
@@ -42,6 +44,20 @@ function ChannelVideosPage() {
   const query = useChannelVideos(channelId, page, videoType)
   const [reloadStatus, setReloadStatus] = useState<ReloadStatus>("idle")
   const [reloadDetail, setReloadDetail] = useState<string>("")
+  const changePage = useCallback(
+    (next: number) => {
+      void navigate({
+        search: (prev) => ({
+          ...prev,
+          tab: tab === "karaoke" ? undefined : tab,
+          page: next || undefined,
+        }),
+        replace: true,
+      })
+    },
+    [navigate, tab],
+  )
+  useClampPage(page, query.data?.total, PAGE_SIZE, changePage)
 
   useEffect(() => {
     if (reloadStatus !== "done" && reloadStatus !== "error") return
@@ -65,21 +81,16 @@ function ChannelVideosPage() {
     setReloadStatus("loading")
     setReloadDetail("")
     try {
-      // Force reload: full-metadata scrape, then replace all channel videos in DB.
       const refresh: ChannelVideoRefresh =
         await api.refreshChannelVideos(channelId)
       await queryClient.invalidateQueries({
         queryKey: ["channels", channelId, "videos"],
       })
-      const result = await query.refetch()
-      if (result.isError) {
-        setReloadStatus("error")
-        setReloadDetail(refresh.message)
-        return
-      }
       setReloadStatus("done")
       setReloadDetail(
-        `${refresh.message} (deleted ${refresh.deleted}, scraped ${refresh.scraped}, reclassified ${refresh.reclassified}, cleared ${refresh.cleared})`,
+        m.reload_summary({
+          scraped: String(refresh.scraped),
+        }),
       )
     } catch (err) {
       setReloadStatus("error")
@@ -119,38 +130,40 @@ function ChannelVideosPage() {
             {channelId}
           </p>
         </div>
-        <div className="flex max-w-sm flex-col items-end gap-1">
-          <Button
-            type="button"
-            variant={reloadStatus === "error" ? "destructive" : "outline"}
-            size="sm"
-            disabled={isReloading}
-            aria-busy={isReloading}
-            title={m.reload_hint()}
-            onClick={() => void handleReload()}
-          >
-            {reloadStatus === "done" ? (
-              <Check aria-hidden />
-            ) : (
-              <RefreshCw
-                className={isReloading ? "animate-spin" : undefined}
-                aria-hidden
-              />
-            )}
-            {reloadLabel}
-          </Button>
-          <p
-            className="min-h-4 text-right text-xs text-muted-foreground"
-            aria-live="polite"
-            role="status"
-          >
-            {isReloading
-              ? m.reload_loading()
-              : reloadDetail
-                ? reloadDetail
-                : m.reload_hint()}
-          </p>
-        </div>
+        {MANAGEMENT_UI_ENABLED ? (
+          <div className="flex max-w-sm flex-col items-end gap-1">
+            <Button
+              type="button"
+              variant={reloadStatus === "error" ? "destructive" : "outline"}
+              size="sm"
+              disabled={isReloading}
+              aria-busy={isReloading}
+              title={m.reload_hint()}
+              onClick={() => void handleReload()}
+            >
+              {reloadStatus === "done" ? (
+                <Check aria-hidden />
+              ) : (
+                <RefreshCw
+                  className={isReloading ? "animate-spin" : undefined}
+                  aria-hidden
+                />
+              )}
+              {reloadLabel}
+            </Button>
+            <p
+              className="min-h-4 text-right text-xs text-muted-foreground"
+              aria-live="polite"
+              role="status"
+            >
+              {isReloading
+                ? m.reload_loading()
+                : reloadDetail
+                  ? reloadDetail
+                  : m.reload_hint()}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       <div
@@ -186,7 +199,7 @@ function ChannelVideosPage() {
           isError={query.isError && !query.data}
           isEmpty={query.isSuccess && query.data.items.length === 0}
           emptyMessage={emptyMessage}
-          onRetry={() => void handleReload()}
+          onRetry={() => void query.refetch()}
         >
           <div
             className={cn(
@@ -235,15 +248,7 @@ function ChannelVideosPage() {
               total={query.data.total}
               pageSize={PAGE_SIZE}
               disabled={isReloading}
-              onPageChange={(next) =>
-                void navigate({
-                  search: (prev) => ({
-                    ...prev,
-                    tab: tab === "karaoke" ? undefined : tab,
-                    page: next || undefined,
-                  }),
-                })
-              }
+              onPageChange={changePage}
             />
           ) : null}
         </QueryState>

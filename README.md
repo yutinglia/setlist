@@ -16,12 +16,12 @@ Scrape VTuber karaoke streams, detect setlist comments (timestamp lists), store 
 
 1. Open this repo in Cursor or VS Code.
 2. **Dev Containers: Reopen in Container**.
-3. Compose starts Postgres, runs Flyway, installs Python deps.
+3. Compose starts Postgres, runs Flyway, and prepares the Python/Node toolchain.
 4. Run the API:
 
 ```bash
 cd data_updater
-APP_ENV=dev uvicorn main:app --host 0.0.0.0 --port 8000
+APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 5. Run the UI (Node 20+):
@@ -45,12 +45,12 @@ More detail: [.devcontainer/README.md](.devcontainer/README.md) · [frontend/REA
 
 ```bash
 # Postgres + migrations
-docker compose -f .devcontainer/docker-compose.yml up -d db flyway
+docker compose -f docker-compose.dev.yml up -d db flyway
 
 # Python deps (3.12 recommended)
 cd data_updater
-pip install -r requirements.txt
-APP_ENV=dev uvicorn main:app --host 0.0.0.0 --port 8000
+pip install -r requirements-dev.txt
+APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false uvicorn main:app --host 0.0.0.0 --port 8000
 
 # UI (separate terminal)
 cd frontend
@@ -72,20 +72,24 @@ Brand name in the UI: **Setlist** (`vtuber-karaoke-search`). Locales: English + 
 
 - Debounced song search with pagination and YouTube `&t=` deep links
 - Song detail, channel list → videos → video songs
+- Dev-only channel management; metadata refresh preserves existing setlists
 - Vite proxies `/v1` to `http://127.0.0.1:8000` in dev; or set `VITE_API_BASE_URL`
 - Use `APP_ENV=dev` for loose CORS, or set `CORS_ORIGINS` to the Vite origin (e.g. `http://localhost:5173`) in prod
 
 ## Search API (v1)
 
-List/search endpoints accept `limit` (1–100, default 20) and `offset` (default 0).
+List/search endpoints accept `limit` (1–100, default 20) and `offset`
+(0–1,000,000, default 0).
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/v1/songs/search?q=` | ILIKE on `songs.title`; returns `video_url` with `&t=` deep link |
+| GET | `/v1/songs/search?q=` | Literal substring match; returns `video_url` with `&t=` deep link |
 | GET | `/v1/songs/{id}` | Song detail + deep link + channel |
 | GET | `/v1/channels` | Tracked channels |
 | GET | `/v1/channels/{id}/videos` | Videos for a channel |
 | GET | `/v1/videos/{id}/songs` | Songs for a video |
+| POST | `/v1/channels` | Trusted management mode only; add a validated YouTube channel |
+| POST | `/v1/channels/{id}/videos/refresh` | Trusted management mode only; safe metadata upsert |
 
 Example:
 
@@ -100,7 +104,9 @@ Copy [`.env.example`](.env.example) to `.env` and adjust. Do not commit a real `
 
 | Variable | Default | Notes |
 |----------|---------|-------|
-| `APP_ENV` | `prod` | Set `dev` for docs, `/v1/example`, loose CORS, short updater interval |
+| `APP_ENV` | `prod` | `dev` enables docs, loose CORS, and management; `test` disables background work |
+| `BACKGROUND_UPDATER_ENABLED` | `false` (dev) / `true` (prod) | Opt in during development to avoid accidental YouTube traffic |
+| `MANAGEMENT_API_ENABLED` | `true` (dev) / `false` (prod) | Enables mutating channel/scraper endpoints |
 | `CORS_ORIGINS` | _(empty)_ | Comma-separated browser origins in prod; ignored when `APP_ENV=dev` |
 | `DB_HOST` | `localhost` | Use `db` inside Compose / Dev Container |
 | `DB_PORT` | `5432` | |
@@ -113,6 +119,7 @@ Copy [`.env.example`](.env.example) to `.env` and adjust. Do not commit a real `
 | `UPDATE_MAX_VIDEOS` | `20` | Max videos upserted/considered per channel per cycle (recent refresh) |
 | `UPDATE_BACKFILL_PAGE_SIZE` | same as `UPDATE_MAX_VIDEOS` | Playlist window size when backfilling a new channel |
 | `UPDATE_BACKFILL_CHANNELS_PER_CYCLE` | `1` | Max channels that take a backfill page per updater cycle |
+| `UPDATE_MAX_METADATA_SCRAPES` | `10` | Per-video enrichment cap for manual metadata refresh |
 | `UPDATE_SCRAPE_SLEEP_MIN` / `MAX` | `3` / `8` | Jitter sleep (seconds) between comment scrapes |
 | `UPDATE_MAX_ANALYZE_ATTEMPTS` | `3` | Skip videos after this many failed/empty analyses |
 | `UPDATE_YOUTUBE_COOLDOWN_SECONDS` | `3600` | Skip all YouTube work after a suspected block |
@@ -122,29 +129,40 @@ Copy [`.env.example`](.env.example) to `.env` and adjust. Do not commit a real `
 | `LLM_API_KEY` | _(empty)_ | Required when `LLM_CLEANING_ENABLED=true` |
 | `LLM_MODEL` | `gpt-4o-mini` | Chat model id |
 | `LLM_MAX_CLEANING_ATTEMPTS` | `2` | Cap LLM clean tries per video |
+| `LLM_MAX_INPUT_CHARS` | `20000` | Truncate unusually large comments before optional LLM calls |
 | `VITE_API_BASE_URL` | _(empty)_ | Frontend only; leave empty in Vite dev (proxy). See `frontend/.env.example` |
+| `VITE_MANAGEMENT_UI_ENABLED` | `false` in production builds | Show management UI only when the backend also enables it |
 
 ## Seed karaoke channels
 
 After Postgres + Flyway are up, insert the sample channels (Suisei + Marine):
 
 ```bash
-docker compose -f .devcontainer/docker-compose.yml exec -T db \
+docker compose -f docker-compose.dev.yml exec -T db \
   psql -U vks_db_user -d vks_db < db/devscript/seed_channels.sql
 ```
 
-Then start the API from `data_updater/` (prefer `DATA_UPDATE_INTERVAL=1800`). One cycle scrapes recent videos, analyzes up to `UPDATE_MAX_COMMENT_SCRAPES` of them, and writes songs when a setlist comment is found. Logs show caps, jitter, and cooldown. After songs exist, try the UI or `GET /v1/songs/search?q=...`.
+Then start the API from `data_updater/` with
+`BACKGROUND_UPDATER_ENABLED=true` (prefer `DATA_UPDATE_INTERVAL=1800`). One
+cycle refreshes every channel's recent metadata, analyzes up to
+`UPDATE_MAX_COMMENT_SCRAPES` videos in total, and writes songs when a setlist
+comment is found. Logs show caps, jitter, and cooldown. After songs exist, try
+the UI or `GET /v1/songs/search?q=...`.
 
 ### Tests
 
 From `data_updater/`:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
+ruff check .
 pytest
 ```
 
 Analyzer and timestamp-helper unit tests always run (including pinned/uploader preference and extra setlist formats). Repository write smoke tests skip if Postgres is unreachable.
+
+GitHub Actions runs Ruff, all backend tests against PostgreSQL 18 after Flyway
+migrations, the frontend lint/build, and a production runtime image build.
 
 ### Setlist extraction notes
 
@@ -159,7 +177,7 @@ vtuber-karaoke-search/
 ├── .devcontainer/     # Dev Container (app + Postgres + Flyway)
 ├── frontend/          # Vite React search UI
 ├── data_updater/      # FastAPI service (run with cwd = this dir)
-├── db/migrations/     # Flyway SQL (schema source of truth; V1 + V2 title index)
+├── db/migrations/     # Flyway SQL (schema source of truth; V1–V4)
 ├── .env.example       # Sample env vars (copy to .env)
 ├── AGENTS.md          # Instructions for coding agents
 ├── PLAN.md            # Phased implementation plan

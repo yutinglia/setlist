@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -53,7 +53,7 @@ class ChannelRepository:
         Backfill columns are written on insert only so metadata refreshes do not
         reset paced full-catalog progress.
         """
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
         values = {
             "id": channel.id,
             "name": channel.name,
@@ -98,7 +98,7 @@ class ChannelRepository:
         offset: int,
     ) -> YouTubeChannel | None:
         """Persist paced video-list backfill cursor. Does not commit."""
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
         stmt = (
             update(Channels)
             .where(Channels.id == channel_id)

@@ -1,8 +1,11 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
+import { useCallback } from "react"
 
 import { PAGE_SIZE, useChannels } from "@/api/hooks"
 import { PaginationControls } from "@/components/pagination-controls"
 import { QueryState } from "@/components/query-state"
+import { useClampPage } from "@/hooks/use-clamp-page"
+import { MANAGEMENT_UI_ENABLED } from "@/lib/app-config"
 import { pageSearchSchema } from "@/lib/search-schemas"
 import { m } from "@/paraglide/messages"
 
@@ -15,6 +18,16 @@ function ChannelsPage() {
   const { page = 0 } = Route.useSearch()
   const navigate = Route.useNavigate()
   const query = useChannels(page)
+  const changePage = useCallback(
+    (next: number) => {
+      void navigate({
+        search: { page: next || undefined },
+        replace: true,
+      })
+    },
+    [navigate],
+  )
+  useClampPage(page, query.data?.total, PAGE_SIZE, changePage)
 
   return (
     <section className="animate-fade pt-10">
@@ -22,12 +35,14 @@ function ChannelsPage() {
         <h1 className="font-display text-3xl font-bold tracking-tight">
           {m.channels_heading()}
         </h1>
-        <Link
-          to="/channels/new"
-          className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          {m.channel_add_cta()}
-        </Link>
+        {MANAGEMENT_UI_ENABLED ? (
+          <Link
+            to="/channels/new"
+            className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            {m.channel_add_cta()}
+          </Link>
+        ) : null}
       </div>
 
       <div className="mt-8">
@@ -79,11 +94,7 @@ function ChannelsPage() {
               total={query.data.total}
               pageSize={PAGE_SIZE}
               disabled={query.isFetching}
-              onPageChange={(next) =>
-                void navigate({
-                  search: { page: next || undefined },
-                })
-              }
+              onPageChange={changePage}
             />
           ) : null}
         </QueryState>

@@ -1,22 +1,6 @@
-# Local / CI compose entrypoint.
-# Prefer opening the repo in a Dev Container (see .devcontainer/).
-#
-# Postgres + migrations only:
-#   docker compose -f .devcontainer/docker-compose.yml up -d db flyway
-#
-# Production-oriented API (uvicorn, not the IDE sleep container):
-#   docker compose up --build data_updater
-#
-# Dev Container workspace (sleep infinity for the IDE):
-#   docker compose -f .devcontainer/docker-compose.yml up --build app
-
 name: vtuber-karaoke-search
 
-include:
-  - path: .devcontainer/docker-compose.yml
-
 services:
-  # Runs the FastAPI app + background updater. Dev Container `app` stays sleep infinity.
   data_updater:
     build:
       context: ./data_updater
@@ -24,16 +8,19 @@ services:
     ports:
       - "8000:8000"
     environment:
-      APP_ENV: prod
+      APP_ENV: ${APP_ENV:-prod}
+      BACKGROUND_UPDATER_ENABLED: ${BACKGROUND_UPDATER_ENABLED:-true}
+      MANAGEMENT_API_ENABLED: ${MANAGEMENT_API_ENABLED:-false}
       DB_HOST: db
       DB_PORT: "5432"
-      DB_NAME: vks_db
-      DB_USER: vks_db_user
-      DB_PASSWORD: vks_db_pwd
-      DATABASE_URL: postgresql+asyncpg://vks_db_user:vks_db_pwd@db:5432/vks_db
-      DATA_UPDATE_INTERVAL: "1800"
+      DB_NAME: ${DB_NAME:-vks_db}
+      DB_USER: ${DB_USER:-vks_db_user}
+      DB_PASSWORD: ${DB_PASSWORD:-vks_db_pwd}
+      # Leave empty to build a safely escaped URL from DB_*; explicit URLs win.
+      DATABASE_URL: ${DATABASE_URL:-}
+      DATA_UPDATE_INTERVAL: ${DATA_UPDATE_INTERVAL:-1800}
       # Comma-separated browser origins; leave empty if no frontend yet
-      CORS_ORIGINS: ""
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
       db:
         condition: service_healthy
@@ -54,3 +41,49 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
+
+  db:
+    image: postgres:18-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-vks_db}
+      POSTGRES_USER: ${DB_USER:-vks_db_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-vks_db_pwd}
+    volumes:
+      - vks-pgdata:/var/lib/postgresql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - vks
+
+  flyway:
+    image: flyway/flyway:11-alpine
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./db/migrations:/flyway/sql:ro
+    command:
+      - -url=jdbc:postgresql://db:5432/${DB_NAME:-vks_db}
+      - -user=${DB_USER:-vks_db_user}
+      - -password=${DB_PASSWORD:-vks_db_pwd}
+      - -locations=filesystem:/flyway/sql
+      - -connectRetries=5
+      - migrate
+    networks:
+      - vks
+
+volumes:
+  vks-pgdata:
+
+networks:
+  vks:

@@ -141,3 +141,15 @@
 .stagger-4 {
   animation-delay: 0.32s;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-rise,
+  .animate-fade,
+  .animate-soft-pulse {
+    animation: none;
+  }
+}

@@ -5,7 +5,6 @@ import yt_dlp
 
 from services.yt_scraper.errors import (
     YouTubeAccessBlocked,
-    comments_look_blocked,
     raise_if_block_error,
 )
 
@@ -61,15 +60,8 @@ class YouTubeVideoCommentScraper:
                 f"Empty extract_info response for comments: {self.video_url}"
             )
 
-        # Missing comments key after getcomments=True is treated as a block signal.
-        if "comments" not in info:
-            if comments_look_blocked(None):
-                raise YouTubeAccessBlocked(
-                    f"Comments payload missing for {self.video_url}"
-                )
-
+        # A missing field is also how disabled/unavailable comments are exposed;
+        # it is not enough evidence for a process-wide YouTube cooldown.
         comments = info.get("comments") or []
-        logger.info(
-            "Fetched %s comments for %s", len(comments), self.video_url
-        )
+        logger.info("Fetched %s comments for %s", len(comments), self.video_url)
         return comments

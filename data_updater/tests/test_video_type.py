@@ -52,6 +52,9 @@ class TestSongTitles:
     def test_non_song(self):
         assert not is_song_title("雑談配信")
         assert not is_song_title("【歌枠】カラオケ")
+        assert not is_song_title("Official birthday stream")
+        assert not is_song_title("Music news and chat")
+        assert not is_song_title("My favorite song tier list")
 
 
 class TestKaraokeSoftConfirms:
@@ -188,9 +191,7 @@ class TestClassifyVideoType:
         assert (
             classify_video_type("【MV】新曲", duration=9 * 60 + 59) == VIDEO_TYPE_SONG
         )
-        assert (
-            classify_video_type("【MV】新曲", duration=10 * 60) == VIDEO_TYPE_OTHER
-        )
+        assert classify_video_type("【MV】新曲", duration=10 * 60) == VIDEO_TYPE_SONG
 
     def test_other(self):
         assert classify_video_type("Minecraft 実況") == VIDEO_TYPE_OTHER

@@ -1,7 +1,7 @@
 from typing import Optional
 import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, String, text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, String, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, relationship
 
@@ -57,23 +57,27 @@ class FlywaySchemaHistory(Base):
 class Videos(Base):
     __tablename__ = 'videos'
     __table_args__ = (
+        CheckConstraint('analyze_attempts >= 0', name='ck_videos_analyze_attempts_nonnegative'),
+        CheckConstraint('cleaning_attempts >= 0', name='ck_videos_cleaning_attempts_nonnegative'),
         ForeignKeyConstraint(['channel_id'], ['channels.id'], ondelete='CASCADE', name='fk_videos_channel'),
-        PrimaryKeyConstraint('id', name='videos_pkey')
+        PrimaryKeyConstraint('id', name='videos_pkey'),
+        Index('idx_videos_channel_analysis', 'channel_id', 'type', 'has_song_list_comment', 'analyze_attempts'),
+        Index('idx_videos_channel_upload_date', 'channel_id', 'upload_date', 'id')
     )
 
     id: Mapped[str] = mapped_column(String(255), primary_key=True)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     channel_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    analyze_attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    has_song_list_comment: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
+    cleaning_attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     upload_date: Mapped[Optional[str]] = mapped_column(String(50))
     type: Mapped[Optional[str]] = mapped_column(String(50))
     raw_data: Mapped[Optional[dict]] = mapped_column(JSONB)
     comments_raw_data: Mapped[Optional[dict]] = mapped_column(JSONB)
-    analyze_attempts: Mapped[Optional[int]] = mapped_column(Integer, server_default=text('0'))
     last_analyzed_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
-    has_song_list_comment: Mapped[Optional[bool]] = mapped_column(Boolean, server_default=text('false'))
     song_list_comment_raw_data: Mapped[Optional[dict]] = mapped_column(JSONB)
-    cleaning_attempts: Mapped[Optional[int]] = mapped_column(Integer, server_default=text('0'))
     last_cleaned_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     cleaned_song_list_comment: Mapped[Optional[dict]] = mapped_column(JSONB)
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
@@ -88,14 +92,15 @@ class Songs(Base):
     __table_args__ = (
         ForeignKeyConstraint(['video_id'], ['videos.id'], ondelete='CASCADE', name='fk_songs_video'),
         PrimaryKeyConstraint('id', name='songs_pkey'),
-        Index('idx_songs_title_trgm', 'title', postgresql_using='gin'),
+        Index('idx_songs_title_trgm', 'title', postgresql_ops={'title': 'gin_trgm_ops'}, postgresql_using='gin'),
+        Index('idx_songs_video_id_id', 'video_id', 'id')
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     video_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    analyzed_by_llm: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
     timestamp: Mapped[Optional[str]] = mapped_column(String(50))
-    analyzed_by_llm: Mapped[Optional[bool]] = mapped_column(Boolean, server_default=text('false'))
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
     updated_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
 

@@ -1,14 +1,25 @@
 import { useState, type FormEvent } from "react"
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
+import {
+  Link,
+  createFileRoute,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router"
 import { ArrowLeft, Plus } from "lucide-react"
 
 import { ApiError } from "@/api/client"
 import { useCreateChannel } from "@/api/hooks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { MANAGEMENT_UI_ENABLED } from "@/lib/app-config"
 import { m } from "@/paraglide/messages"
 
 export const Route = createFileRoute("/channels/new")({
+  beforeLoad: () => {
+    if (!MANAGEMENT_UI_ENABLED) {
+      throw redirect({ to: "/channels" })
+    }
+  },
   component: AddChannelPage,
 })
 
@@ -65,7 +76,7 @@ function AddChannelPage() {
         <div className="mt-2 flex gap-2">
           <Input
             id="channel-url"
-            type="text"
+            type="url"
             inputMode="url"
             value={url}
             onChange={(e) => {
@@ -73,6 +84,7 @@ function AddChannelPage() {
               if (error) setError("")
             }}
             placeholder={m.channel_add_url_placeholder()}
+            maxLength={500}
             className="h-12 border-border/80 bg-card/80 text-base shadow-none backdrop-blur-sm"
             autoFocus
             disabled={isSubmitting}

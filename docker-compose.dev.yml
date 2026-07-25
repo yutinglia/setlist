@@ -1,7 +1,78 @@
-# Dev stack lives in .devcontainer/docker-compose.yml (used by Dev Containers).
-# This file exists so `docker compose -f docker-compose.dev.yml` still points somewhere useful.
-
 name: vtuber-karaoke-search-dev
 
-include:
-  - path: .devcontainer/docker-compose.yml
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    command: ["sleep", "infinity"]
+    init: true
+    volumes:
+      - .:/workspace:cached
+      # Keep Linux dependencies out of the Windows bind mount.
+      - frontend-node-modules:/workspace/frontend/node_modules
+    environment:
+      APP_ENV: dev
+      BACKGROUND_UPDATER_ENABLED: "false"
+      MANAGEMENT_API_ENABLED: "true"
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: vks_db
+      DB_USER: vks_db_user
+      DB_PASSWORD: vks_db_pwd
+      DATABASE_URL: postgresql+asyncpg://vks_db_user:vks_db_pwd@db:5432/vks_db
+      WATCHFILES_FORCE_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+    networks:
+      - vks
+
+  db:
+    image: postgres:18-bookworm
+    restart: unless-stopped
+    ports:
+      # Supports the documented local (non-Dev-Container) Python workflow.
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: vks_db
+      POSTGRES_USER: vks_db_user
+      POSTGRES_PASSWORD: vks_db_pwd
+    volumes:
+      - vks-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vks_db_user -d vks_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - vks
+
+  flyway:
+    image: flyway/flyway:11-alpine
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./db/migrations:/flyway/sql:ro
+    command:
+      - -url=jdbc:postgresql://db:5432/vks_db
+      - -user=vks_db_user
+      - -password=vks_db_pwd
+      - -locations=filesystem:/flyway/sql
+      - -connectRetries=5
+      - migrate
+    networks:
+      - vks
+
+volumes:
+  vks-pgdata:
+  frontend-node-modules:
+
+networks:
+  vks:

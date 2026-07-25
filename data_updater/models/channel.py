@@ -1,7 +1,9 @@
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
+
+from utils.youtube_channel_url import normalize_youtube_channel_url
 
 VideoBackfillStatus = Literal["pending", "running", "done", "failed"]
 
@@ -27,11 +29,8 @@ class ChannelCreate(BaseModel):
 
     @field_validator("url")
     @classmethod
-    def strip_url(cls, value: str) -> str:
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("url must not be empty")
-        return cleaned
+    def validate_url(cls, value: str) -> str:
+        return normalize_youtube_channel_url(value)
 
 
 class YouTubeChannel(BaseModel):
@@ -40,8 +39,8 @@ class YouTubeChannel(BaseModel):
     id: str = Field(..., max_length=255)
     name: str = Field(..., max_length=500)
     url: str = Field(..., max_length=500)
-    thumbnail_url: Optional[str] = Field(default=None, max_length=500)
-    raw_data: Optional[dict[str, Any]] = None
+    thumbnail_url: str | None = Field(default=None, max_length=500)
+    raw_data: dict[str, Any] | None = None
     video_backfill_status: VideoBackfillStatus = Field(
         default=VIDEO_BACKFILL_DONE,
         description=(
@@ -54,9 +53,9 @@ class YouTubeChannel(BaseModel):
         ge=1,
         description="Next 1-based yt-dlp playliststart for backfill pages",
     )
-    video_backfill_updated_at: Optional[datetime] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    video_backfill_updated_at: datetime | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     model_config = {
         "from_attributes": True,

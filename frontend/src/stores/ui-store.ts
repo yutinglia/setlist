@@ -4,6 +4,7 @@ import { persist } from "zustand/middleware"
 import { getLocale, setLocale, type Locale } from "@/paraglide/runtime"
 
 const MAX_RECENT = 8
+const MAX_QUERY_LENGTH = 200
 
 type UiState = {
   locale: Locale
@@ -28,7 +29,7 @@ export const useUiStore = create<UiState>()(
         setLocale(locale, { reload: true })
       },
       addRecentSearch: (q) => {
-        const trimmed = q.trim()
+        const trimmed = q.trim().slice(0, MAX_QUERY_LENGTH)
         if (!trimmed) return
         set((state) => {
           const next = [

@@ -1,19 +1,18 @@
 import asyncio
 import logging
-
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import MANAGEMENT_API_ENABLED
 from deps import get_session, pagination_params
 from models.channel import ChannelCreate, VIDEO_BACKFILL_PENDING, YouTubeChannel
-from models.search import Paginated, SongSearchResult
+from models.search import ChannelRead, Paginated, SongSearchResult, VideoRead
 from models.song import Song
-from models.video import YouTubeVideo
 from repositories import ChannelRepository, SongRepository, VideoRepository
-from services.data_updater import DataUpdater
+from services.data_updater import DataUpdater, youtube_operation_lock
 from services.yt_scraper.channel_scraper import YouTubeChannelScraper
 from services.yt_scraper.errors import YouTubeAccessBlocked, raise_if_block_error
 
@@ -24,24 +23,33 @@ router = APIRouter(tags=["Songs"])
 
 class ChannelVideoRefreshResponse(BaseModel):
     channel_id: str
-    mode: str = Field(
-        description="'force' when videos were deleted+rescraped, else 'reclassify'"
-    )
+    mode: str = Field(description="'refresh' for a non-destructive metadata upsert")
     scraped: int = Field(ge=0)
-    deleted: int = Field(
-        ge=0, description="Videos deleted before re-insert on force reload"
+    deleted: int = Field(ge=0, description="Backward-compatible field; always zero")
+    reclassified: int = Field(
+        ge=0, description="Backward-compatible field; always zero"
     )
-    reclassified: int = Field(ge=0, description="Rows whose type changed")
     cleared: int = Field(
         ge=0,
-        description="Non-karaoke videos whose comments/setlists were cleared",
+        description="Backward-compatible field; always zero",
     )
     message: str
 
 
+def require_management_api() -> None:
+    """Keep scraper/mutation controls off the public production API by default."""
+    if not MANAGEMENT_API_ENABLED:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
 @router.get("/songs/search", response_model=Paginated[SongSearchResult])
 async def search_songs(
-    q: str = Query(..., min_length=1, description="Substring match on song title"),
+    q: str = Query(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="Literal substring match on song title",
+    ),
     pagination: tuple[int, int] = Depends(pagination_params),
     session: AsyncSession = Depends(get_session),
 ):
@@ -64,7 +72,7 @@ async def get_song(
     return detail
 
 
-@router.get("/channels", response_model=Paginated[YouTubeChannel])
+@router.get("/channels", response_model=Paginated[ChannelRead])
 async def list_channels(
     pagination: tuple[int, int] = Depends(pagination_params),
     session: AsyncSession = Depends(get_session),
@@ -79,11 +87,12 @@ async def list_channels(
 
 @router.post(
     "/channels",
-    response_model=YouTubeChannel,
+    response_model=ChannelRead,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_channel(
     body: ChannelCreate,
+    _: None = Depends(require_management_api),
     session: AsyncSession = Depends(get_session),
 ):
     """Scrape a YouTube channel URL and add it to the tracked list.
@@ -97,11 +106,23 @@ async def create_channel(
         return YouTubeChannelScraper().get_channel_info(body.url)
 
     try:
-        scraped = await asyncio.to_thread(_scrape)
+        async with youtube_operation_lock:
+            cooldown = DataUpdater.youtube_cooldown_remaining()
+            if cooldown > 0:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail=(
+                        f"YouTube cooldown active; try again in {cooldown:.0f} seconds"
+                    ),
+                )
+            scraped = await asyncio.to_thread(_scrape)
+    except HTTPException:
+        raise
     except Exception as scrape_exc:
         try:
             raise_if_block_error(scrape_exc)
         except YouTubeAccessBlocked as block_exc:
+            DataUpdater.set_youtube_cooldown()
             logger.warning(
                 "YouTube blocked while adding channel %s: %s", body.url, block_exc
             )
@@ -110,6 +131,7 @@ async def create_channel(
                 detail="YouTube temporarily blocked this request; try again later",
             ) from block_exc
         if isinstance(scrape_exc, YouTubeAccessBlocked):
+            DataUpdater.set_youtube_cooldown()
             logger.warning(
                 "YouTube blocked while adding channel %s: %s", body.url, scrape_exc
             )
@@ -117,10 +139,10 @@ async def create_channel(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="YouTube temporarily blocked this request; try again later",
             ) from scrape_exc
-        logger.exception("Failed to scrape channel %s", body.url)
+        logger.warning("Failed to resolve channel %s: %s", body.url, scrape_exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Could not resolve channel from URL: {scrape_exc}",
+            detail="Could not resolve a YouTube channel from that URL",
         ) from scrape_exc
 
     if not scraped.id:
@@ -155,7 +177,7 @@ async def create_channel(
     return created
 
 
-@router.get("/channels/{channel_id}/videos", response_model=Paginated[YouTubeVideo])
+@router.get("/channels/{channel_id}/videos", response_model=Paginated[VideoRead])
 async def list_channel_videos(
     channel_id: str,
     pagination: tuple[int, int] = Depends(pagination_params),
@@ -184,13 +206,10 @@ async def list_channel_videos(
 )
 async def refresh_channel_videos(
     channel_id: str,
+    _: None = Depends(require_management_api),
     session: AsyncSession = Depends(get_session),
 ):
-    """Force-reload this channel's videos: full-metadata scrape, then replace DB rows.
-
-    Deletes existing videos/songs for the channel after a successful scrape and
-    re-inserts. Does not scrape comments or extract setlists.
-    """
+    """Safely refresh recent video metadata without deleting existing setlists."""
     channel_repo = ChannelRepository(session)
     channel = await channel_repo.get_by_id(channel_id)
     if channel is None:
@@ -204,10 +223,17 @@ async def refresh_channel_videos(
     )
     try:
         result = await updater.refresh_channel_video_list(channel)
-        await session.commit()
-    except Exception:
-        await session.rollback()
-        raise
+    except YouTubeAccessBlocked as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="YouTube temporarily blocked this request; try again later",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Failed refreshing channel %s", channel_id)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not refresh videos from YouTube",
+        ) from exc
 
     return ChannelVideoRefreshResponse(
         channel_id=result.channel_id,
@@ -220,7 +246,7 @@ async def refresh_channel_videos(
     )
 
 
-@router.get("/videos/{video_id}", response_model=YouTubeVideo)
+@router.get("/videos/{video_id}", response_model=VideoRead)
 async def get_video(
     video_id: str,
     session: AsyncSession = Depends(get_session),

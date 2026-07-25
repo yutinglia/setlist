@@ -80,9 +80,29 @@ async def test_upsert_channel_video_and_replace_songs(session: AsyncSession):
             title="Karaoke Test",
             url=f"https://www.youtube.com/watch?v={video_id}",
             channel_id=channel_id,
+            type="karaoke",
+            raw_data={"duration": 3600, "live_status": "was_live"},
         )
     )
     assert video.id == video_id
+
+    # A later flat channel-tab scrape must update keys it knows without
+    # destroying richer metadata used by classification.
+    refreshed = await video_repo.upsert(
+        YouTubeVideo(
+            id=video_id,
+            title="Karaoke Test (updated)",
+            url=f"https://www.youtube.com/watch?v={video_id}",
+            channel_id=channel_id,
+            type="karaoke",
+            raw_data={"title": "Karaoke Test (updated)"},
+        )
+    )
+    assert refreshed.raw_data == {
+        "duration": 3600,
+        "live_status": "was_live",
+        "title": "Karaoke Test (updated)",
+    }
 
     songs = await song_repo.replace_for_video(
         video_id,
@@ -104,6 +124,25 @@ async def test_upsert_channel_video_and_replace_songs(session: AsyncSession):
     fetched = await song_repo.get_by_video_id(video_id)
     assert len(fetched) == 1
     assert fetched[0].title == "Only Song"
+
+    await song_repo.replace_for_video(
+        video_id,
+        [
+            Song(title="100% Love", video_id=video_id, timestamp="3:00"),
+            Song(title="1000 Love", video_id=video_id, timestamp="4:00"),
+            Song(title="Under_score", video_id=video_id, timestamp="5:00"),
+        ],
+    )
+    percent_hits, percent_total = await song_repo.search_by_title(
+        "%", limit=20, offset=0
+    )
+    assert percent_total == 1
+    assert [song.title for song in percent_hits] == ["100% Love"]
+    underscore_hits, underscore_total = await song_repo.search_by_title(
+        "_", limit=20, offset=0
+    )
+    assert underscore_total == 1
+    assert [song.title for song in underscore_hits] == ["Under_score"]
 
     # Leave DB clean even if outer rollback is skipped somehow
     await song_repo.replace_for_video(video_id, [])
