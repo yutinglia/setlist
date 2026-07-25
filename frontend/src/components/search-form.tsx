@@ -1,4 +1,4 @@
-import { Search } from "lucide-react"
+import { ArrowRight, Search, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,7 @@ export function SearchForm({
 }: Props) {
   const [value, setValue] = useState(initialQuery)
   const debounced = useDebouncedValue(value, 350)
+  const inputRef = useRef<HTMLInputElement>(null)
   const recent = useUiStore((s) => s.recentSearches)
   const addRecent = useUiStore((s) => s.addRecentSearch)
   const clearRecent = useUiStore((s) => s.clearRecentSearches)
@@ -42,6 +43,22 @@ export function SearchForm({
     }
   }, [debounced])
 
+  useEffect(() => {
+    function focusSearch(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null
+      const isEditing =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      if (event.key === "/" && !isEditing) {
+        event.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    window.addEventListener("keydown", focusSearch)
+    return () => window.removeEventListener("keydown", focusSearch)
+  }, [])
+
   return (
     <form
       className="w-full"
@@ -52,40 +69,63 @@ export function SearchForm({
         if (q) addRecent(q)
       }}
     >
-      <div className="flex gap-2">
+      <div className="flex gap-2.5">
         <div className="relative min-w-0 flex-1">
           <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-primary"
             aria-hidden
           />
           <Input
+            ref={inputRef}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={m.search_placeholder()}
             maxLength={200}
-            className="h-12 border-border/80 bg-card/80 pl-10 text-base shadow-none backdrop-blur-sm"
+            className="h-14 rounded-xl border-border/80 bg-card pr-20 pl-12 text-base shadow-[0_18px_50px_-34px_rgba(40,30,100,0.6)]"
             autoFocus={autoFocus}
             aria-label={m.search_placeholder()}
           />
+          {value ? (
+            <button
+              type="button"
+              className="absolute top-1/2 right-3 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              aria-label={m.search_clear()}
+              onClick={() => {
+                setValue("")
+                onQueryChange("")
+                inputRef.current?.focus()
+              }}
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          ) : (
+            <kbd className="pointer-events-none absolute top-1/2 right-4 hidden -translate-y-1/2 rounded border border-border bg-secondary/70 px-1.5 py-0.5 font-mono text-[0.65rem] text-muted-foreground sm:block">
+              /
+            </kbd>
+          )}
         </div>
-        <Button type="submit" className="h-12 px-5" size="lg">
-          {m.search_submit()}
+        <Button type="submit" className="h-14 px-4 sm:px-6" size="lg">
+          <span className="hidden sm:inline">{m.search_submit()}</span>
+          <ArrowRight aria-hidden />
         </Button>
       </div>
-      <p className="mt-2 text-left text-xs text-muted-foreground">
-        {m.search_hint()}
-      </p>
+      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-left text-xs text-muted-foreground">
+        <p>{m.search_hint()}</p>
+        <p className="hidden shrink-0 font-mono lg:block">
+          {m.search_shortcut()}
+        </p>
+      </div>
 
       {recent.length > 0 ? (
         <div className="mt-4 flex flex-wrap items-center gap-2 text-left">
-          <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          <span className="font-mono text-[0.65rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
             {m.recent_searches()}
           </span>
           {recent.map((item) => (
             <button
               key={item}
               type="button"
-              className="rounded-md bg-secondary/80 px-2.5 py-1 text-xs text-secondary-foreground transition-colors hover:bg-secondary"
+              className="rounded-full border border-border/70 bg-card/70 px-3 py-1 text-xs text-secondary-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
               onClick={() => {
                 setValue(item)
                 onQueryChange(item)
@@ -97,7 +137,7 @@ export function SearchForm({
           ))}
           <button
             type="button"
-            className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+            className="ml-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             onClick={clearRecent}
           >
             {m.clear_recent()}

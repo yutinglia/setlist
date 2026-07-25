@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from "react"
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { ArrowLeft, Check, RefreshCw } from "lucide-react"
+import {
+  ArrowLeft,
+  CalendarDays,
+  Check,
+  ChevronRight,
+  RefreshCw,
+} from "lucide-react"
 
 import { api } from "@/api/client"
 import { useChannelVideos } from "@/api/hooks"
@@ -180,21 +186,22 @@ function ChannelVideosPage() {
   const videos = sortVideosByUploadDateDesc(query.data?.items ?? [])
 
   return (
-    <section className="animate-fade pt-10">
+    <section className="animate-fade py-10 sm:py-14">
       <Link
         to="/channels"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
       >
-        <ArrowLeft className="size-3.5" aria-hidden />
+        <ArrowLeft className="size-4" aria-hidden />
         {m.nav_channels()}
       </Link>
 
-      <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
+      <header className="mt-7 flex flex-col gap-5 border-b border-border/70 pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-tight">
+          <p className="eyebrow">{m.channel_library_eyebrow()}</p>
+          <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">
             {m.channel_videos_heading()}
           </h1>
-          <p className="mt-1 font-mono text-xs text-muted-foreground">
+          <p className="mt-3 break-all font-mono text-xs text-muted-foreground">
             {channelId}
           </p>
         </div>
@@ -226,69 +233,79 @@ function ChannelVideosPage() {
             >
               {isReloading
                 ? m.reload_loading()
-                : reloadDetail
+              : reloadDetail
                   ? reloadDetail
                   : m.reload_hint()}
             </p>
           </div>
         ) : null}
-      </div>
+      </header>
 
-      <div
-        className="mt-8 inline-flex rounded-md border border-border bg-card/70 p-0.5"
-        role="tablist"
-        aria-label={m.channel_tabs_label()}
-      >
-        <Button
-          type="button"
-          role="tab"
-          size="sm"
-          variant={tab === "karaoke" ? "secondary" : "ghost"}
-          aria-selected={tab === "karaoke"}
-          onClick={() => setTab("karaoke")}
-        >
-          {m.channel_tab_karaoke()}
-        </Button>
-        <Button
-          type="button"
-          role="tab"
-          size="sm"
-          variant={tab === "videos" ? "secondary" : "ghost"}
-          aria-selected={tab === "videos"}
-          onClick={() => setTab("videos")}
-        >
-          {m.channel_tab_videos()}
-        </Button>
-      </div>
-
-      {tab === "karaoke" ? (
+      <div className="surface mt-7 flex flex-col gap-4 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
         <div
-          className="mt-4 inline-flex rounded-md border border-border bg-card/70 p-0.5"
-          role="group"
-          aria-label={m.setlist_filter_label()}
+          className="inline-flex self-start rounded-lg bg-secondary/70 p-1"
+          role="tablist"
+          aria-label={m.channel_tabs_label()}
         >
-          {(
-            [
-              ["all", m.setlist_filter_all()],
-              ["yes", m.setlist_filter_yes()],
-              ["no", m.setlist_filter_no()],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              type="button"
-              size="sm"
-              variant={setlistFilter === value ? "secondary" : "ghost"}
-              aria-pressed={setlistFilter === value}
-              onClick={() => setSetlistFilter(value)}
-            >
-              {label}
-            </Button>
-          ))}
+          <Button
+            type="button"
+            role="tab"
+            size="sm"
+            variant={tab === "karaoke" ? "default" : "ghost"}
+            aria-selected={tab === "karaoke"}
+            onClick={() => setTab("karaoke")}
+          >
+            {m.channel_tab_karaoke()}
+          </Button>
+          <Button
+            type="button"
+            role="tab"
+            size="sm"
+            variant={tab === "videos" ? "default" : "ghost"}
+            aria-selected={tab === "videos"}
+            onClick={() => setTab("videos")}
+          >
+            {m.channel_tab_videos()}
+          </Button>
         </div>
-      ) : null}
 
-      <div className="mt-6" role="tabpanel">
+        {tab === "karaoke" ? (
+          <div
+            className="flex flex-wrap items-center gap-1"
+            role="group"
+            aria-label={m.setlist_filter_label()}
+          >
+            <span className="mr-1 text-xs font-medium text-muted-foreground">
+              {m.setlist_filter_label()}
+            </span>
+            {(
+              [
+                ["all", m.setlist_filter_all()],
+                ["yes", m.setlist_filter_yes()],
+                ["no", m.setlist_filter_no()],
+              ] as const
+            ).map(([value, label]) => (
+              <Button
+                key={value}
+                type="button"
+                size="sm"
+                variant={setlistFilter === value ? "secondary" : "ghost"}
+                aria-pressed={setlistFilter === value}
+                onClick={() => setSetlistFilter(value)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-7" role="tabpanel">
+        {query.data ? (
+          <p className="mb-4 font-mono text-xs text-muted-foreground">
+            {m.videos_count({ total: String(query.data.total) })}
+          </p>
+        ) : null}
         <QueryState
           isLoading={query.isLoading}
           isError={query.isError && !query.data}
@@ -303,7 +320,7 @@ function ChannelVideosPage() {
             )}
             aria-busy={isReloading}
           >
-            <ul className="divide-y divide-border/70">
+            <ul className="grid gap-3">
               {videos.map((video, i) => {
                 const formattedDate = formatUploadDate(video.upload_date)
                 const dateLabel =
@@ -314,31 +331,37 @@ function ChannelVideosPage() {
                 return (
                   <li
                     key={video.id}
-                    className={`animate-rise py-4 stagger-${Math.min((i % 4) + 1, 4)}`}
+                    className={`animate-rise stagger-${Math.min((i % 4) + 1, 4)}`}
                   >
                     <Link
                       to="/videos/$videoId"
                       params={{ videoId: video.id }}
-                      className="block text-left transition-colors hover:text-primary"
+                      className="surface group flex items-center gap-4 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 sm:p-5"
                     >
-                      <span className="font-display text-base font-semibold">
-                        {video.title}
+                      <span className="hidden size-11 shrink-0 place-items-center rounded-xl bg-secondary text-primary sm:grid">
+                        <CalendarDays className="size-4" aria-hidden />
                       </span>
-                      <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-                        <time
-                          dateTime={uploadDateTimeAttr(
-                            video.upload_date,
-                            video.upload_date_precision,
-                          )}
-                          className="font-mono tabular-nums tracking-wide"
-                        >
-                          {dateLabel ?? m.video_date_unknown()}
-                        </time>
-                        <VideoListBadges
-                          type={video.type}
-                          hasSetlist={video.has_song_list_comment}
-                        />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-display text-base font-bold leading-snug transition-colors group-hover:text-primary sm:text-lg">
+                          {video.title}
+                        </span>
+                        <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+                          <time
+                            dateTime={uploadDateTimeAttr(
+                              video.upload_date,
+                              video.upload_date_precision,
+                            )}
+                            className="font-mono tabular-nums tracking-wide"
+                          >
+                            {dateLabel ?? m.video_date_unknown()}
+                          </time>
+                          <VideoListBadges
+                            type={video.type}
+                            hasSetlist={video.has_song_list_comment}
+                          />
+                        </span>
                       </span>
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" aria-hidden />
                     </Link>
                   </li>
                 )

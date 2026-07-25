@@ -1,5 +1,12 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
-import { ArrowLeft, ExternalLink } from "lucide-react"
+import {
+  ArrowLeft,
+  CalendarDays,
+  ExternalLink,
+  Hash,
+  Play,
+  Radio,
+} from "lucide-react"
 import { useCallback } from "react"
 
 import { PAGE_SIZE, useVideo, useVideoSongs } from "@/api/hooks"
@@ -11,6 +18,7 @@ import { useClampPage } from "@/hooks/use-clamp-page"
 import { pageSearchSchema } from "@/lib/search-schemas"
 import { formatUploadDate, uploadDateTimeAttr } from "@/lib/upload-date"
 import { cn } from "@/lib/utils"
+import { youtubeUrlAtTimestamp } from "@/lib/youtube"
 import { m } from "@/paraglide/messages"
 
 export const Route = createFileRoute("/videos/$videoId")({
@@ -40,6 +48,7 @@ function VideoDetailPage() {
     [navigate],
   )
   useClampPage(page, songsQuery.data?.total, PAGE_SIZE, changePage)
+
   const formattedUploadDate = formatUploadDate(videoQuery.data?.upload_date)
   const uploadDateLabel =
     formattedUploadDate &&
@@ -48,27 +57,27 @@ function VideoDetailPage() {
       : formattedUploadDate
 
   return (
-    <section className="animate-fade pt-10">
+    <section className="animate-fade py-10 sm:py-14">
       {videoQuery.data?.channel_id ? (
         <Link
           to="/channels/$channelId"
           params={{ channelId: videoQuery.data.channel_id }}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
         >
-          <ArrowLeft className="size-3.5" aria-hidden />
+          <ArrowLeft className="size-4" aria-hidden />
           {m.channel_videos_heading()}
         </Link>
       ) : (
         <Link
           to="/channels"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
         >
-          <ArrowLeft className="size-3.5" aria-hidden />
+          <ArrowLeft className="size-4" aria-hidden />
           {m.nav_channels()}
         </Link>
       )}
 
-      <div className="mt-8">
+      <div className="mt-7">
         <QueryState
           isLoading={videoQuery.isLoading}
           isError={videoQuery.isError}
@@ -77,146 +86,213 @@ function VideoDetailPage() {
           onRetry={() => void videoQuery.refetch()}
         >
           {videoQuery.data ? (
-            <article className="animate-rise space-y-8 text-left">
-              <header className="space-y-3">
-                <h1 className="font-display text-3xl font-bold tracking-tight">
-                  {videoQuery.data.title}
-                </h1>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
-                  <time
-                    dateTime={uploadDateTimeAttr(
-                      videoQuery.data.upload_date,
-                      videoQuery.data.upload_date_precision,
-                    )}
-                    className="font-mono tabular-nums tracking-wide"
-                  >
-                    {uploadDateLabel ?? m.video_date_unknown()}
-                  </time>
-                  <VideoListBadges
-                    type={videoQuery.data.type}
-                    hasSetlist={videoQuery.data.has_song_list_comment}
-                    showSetlist={!isSong}
-                  />
-                </div>
-                <p className="font-mono text-xs text-muted-foreground">
-                  {videoId}
-                </p>
-              </header>
-
-              <dl className="space-y-3 text-sm">
-                <div>
-                  <dt className="text-muted-foreground">{m.song_channel()}</dt>
-                  <dd className="mt-0.5">
-                    <Link
-                      to="/channels/$channelId"
-                      params={{ channelId: videoQuery.data.channel_id }}
-                      className="font-medium underline-offset-2 hover:underline"
-                    >
-                      {videoQuery.data.channel_id}
-                    </Link>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">
-                    {m.video_upload_date()}
-                  </dt>
-                  <dd className="mt-0.5">
+            <article className="animate-rise">
+              <header className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 p-6 sm:p-8 lg:p-10">
+                <div className="absolute -top-28 -right-20 size-72 rounded-full bg-primary/12 blur-3xl" />
+                <div className="relative max-w-4xl">
+                  <p className="eyebrow">{m.video_type_label()}</p>
+                  <h1 className="mt-4 font-display text-3xl leading-tight font-bold tracking-tight sm:text-5xl">
+                    {videoQuery.data.title}
+                  </h1>
+                  <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
                     <time
                       dateTime={uploadDateTimeAttr(
                         videoQuery.data.upload_date,
                         videoQuery.data.upload_date_precision,
                       )}
-                      className="font-mono tabular-nums"
+                      className="inline-flex items-center gap-1.5 font-mono tabular-nums"
                     >
+                      <CalendarDays className="size-3.5" aria-hidden />
                       {uploadDateLabel ?? m.video_date_unknown()}
                     </time>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">{m.video_type_label()}</dt>
-                  <dd className="mt-0.5 capitalize">
-                    {videoQuery.data.type ?? m.badge_other()}
-                  </dd>
-                </div>
-              </dl>
-
-              <a
-                href={videoQuery.data.url}
-                target="_blank"
-                rel="noreferrer"
-                className={cn(buttonVariants(), "inline-flex")}
-              >
-                {m.open_youtube()}
-                <ExternalLink className="size-3.5" aria-hidden />
-              </a>
-
-              {isSong ? (
-                <p className="border-t border-border/70 pt-6 text-sm text-muted-foreground">
-                  {m.video_song_no_setlist()}
-                </p>
-              ) : (
-                <div className="border-t border-border/70 pt-6">
-                  <h2 className="font-display text-xl font-semibold tracking-tight">
-                    {m.video_songs_heading()}
-                  </h2>
-                  <div className="mt-4">
-                    <QueryState
-                      isLoading={songsQuery.isLoading}
-                      isError={songsQuery.isError}
-                      isEmpty={
-                        songsQuery.isSuccess &&
-                        songsQuery.data.items.length === 0
-                      }
-                      emptyMessage={m.songs_empty()}
-                      onRetry={() => void songsQuery.refetch()}
-                    >
-                      <ul className="divide-y divide-border/70">
-                        {songsQuery.data?.items.map((song, i) => (
-                          <li
-                            key={
-                              song.id ??
-                              `${song.title}-${song.timestamp}-${i}`
-                            }
-                            className={`animate-rise flex items-baseline justify-between gap-4 py-3 stagger-${Math.min((i % 4) + 1, 4)}`}
-                          >
-                            {song.id != null ? (
-                              <Link
-                                to="/songs/$songId"
-                                params={{ songId: String(song.id) }}
-                                className="min-w-0 text-left font-medium transition-colors hover:text-primary"
-                              >
-                                {song.title}
-                              </Link>
-                            ) : (
-                              <span className="min-w-0 text-left font-medium">
-                                {song.title}
-                              </span>
-                            )}
-                            {song.timestamp ? (
-                              <span className="shrink-0 font-mono text-xs text-primary">
-                                {song.timestamp}
-                              </span>
-                            ) : null}
-                          </li>
-                        ))}
-                      </ul>
-                      {songsQuery.data ? (
-                        <PaginationControls
-                          page={page}
-                          total={songsQuery.data.total}
-                          pageSize={PAGE_SIZE}
-                          disabled={songsQuery.isFetching}
-                          onPageChange={changePage}
-                        />
-                      ) : null}
-                    </QueryState>
+                    <VideoListBadges
+                      type={videoQuery.data.type}
+                      hasSetlist={videoQuery.data.has_song_list_comment}
+                      showSetlist={!isSong}
+                    />
                   </div>
                 </div>
-              )}
+              </header>
+
+              <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+                <div>
+                  {isSong ? (
+                    <div className="surface flex min-h-44 flex-col items-center justify-center px-6 py-10 text-center">
+                      <span className="grid size-12 place-items-center rounded-2xl bg-secondary text-primary">
+                        <Radio className="size-5" aria-hidden />
+                      </span>
+                      <p className="mt-4 max-w-md text-sm text-muted-foreground">
+                        {m.video_song_no_setlist()}
+                      </p>
+                    </div>
+                  ) : (
+                    <section className="surface overflow-hidden">
+                      <div className="border-b border-border/60 px-5 py-5 sm:px-6">
+                        <h2 className="font-display text-xl font-bold tracking-tight sm:text-2xl">
+                          {m.video_songs_heading()}
+                        </h2>
+                        <p className="mt-1.5 text-sm text-muted-foreground">
+                          {m.video_setlist_hint()}
+                        </p>
+                      </div>
+                      <div className="p-3 sm:p-4">
+                        <QueryState
+                          isLoading={songsQuery.isLoading}
+                          isError={songsQuery.isError}
+                          isEmpty={
+                            songsQuery.isSuccess &&
+                            songsQuery.data.items.length === 0
+                          }
+                          emptyMessage={m.songs_empty()}
+                          onRetry={() => void songsQuery.refetch()}
+                        >
+                          <ol className="grid gap-1">
+                            {songsQuery.data?.items.map((song, index) => (
+                              <li
+                                key={
+                                  song.id ??
+                                  `${song.title}-${song.timestamp}-${index}`
+                                }
+                                className={`animate-rise group flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-secondary/60 stagger-${Math.min((index % 4) + 1, 4)}`}
+                              >
+                                <span className="w-7 shrink-0 text-right font-mono text-xs text-muted-foreground">
+                                  {String(
+                                    page * PAGE_SIZE + index + 1,
+                                  ).padStart(2, "0")}
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  {song.id != null ? (
+                                    <Link
+                                      to="/songs/$songId"
+                                      params={{ songId: String(song.id) }}
+                                      className="block truncate font-semibold transition-colors group-hover:text-primary"
+                                    >
+                                      {song.title}
+                                    </Link>
+                                  ) : (
+                                    <span className="block truncate font-semibold">
+                                      {song.title}
+                                    </span>
+                                  )}
+                                </span>
+                                {song.timestamp ? (
+                                  <a
+                                    href={youtubeUrlAtTimestamp(
+                                      videoQuery.data.url,
+                                      song.timestamp,
+                                    )}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 font-mono text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                                    aria-label={m.play_from_timestamp({
+                                      timestamp: song.timestamp,
+                                    })}
+                                  >
+                                    <Play
+                                      className="size-3 fill-current"
+                                      aria-hidden
+                                    />
+                                    {song.timestamp}
+                                  </a>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ol>
+                          {songsQuery.data ? (
+                            <PaginationControls
+                              page={page}
+                              total={songsQuery.data.total}
+                              pageSize={PAGE_SIZE}
+                              disabled={songsQuery.isFetching}
+                              onPageChange={changePage}
+                            />
+                          ) : null}
+                        </QueryState>
+                      </div>
+                    </section>
+                  )}
+                </div>
+
+                <aside className="surface h-fit p-5">
+                  <dl className="space-y-5">
+                    <MetaRow
+                      icon={Radio}
+                      label={m.song_channel()}
+                      value={
+                        <Link
+                          to="/channels/$channelId"
+                          params={{ channelId: videoQuery.data.channel_id }}
+                          className="break-all font-medium text-primary hover:underline"
+                        >
+                          {videoQuery.data.channel_id}
+                        </Link>
+                      }
+                    />
+                    <MetaRow
+                      icon={CalendarDays}
+                      label={m.video_upload_date()}
+                      value={
+                        <time
+                          dateTime={uploadDateTimeAttr(
+                            videoQuery.data.upload_date,
+                            videoQuery.data.upload_date_precision,
+                          )}
+                          className="font-mono text-xs tabular-nums"
+                        >
+                          {uploadDateLabel ?? m.video_date_unknown()}
+                        </time>
+                      }
+                    />
+                    <MetaRow
+                      icon={Hash}
+                      label="YouTube ID"
+                      value={
+                        <span className="break-all font-mono text-xs">
+                          {videoId}
+                        </span>
+                      }
+                    />
+                  </dl>
+
+                  <a
+                    href={videoQuery.data.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn(
+                      buttonVariants({ size: "lg" }),
+                      "mt-6 flex w-full",
+                    )}
+                  >
+                    <Play className="fill-current" aria-hidden />
+                    {m.open_youtube()}
+                    <ExternalLink className="size-3.5" aria-hidden />
+                  </a>
+                </aside>
+              </div>
             </article>
           ) : null}
         </QueryState>
       </div>
     </section>
+  )
+}
+
+function MetaRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Radio
+  label: string
+  value: React.ReactNode
+}) {
+  return (
+    <div className="border-b border-border/60 pb-4 last:border-0 last:pb-0">
+      <dt className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <Icon className="size-3.5" aria-hidden />
+        {label}
+      </dt>
+      <dd className="mt-1.5 text-sm">{value}</dd>
+    </div>
   )
 }

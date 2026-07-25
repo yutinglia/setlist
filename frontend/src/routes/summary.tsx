@@ -43,13 +43,14 @@ function SummaryPage() {
   const data = query.data
 
   return (
-    <section className="animate-fade pt-10">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <section className="animate-fade py-10 sm:py-14">
+      <header className="flex flex-wrap items-end justify-between gap-5 border-b border-border/70 pb-8">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">
+          <p className="eyebrow">{m.home_library_live()}</p>
+          <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">
             {m.summary_heading()}
           </h1>
-          <p className="mt-2 max-w-prose text-sm text-muted-foreground">
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
             {m.summary_hint()}
           </p>
         </div>
@@ -58,9 +59,9 @@ function SummaryPage() {
             {m.summary_updated_at({ when: formatWhen(data.generated_at) })}
           </p>
         ) : null}
-      </div>
+      </header>
 
-      <div className="mt-8">
+      <div className="mt-7">
         <QueryState
           isLoading={query.isLoading}
           isError={query.isError}
@@ -70,7 +71,7 @@ function SummaryPage() {
         >
           {data ? (
             <div className="space-y-8">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
                 <MetricCard
                   icon={BarChart3}
                   label={m.summary_scraped_records()}
@@ -247,10 +248,10 @@ function MetricCard({
   return (
     <div
       className={cn(
-        "rounded-xl border p-4",
+        "surface p-4 transition-transform hover:-translate-y-0.5 sm:p-5",
         accent
-          ? "border-primary/25 bg-primary/5"
-          : "border-border/70 bg-card/70",
+          ? "border-primary/25 bg-primary/7"
+          : "border-border/70 bg-card/80",
       )}
     >
       <Icon
@@ -260,7 +261,7 @@ function MetricCard({
         )}
         aria-hidden
       />
-      <p className="mt-4 font-mono text-2xl font-semibold tabular-nums">
+      <p className="mt-5 font-display text-3xl font-bold tabular-nums">
         {integer.format(value)}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">{label}</p>
@@ -280,10 +281,10 @@ function ReportSection({
   children: ReactNode
 }) {
   return (
-    <section className="rounded-xl border border-border/70 bg-card/60 p-5">
+    <section className="surface p-5 sm:p-6">
       <div className="flex items-center gap-2">
         {Icon ? <Icon className="size-4 text-primary" aria-hidden /> : null}
-        <h2 className="font-display text-lg font-semibold">{title}</h2>
+        <h2 className="font-display text-xl font-bold">{title}</h2>
       </div>
       {hint ? (
         <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
@@ -312,7 +313,7 @@ function ProgressRow({
         </span>
       </div>
       <div
-        className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary"
+        className="mt-2 h-2 overflow-hidden rounded-full bg-secondary"
         role="progressbar"
         aria-label={label}
         aria-valuemin={0}

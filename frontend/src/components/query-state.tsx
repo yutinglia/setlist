@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { AlertCircle, Inbox } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -23,18 +24,21 @@ export function QueryState({
 }: Props) {
   if (isLoading) {
     return (
-      <div className="space-y-3" aria-busy aria-label={m.loading()}>
-        <Skeleton className="h-16 w-full bg-muted" />
-        <Skeleton className="h-16 w-full bg-muted" />
-        <Skeleton className="h-16 w-[85%] bg-muted" />
+      <div className="grid gap-3" aria-busy aria-label={m.loading()}>
+        <Skeleton className="h-24 w-full rounded-2xl bg-muted" />
+        <Skeleton className="h-24 w-full rounded-2xl bg-muted" />
+        <Skeleton className="h-24 w-full rounded-2xl bg-muted" />
       </div>
     )
   }
 
   if (isError) {
     return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-6 text-left">
-        <p className="text-sm text-destructive">{m.error_generic()}</p>
+      <div className="surface px-5 py-8 text-center">
+        <span className="mx-auto grid size-11 place-items-center rounded-xl bg-destructive/10 text-destructive">
+          <AlertCircle className="size-5" aria-hidden />
+        </span>
+        <p className="mt-4 text-sm text-destructive">{m.error_generic()}</p>
         {onRetry ? (
           <Button
             type="button"
@@ -52,7 +56,14 @@ export function QueryState({
 
   if (isEmpty) {
     return (
-      <p className="py-8 text-left text-sm text-muted-foreground">{emptyMessage}</p>
+      <div className="surface px-5 py-12 text-center">
+        <span className="mx-auto grid size-11 place-items-center rounded-xl bg-secondary text-muted-foreground">
+          <Inbox className="size-5" aria-hidden />
+        </span>
+        <p className="mx-auto mt-4 max-w-md text-sm text-muted-foreground">
+          {emptyMessage}
+        </p>
+      </div>
     )
   }
 

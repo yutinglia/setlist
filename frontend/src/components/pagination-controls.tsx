@@ -1,4 +1,10 @@
 import { useId } from "react"
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { buildPageItems, buildPageOptions } from "@/lib/pagination"
@@ -17,7 +23,7 @@ type Props = {
 }
 
 const selectClassName = cn(
-  "h-8 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none",
+  "h-9 rounded-lg border border-input bg-card px-2 text-sm shadow-xs outline-none",
   "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
   "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
 )
@@ -47,7 +53,7 @@ export function PaginationControls({
   const atEnd = page >= lastPage
 
   return (
-    <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+    <div className="mt-8 flex flex-col gap-4 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-3">
         {showPageNav ? (
           <>
@@ -115,7 +121,7 @@ export function PaginationControls({
       </div>
       {showPageNav ? (
         <nav
-          className="flex flex-wrap items-center gap-1"
+          className="flex items-center justify-between gap-1 sm:justify-end"
           aria-label={m.pagination_nav_label()}
         >
           <Button
@@ -126,7 +132,7 @@ export function PaginationControls({
             aria-label={m.pagination_first()}
             onClick={() => onPageChange(0)}
           >
-            {"<<"}
+            <ChevronsLeft aria-hidden />
           </Button>
           <Button
             type="button"
@@ -136,13 +142,13 @@ export function PaginationControls({
             aria-label={m.pagination_prev()}
             onClick={() => onPageChange(page - 1)}
           >
-            {"<"}
+            <ChevronLeft aria-hidden />
           </Button>
           {items.map((item, index) =>
             item === "ellipsis" ? (
               <span
                 key={`ellipsis-${index}`}
-                className="px-1.5 text-sm text-muted-foreground"
+                className="hidden px-1.5 text-sm text-muted-foreground sm:inline"
                 aria-hidden
               >
                 …
@@ -154,6 +160,7 @@ export function PaginationControls({
                 variant={item === page ? "secondary" : "outline"}
                 size="sm"
                 disabled={disabled}
+                className="hidden sm:inline-flex"
                 aria-label={m.pagination_goto({ page: String(item + 1) })}
                 aria-current={item === page ? "page" : undefined}
                 onClick={() => onPageChange(item)}
@@ -170,7 +177,7 @@ export function PaginationControls({
             aria-label={m.pagination_next()}
             onClick={() => onPageChange(page + 1)}
           >
-            {">"}
+            <ChevronRight aria-hidden />
           </Button>
           <Button
             type="button"
@@ -180,7 +187,7 @@ export function PaginationControls({
             aria-label={m.pagination_last()}
             onClick={() => onPageChange(lastPage)}
           >
-            {">>"}
+            <ChevronsRight aria-hidden />
           </Button>
         </nav>
       ) : null}

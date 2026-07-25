@@ -89,15 +89,18 @@ function StatusPage() {
   const isError = phase === "error"
 
   return (
-    <section className="animate-fade pt-10">
-      <h1 className="font-display text-3xl font-bold tracking-tight">
-        {m.status_heading()}
-      </h1>
-      <p className="mt-2 max-w-prose text-sm text-muted-foreground">
-        {m.status_hint()}
-      </p>
+    <section className="animate-fade py-10 sm:py-14">
+      <header className="border-b border-border/70 pb-8">
+        <p className="eyebrow">{m.home_library_live()}</p>
+        <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">
+          {m.status_heading()}
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          {m.status_hint()}
+        </p>
+      </header>
 
-      <div className="mt-8">
+      <div className="mt-7">
         <QueryState
           isLoading={query.isLoading}
           isError={query.isError}
@@ -107,11 +110,12 @@ function StatusPage() {
         >
           {data ? (
             <div className="space-y-8">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="surface relative flex flex-col gap-4 overflow-hidden p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+                <div className="absolute -top-20 -right-16 size-48 rounded-full bg-primary/12 blur-3xl" />
                 <div className="flex items-center gap-3">
                   <span
                     className={cn(
-                      "size-2.5 shrink-0 rounded-full",
+                      "relative size-3 shrink-0 rounded-full ring-8 ring-secondary",
                       isError
                         ? "bg-destructive"
                         : isCooldown
@@ -123,7 +127,7 @@ function StatusPage() {
                     aria-hidden
                   />
                   <div>
-                    <p className="font-display text-xl font-semibold tracking-tight">
+                    <p className="font-display text-2xl font-bold tracking-tight">
                       {phaseLabel(phase)}
                     </p>
                     {data.detail ? (
@@ -133,12 +137,12 @@ function StatusPage() {
                     ) : null}
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="relative font-mono text-xs text-muted-foreground">
                   {m.status_updated_at({ when: formatWhen(data.updated_at) })}
                 </p>
               </div>
 
-              <dl className="grid gap-4 sm:grid-cols-2">
+              <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <StatusField
                   label={m.status_channel()}
                   value={
@@ -226,7 +230,7 @@ function StatusPage() {
               {data.last_error ? (
                 <div
                   role="alert"
-                  className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+                  className="surface border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive"
                 >
                   <p className="font-medium">{m.status_last_error()}</p>
                   <p className="mt-1 break-words opacity-90">{data.last_error}</p>
@@ -248,11 +252,13 @@ function StatusField({
   value: ReactNode
 }) {
   return (
-    <div className="border-b border-border/60 pb-3">
-      <dt className="text-xs uppercase tracking-wide text-muted-foreground">
+    <div className="surface min-w-0 p-4">
+      <dt className="font-mono text-[0.65rem] font-semibold tracking-[0.13em] text-muted-foreground uppercase">
         {label}
       </dt>
-      <dd className="mt-1 truncate text-sm text-foreground">{value}</dd>
+      <dd className="mt-2 break-words text-sm font-medium text-foreground">
+        {value}
+      </dd>
     </div>
   )
 }

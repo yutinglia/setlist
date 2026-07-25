@@ -5,11 +5,20 @@ import { getLocale, setLocale, type Locale } from "@/paraglide/runtime"
 
 const MAX_RECENT = 8
 const MAX_QUERY_LENGTH = 200
+const DEFAULT_THEME =
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light"
+
+export type Theme = "light" | "dark"
 
 type UiState = {
   locale: Locale
+  theme: Theme
   recentSearches: string[]
   setLocalePref: (locale: Locale) => void
+  toggleTheme: () => void
   addRecentSearch: (q: string) => void
   clearRecentSearches: () => void
 }
@@ -22,12 +31,17 @@ export const useUiStore = create<UiState>()(
   persist(
     (set, get) => ({
       locale: getLocale(),
+      theme: DEFAULT_THEME,
       recentSearches: [],
       setLocalePref: (locale) => {
         if (get().locale === locale) return
         set({ locale })
         setLocale(locale, { reload: true })
       },
+      toggleTheme: () =>
+        set((state) => ({
+          theme: state.theme === "dark" ? "light" : "dark",
+        })),
       addRecentSearch: (q) => {
         const trimmed = q.trim().slice(0, MAX_QUERY_LENGTH)
         if (!trimmed) return
@@ -47,6 +61,7 @@ export const useUiStore = create<UiState>()(
       name: "vks-ui",
       partialize: (state) => ({
         locale: state.locale,
+        theme: state.theme,
         recentSearches: state.recentSearches,
       }),
       onRehydrateStorage: () => (state) => {

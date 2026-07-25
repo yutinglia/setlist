@@ -7,7 +7,7 @@ Vite + React + TypeScript search UI for the FastAPI v1 API.
 - React 19 + Vite
 - TanStack Router + TanStack Query
 - Zod (route search-param schemas)
-- Zustand (locale + recent searches only)
+- Zustand (locale, theme, and recent searches only)
 - Paraglide (`en` / `zh-hant`)
 - Tailwind CSS v4 + shadcn/ui
 
@@ -65,3 +65,4 @@ API. Refresh is non-destructive and preserves existing videos and setlists.
 | `/channels/$channelId` | `GET /v1/channels/{id}/videos` |
 | `/videos/$videoId` | `GET /v1/videos/{id}/songs` |
 | `/status` | `GET /v1/updater/status` |
+| `/summary` | `GET /v1/report/summary` |
