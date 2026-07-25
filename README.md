@@ -31,7 +31,7 @@ Service logs are available inside the Dev Container at
 | http://localhost:5173/status | Live updater status |
 | http://localhost:8000/v1/health | Health check |
 | http://localhost:8000/v1/updater/status | Process-local updater status |
-| http://localhost:8000/v1/songs/search?q=... | Search songs by title |
+| http://localhost:8000/v1/songs/search?q=... | Search songs by title (optional `channel_id`, `type`, date bounds) |
 | http://localhost:8000/docs | OpenAPI (when `APP_ENV=dev`) |
 
 More detail: [.devcontainer/README.md](.devcontainer/README.md) · [frontend/README.md](frontend/README.md).
@@ -79,7 +79,7 @@ List/search endpoints accept `limit` (1–100, default 20) and `offset`
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/v1/songs/search?q=` | Literal substring match; returns `video_url` with `&t=` deep link |
+| GET | `/v1/songs/search?q=` | Literal substring match; optional `channel_id`, `type=karaoke\|song`, `upload_date_from` / `upload_date_to` (`YYYYMMDD`); returns `video_url` with `&t=` deep link |
 | GET | `/v1/songs/{id}` | Song detail + deep link + channel |
 | GET | `/v1/channels` | Tracked channels |
 | GET | `/v1/channels/{id}/videos` | Videos for a channel |
@@ -92,7 +92,7 @@ List/search endpoints accept `limit` (1–100, default 20) and `offset`
 Example:
 
 ```bash
-curl 'http://localhost:8000/v1/songs/search?q=Stellar'
+curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
 # → video_url like https://www.youtube.com/watch?v=...&t=300s
 ```
 

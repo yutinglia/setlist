@@ -59,7 +59,7 @@ API. Refresh is non-destructive and preserves existing videos and setlists.
 
 | Path | API |
 |------|-----|
-| `/` | `GET /v1/songs/search` |
+| `/` | `GET /v1/songs/search` (`q` + optional `channel_id` / `type` / `date_from` / `date_to`) |
 | `/songs/$songId` | `GET /v1/songs/{id}` |
 | `/channels` | `GET /v1/channels` |
 | `/channels/$channelId` | `GET /v1/channels/{id}/videos` |

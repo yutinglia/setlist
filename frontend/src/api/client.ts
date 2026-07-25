@@ -72,10 +72,34 @@ export const api = {
 
   summaryReport: () => request<SummaryReport>("/v1/report/summary"),
 
-  searchSongs: (q: string, limit: number, offset: number) =>
-    request<Paginated<SongSearchResult>>(
-      `/v1/songs/search?q=${encodeURIComponent(q)}&${pageQuery(limit, offset)}`,
-    ),
+  searchSongs: (
+    q: string,
+    limit: number,
+    offset: number,
+    filters?: {
+      channelId?: string
+      type?: "karaoke" | "song"
+      uploadDateFrom?: string
+      uploadDateTo?: string
+    },
+  ) => {
+    const params = new URLSearchParams({
+      q,
+      limit: String(limit),
+      offset: String(offset),
+    })
+    if (filters?.channelId) params.set("channel_id", filters.channelId)
+    if (filters?.type) params.set("type", filters.type)
+    if (filters?.uploadDateFrom) {
+      params.set("upload_date_from", filters.uploadDateFrom)
+    }
+    if (filters?.uploadDateTo) {
+      params.set("upload_date_to", filters.uploadDateTo)
+    }
+    return request<Paginated<SongSearchResult>>(
+      `/v1/songs/search?${params.toString()}`,
+    )
+  },
 
   getSong: (id: number) => request<SongSearchResult>(`/v1/songs/${id}`),
 

@@ -65,8 +65,16 @@ class SongRepository:
         *,
         limit: int,
         offset: int = 0,
+        channel_id: str | None = None,
+        video_type: str | None = None,
+        upload_date_from: str | None = None,
+        upload_date_to: str | None = None,
     ) -> tuple[list[SongSearchResult], int]:
         """ILIKE search on ``songs.title`` with video/channel context.
+
+        Optional filters narrow by channel, video type, and inclusive
+        ``YYYYMMDD`` upload-date bounds. When either date bound is set, rows
+        with a null ``upload_date`` are excluded.
 
         Returns ``(items, total)``. Empty ``query`` yields no rows.
         """
@@ -84,10 +92,28 @@ class SongRepository:
             .join(Channels, Videos.channel_id == Channels.id)
             .where(Songs.title.ilike(pattern, escape="\\"))
         )
+        if channel_id is not None:
+            base = base.where(Videos.channel_id == channel_id)
+        if video_type is not None:
+            base = base.where(Videos.type == video_type)
+        if upload_date_from is not None or upload_date_to is not None:
+            base = base.where(Videos.upload_date.is_not(None))
+            if upload_date_from is not None:
+                base = base.where(Videos.upload_date >= upload_date_from)
+            if upload_date_to is not None:
+                base = base.where(Videos.upload_date <= upload_date_to)
+
         count_stmt = select(func.count()).select_from(base.subquery())
         total = int((await self.session.execute(count_stmt)).scalar_one())
 
-        page_stmt = base.order_by(Songs.id).limit(limit).offset(offset)
+        page_stmt = (
+            base.order_by(
+                Videos.upload_date.desc().nulls_last(),
+                Songs.id,
+            )
+            .limit(limit)
+            .offset(offset)
+        )
         rows = (await self.session.execute(page_stmt)).all()
         items = [
             SongSearchResult.from_parts(

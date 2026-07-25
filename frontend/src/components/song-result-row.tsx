@@ -31,9 +31,13 @@ export function SongResultRow({ song, index = 0 }: Props) {
             {song.title}
           </Link>
           <p className="mt-1 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground/80">
+            <Link
+              to="/channels/$channelId"
+              params={{ channelId: song.channel_id }}
+              className="font-medium text-foreground/80 transition-colors hover:text-primary"
+            >
               {song.channel_name}
-            </span>
+            </Link>
             {song.video_title ? (
               <>
                 <span className="mx-1.5 text-border">·</span>

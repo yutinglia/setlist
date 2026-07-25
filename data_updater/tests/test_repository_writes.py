@@ -160,12 +160,12 @@ async def test_upsert_channel_video_and_replace_songs(session: AsyncSession):
         ],
     )
     percent_hits, percent_total = await song_repo.search_by_title(
-        "%", limit=20, offset=0
+        "%", limit=20, offset=0, channel_id=channel_id
     )
     assert percent_total == 1
     assert [song.title for song in percent_hits] == ["100% Love"]
     underscore_hits, underscore_total = await song_repo.search_by_title(
-        "_", limit=20, offset=0
+        "_", limit=20, offset=0, channel_id=channel_id
     )
     assert underscore_total == 1
     assert [song.title for song in underscore_hits] == ["Under_score"]
@@ -413,5 +413,153 @@ async def test_get_by_channel_id_filters_has_song_list(session: AsyncSession):
         )
         == 1
     )
+
+    await session.rollback()
+
+
+@pytest.mark.asyncio
+async def test_search_by_title_filters_channel_type_and_date(session: AsyncSession):
+    suffix = uuid.uuid4().hex[:8]
+    channel_a = f"ch_sa_{suffix}"
+    channel_b = f"ch_sb_{suffix}"
+    channel_repo = ChannelRepository(session)
+    video_repo = VideoRepository(session)
+    song_repo = SongRepository(session)
+
+    for channel_id, name in (
+        (channel_a, "Search A"),
+        (channel_b, "Search B"),
+    ):
+        await channel_repo.create(
+            YouTubeChannel(
+                id=channel_id,
+                name=name,
+                url=f"https://www.youtube.com/channel/{channel_id}",
+            )
+        )
+
+    karaoke_a = await video_repo.upsert(
+        YouTubeVideo(
+            id=f"vid_ka_{suffix}",
+            title="Karaoke A",
+            url=f"https://www.youtube.com/watch?v=vid_ka_{suffix}",
+            channel_id=channel_a,
+            upload_date="20240615",
+            upload_date_precision="exact",
+            type="karaoke",
+            raw_data={},
+        )
+    )
+    song_upload_a = await video_repo.upsert(
+        YouTubeVideo(
+            id=f"vid_so_{suffix}",
+            title="Song upload A",
+            url=f"https://www.youtube.com/watch?v=vid_so_{suffix}",
+            channel_id=channel_a,
+            upload_date="20240110",
+            upload_date_precision="exact",
+            type="song",
+            raw_data={},
+        )
+    )
+    karaoke_b = await video_repo.upsert(
+        YouTubeVideo(
+            id=f"vid_kb_{suffix}",
+            title="Karaoke B",
+            url=f"https://www.youtube.com/watch?v=vid_kb_{suffix}",
+            channel_id=channel_b,
+            upload_date="20240801",
+            upload_date_precision="exact",
+            type="karaoke",
+            raw_data={},
+        )
+    )
+    undated = await video_repo.upsert(
+        YouTubeVideo(
+            id=f"vid_nd_{suffix}",
+            title="No date",
+            url=f"https://www.youtube.com/watch?v=vid_nd_{suffix}",
+            channel_id=channel_a,
+            type="karaoke",
+            raw_data={},
+        )
+    )
+
+    unique = f"FilterHit_{suffix}"
+    await song_repo.replace_for_video(
+        karaoke_a.id,
+        [
+            Song(title=unique, video_id=karaoke_a.id, timestamp="0:10"),
+            Song(title=f"100%_{suffix}", video_id=karaoke_a.id, timestamp="1:00"),
+        ],
+    )
+    await song_repo.replace_for_video(
+        song_upload_a.id,
+        [Song(title=unique, video_id=song_upload_a.id, timestamp="0:20")],
+    )
+    await song_repo.replace_for_video(
+        karaoke_b.id,
+        [Song(title=unique, video_id=karaoke_b.id, timestamp="0:30")],
+    )
+    await song_repo.replace_for_video(
+        undated.id,
+        [Song(title=unique, video_id=undated.id, timestamp="0:40")],
+    )
+
+    all_hits, all_total = await song_repo.search_by_title(unique, limit=20, offset=0)
+    assert all_total == 4
+    assert {hit.channel_id for hit in all_hits} == {channel_a, channel_b}
+
+    channel_hits, channel_total = await song_repo.search_by_title(
+        unique,
+        limit=20,
+        offset=0,
+        channel_id=channel_a,
+    )
+    assert channel_total == 3
+    assert {hit.channel_id for hit in channel_hits} == {channel_a}
+
+    karaoke_hits, karaoke_total = await song_repo.search_by_title(
+        unique,
+        limit=20,
+        offset=0,
+        video_type="karaoke",
+    )
+    assert karaoke_total == 3
+    assert {hit.video_id for hit in karaoke_hits} == {
+        karaoke_a.id,
+        karaoke_b.id,
+        undated.id,
+    }
+
+    song_hits, song_total = await song_repo.search_by_title(
+        unique,
+        limit=20,
+        offset=0,
+        video_type="song",
+    )
+    assert song_total == 1
+    assert song_hits[0].video_id == song_upload_a.id
+
+    dated_hits, dated_total = await song_repo.search_by_title(
+        unique,
+        limit=20,
+        offset=0,
+        upload_date_from="20240601",
+        upload_date_to="20240731",
+    )
+    assert dated_total == 1
+    assert dated_hits[0].video_id == karaoke_a.id
+
+    # LIKE wildcards remain literal even when filters are present.
+    percent_hits, percent_total = await song_repo.search_by_title(
+        "%",
+        limit=20,
+        offset=0,
+        channel_id=channel_a,
+        video_type="karaoke",
+    )
+    assert percent_total == 1
+    assert percent_hits[0].title == f"100%_{suffix}"
 
     await session.rollback()

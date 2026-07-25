@@ -155,7 +155,7 @@ locally and run `python run_updater_once.py` for one production-equivalent cycle
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/v1/songs/search?q=` | ILIKE / full-text on `songs.title` |
+| GET | `/v1/songs/search?q=` | ILIKE on `songs.title`; optional `channel_id`, `type`, `upload_date_from` / `upload_date_to` |
 | GET | `/v1/songs/{id}` | Song detail + video URL + timestamp |
 | GET | `/v1/channels` | List tracked channels |
 | GET | `/v1/channels/{id}/videos` | Videos for a channel |
@@ -197,7 +197,7 @@ Defer LLM until regex path is useful.
 
 - [x] React (Vite + TypeScript) app under `frontend/`
 - [x] TanStack Router + TanStack Query + Zustand (UI prefs) + Paraglide (`en` / `zh-hant`) + Tailwind + shadcn/ui
-- [x] Search page → `GET /v1/songs/search` with debounce, pagination, deep links
+- [x] Search page → `GET /v1/songs/search` with debounce, pagination, deep links, advanced filters (channel / type / date)
 - [x] Song detail + channel → videos → video songs browse
 - [x] Live updater status page → `GET /v1/updater/status`
 - [x] Dev proxy / `VITE_API_BASE_URL` + CORS notes (`APP_ENV=dev` or `CORS_ORIGINS`)
@@ -234,7 +234,7 @@ Defer LLM until regex path is useful.
 ## Success criteria
 
 1. Seeded channel → automatic songs in DB within one update cycle.  
-2. `GET /v1/songs/search?q=...` returns results with timestamp deep links.  
+2. `GET /v1/songs/search?q=...` returns results with timestamp deep links (optional channel / type / date filters).  
 3. `docker compose up` (or documented manual path) is reproducible on a clean machine.  
 4. Updater failures are logged and do not crash the API process.  
 5. Search UI can query the API and open YouTube deep links (Phase 6).

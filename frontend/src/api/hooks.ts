@@ -33,13 +33,52 @@ export function useSummaryReport() {
   })
 }
 
-export function useSongSearch(q: string, page: number) {
+export type SongSearchFilters = {
+  channelId?: string
+  type?: "karaoke" | "song"
+  uploadDateFrom?: string
+  uploadDateTo?: string
+}
+
+export function useSongSearch(
+  q: string,
+  page: number,
+  filters: SongSearchFilters = {},
+) {
   const offset = page * PAGE_SIZE
+  const channelId = filters.channelId
+  const type = filters.type
+  const uploadDateFrom = filters.uploadDateFrom
+  const uploadDateTo = filters.uploadDateTo
   return useQuery({
-    queryKey: ["songs", "search", q, page],
-    queryFn: () => api.searchSongs(q, PAGE_SIZE, offset),
+    queryKey: [
+      "songs",
+      "search",
+      q,
+      page,
+      channelId ?? null,
+      type ?? null,
+      uploadDateFrom ?? null,
+      uploadDateTo ?? null,
+    ],
+    queryFn: () =>
+      api.searchSongs(q, PAGE_SIZE, offset, {
+        channelId,
+        type,
+        uploadDateFrom,
+        uploadDateTo,
+      }),
     enabled: q.trim().length > 0,
     placeholderData: (prev) => prev,
+  })
+}
+
+/** Channel options for advanced search (not page-sized browse). */
+export function useChannelOptions() {
+  return useQuery({
+    queryKey: ["channels", "options"],
+    queryFn: () => api.listChannels(100, 0),
+    staleTime: 60_000,
   })
 }
 
@@ -66,6 +105,7 @@ export function useCreateChannel() {
     mutationFn: (url: string) => api.createChannel(url),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["channels"] })
+      await queryClient.invalidateQueries({ queryKey: ["channels", "options"] })
     },
   })
 }

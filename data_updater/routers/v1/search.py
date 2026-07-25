@@ -44,6 +44,9 @@ def require_management_api() -> None:
         raise HTTPException(status_code=404, detail="Not found")
 
 
+_UPLOAD_DATE_PATTERN = r"^\d{8}$"
+
+
 @router.get("/songs/search", response_model=Paginated[SongSearchResult])
 async def search_songs(
     q: str = Query(
@@ -52,13 +55,51 @@ async def search_songs(
         max_length=200,
         description="Literal substring match on song title",
     ),
+    channel_id: str | None = Query(
+        None,
+        description="Limit results to songs from this channel id",
+    ),
+    type: Literal["karaoke", "song"] | None = Query(
+        None,
+        description="Filter by video type (karaoke stream or song upload)",
+    ),
+    upload_date_from: str | None = Query(
+        None,
+        pattern=_UPLOAD_DATE_PATTERN,
+        description="Inclusive lower bound on video upload_date (YYYYMMDD)",
+    ),
+    upload_date_to: str | None = Query(
+        None,
+        pattern=_UPLOAD_DATE_PATTERN,
+        description="Inclusive upper bound on video upload_date (YYYYMMDD)",
+    ),
     pagination: tuple[int, int] = Depends(pagination_params),
     session: AsyncSession = Depends(get_session),
 ):
-    """Search songs by title (ILIKE). Returns deep-linked YouTube URLs."""
+    """Search songs by title (ILIKE). Optional channel / type / date filters.
+
+    Returns deep-linked YouTube URLs.
+    """
+    if (
+        upload_date_from is not None
+        and upload_date_to is not None
+        and upload_date_from > upload_date_to
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="upload_date_from must be less than or equal to upload_date_to",
+        )
     limit, offset = pagination
     repo = SongRepository(session)
-    items, total = await repo.search_by_title(q, limit=limit, offset=offset)
+    items, total = await repo.search_by_title(
+        q,
+        limit=limit,
+        offset=offset,
+        channel_id=channel_id,
+        video_type=type,
+        upload_date_from=upload_date_from,
+        upload_date_to=upload_date_to,
+    )
     return Paginated(items=items, total=total, limit=limit, offset=offset)
 
 

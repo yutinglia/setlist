@@ -4,6 +4,10 @@ import { useCallback, useEffect } from "react"
 import { PAGE_SIZE, useSongSearch } from "@/api/hooks"
 import { PaginationControls } from "@/components/pagination-controls"
 import { QueryState } from "@/components/query-state"
+import {
+  SearchFilters,
+  type SearchFilterValues,
+} from "@/components/search-filters"
 import { SearchForm } from "@/components/search-form"
 import { SongResultRow } from "@/components/song-result-row"
 import { useClampPage } from "@/hooks/use-clamp-page"
@@ -17,10 +21,22 @@ export const Route = createFileRoute("/")({
 })
 
 function SearchPage() {
-  const { q = "", page = 0 } = Route.useSearch()
+  const {
+    q = "",
+    page = 0,
+    channel_id,
+    type,
+    date_from,
+    date_to,
+  } = Route.useSearch()
   const navigate = Route.useNavigate()
   const addRecent = useUiStore((s) => s.addRecentSearch)
-  const query = useSongSearch(q, page)
+  const query = useSongSearch(q, page, {
+    channelId: channel_id,
+    type,
+    uploadDateFrom: date_from,
+    uploadDateTo: date_to,
+  })
   const changePage = useCallback(
     (next: number) => {
       void navigate({
@@ -46,6 +62,23 @@ function SearchPage() {
     [navigate, q],
   )
 
+  const setFilters = useCallback(
+    (next: SearchFilterValues) => {
+      void navigate({
+        search: (prev) => ({
+          ...prev,
+          channel_id: next.channel_id,
+          type: next.type,
+          date_from: next.date_from,
+          date_to: next.date_to,
+          page: undefined,
+        }),
+        replace: true,
+      })
+    },
+    [navigate],
+  )
+
   useEffect(() => {
     if (q && query.isSuccess) addRecent(q)
   }, [q, query.isSuccess, addRecent])
@@ -68,6 +101,10 @@ function SearchPage() {
             initialQuery={q}
             onQueryChange={setQuery}
             autoFocus
+          />
+          <SearchFilters
+            filters={{ channel_id, type, date_from, date_to }}
+            onChange={setFilters}
           />
         </div>
       </div>
