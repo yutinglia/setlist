@@ -2,11 +2,6 @@
 
 from __future__ import annotations
 
-import logging
-from typing import Any
-
-logger = logging.getLogger(__name__)
-
 # Substrings commonly seen when YouTube rate-limits or challenges yt-dlp clients.
 _BLOCK_MARKERS = (
     "sign in to confirm",
@@ -17,7 +12,6 @@ _BLOCK_MARKERS = (
     "too many requests",
     "has blocked your ip",
     "blocked your ip",
-    "unable to extract",
     "bot check",
     "captcha",
     "request from your network",
@@ -38,12 +32,3 @@ def raise_if_block_error(exc: BaseException) -> None:
     """Re-raise ``exc`` as ``YouTubeAccessBlocked`` when it matches block markers."""
     if is_youtube_block_error(exc):
         raise YouTubeAccessBlocked(str(exc)) from exc
-
-
-def comments_look_blocked(comments: list[dict[str, Any]] | None) -> bool:
-    """Treat missing comments payload as a suspicious block signal.
-
-    An empty list is a normal "no comments" result and is not a block.
-    ``None`` means yt-dlp did not return a comments field after requesting them.
-    """
-    return comments is None

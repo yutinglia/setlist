@@ -1,8 +1,10 @@
 import logging
+from urllib.parse import urlsplit
 
 import yt_dlp
 
 from models.video import YouTubeVideo
+from services.yt_scraper.errors import raise_if_block_error
 from utils.video_type import classify_video_type
 from utils.youtube_channel_url import channel_list_urls
 from utils.youtube_upload_date import upload_date_from_entry
@@ -17,13 +19,27 @@ class YouTubeChannelVideoScraper:
         *,
         max_videos: int | None = None,
         full_metadata: bool = False,
+        metadata_limit: int | None = None,
     ) -> None:
         self.channel_url = channel_url
         self.max_videos = max_videos
         # Flat tab lists omit upload_date. When True, enrich dates via per-video
         # metadata fetches after the flat list (full tab extract is unreliable).
         self.full_metadata = full_metadata
+        self.metadata_limit = metadata_limit
         self.videos: list[YouTubeVideo] = []
+
+    @staticmethod
+    def _video_url(entry: dict, video_id: str) -> str:
+        """Return a browser URL even when a flat entry's ``url`` is only an id."""
+        for key in ("webpage_url", "original_url", "url"):
+            candidate = entry.get(key)
+            if not isinstance(candidate, str):
+                continue
+            parsed = urlsplit(candidate)
+            if parsed.scheme in {"http", "https"} and parsed.netloc:
+                return candidate
+        return f"https://www.youtube.com/watch?v={video_id}"
 
     def get_channel_videos(self) -> list[YouTubeVideo]:
         def filter_videos(info: dict, *, incomplete: bool) -> str | None:
@@ -49,12 +65,15 @@ class YouTubeChannelVideoScraper:
         # Cap how many playlist entries yt-dlp walks (Tier B / prefer recent).
         # Split budget across Videos + Streams tabs when both are scraped.
         list_urls = channel_list_urls(self.channel_url)
+        if not list_urls:
+            raise ValueError(f"Invalid YouTube channel URL: {self.channel_url!r}")
         per_tab_end: int | None = None
         if self.max_videos is not None and self.max_videos > 0:
             # Extra headroom so shorts/live filtered out still leave enough.
             per_tab_end = self.max_videos * 2
 
-        all_videos: list[dict] = []
+        tab_groups: list[list[dict]] = []
+        failed_tabs: list[str] = []
         for tab_url in list_urls:
             ydl_opts: dict = {
                 "skip_download": True,
@@ -67,7 +86,6 @@ class YouTubeChannelVideoScraper:
                 "sleep_interval": 1,
                 "max_sleep_interval": 2,
                 "match_filter": filter_videos,
-                "ignoreerrors": True,
             }
             if per_tab_end is not None:
                 ydl_opts["playlistend"] = per_tab_end
@@ -80,33 +98,55 @@ class YouTubeChannelVideoScraper:
             try:
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(tab_url, download=False)
-            except Exception:
+            except Exception as exc:
+                raise_if_block_error(exc)
                 logger.exception("Failed scraping tab %s", tab_url)
+                failed_tabs.append(tab_url)
                 continue
 
             if not info:
                 logger.warning("Empty extract for %s", tab_url)
+                failed_tabs.append(tab_url)
                 continue
 
             entries = info.get("entries", []) or []
+            tab_videos: list[dict] = []
 
             # Handle nested playlists (Videos, Live, Shorts)
             for entry in entries:
-                if entry is None:
+                if not isinstance(entry, dict):
                     continue
 
                 # If entry has its own entries, it's a playlist
                 if "entries" in entry:
                     sub_entries = entry.get("entries", []) or []
-                    all_videos.extend([v for v in sub_entries if v is not None])
+                    tab_videos.extend([v for v in sub_entries if isinstance(v, dict)])
                 else:
                     # It's a direct video entry
-                    all_videos.append(entry)
+                    tab_videos.append(entry)
+            tab_groups.append(tab_videos)
 
-        if not all_videos and list_urls:
+        if not tab_groups:
             raise RuntimeError(
-                f"Failed to extract video list for {self.channel_url}"
+                "Failed to extract any channel tab: " + ", ".join(failed_tabs)
             )
+        if failed_tabs:
+            # Missing/disabled Streams tabs are normal. Since callers only
+            # upsert and never infer deletions from this list, partial success
+            # is safe and preferable to rejecting the usable tab.
+            logger.warning(
+                "Using partial channel video list; failed tabs: %s",
+                ", ".join(failed_tabs),
+            )
+
+        # Interleave Streams and Videos so a bounded enrichment/list cannot be
+        # monopolized by the first tab.
+        all_videos: list[dict] = []
+        max_group_size = max((len(group) for group in tab_groups), default=0)
+        for index in range(max_group_size):
+            for group in tab_groups:
+                if index < len(group):
+                    all_videos.append(group[index])
 
         # for safety, remove duplicates based on video ID
         unique_videos = {}
@@ -118,11 +158,18 @@ class YouTubeChannelVideoScraper:
         all_videos = list(unique_videos.values())
 
         if self.full_metadata:
-            # Cap enrichment to the newest N entries (flat order ≈ recent).
-            enrich_cap = self.max_videos * 2 if self.max_videos else len(all_videos)
-            all_videos = self._enrich_metadata(all_videos[:enrich_cap]) + all_videos[
-                enrich_cap:
-            ]
+            # Cap per-video metadata requests independently from list size.
+            enrich_cap = (
+                self.metadata_limit
+                if self.metadata_limit is not None
+                else self.max_videos
+            )
+            if enrich_cap is None:
+                enrich_cap = len(all_videos)
+            enrich_cap = max(0, enrich_cap)
+            all_videos = (
+                self._enrich_metadata(all_videos[:enrich_cap]) + all_videos[enrich_cap:]
+            )
 
         # Convert to YouTubeVideo models
         video_models = []
@@ -131,14 +178,12 @@ class YouTubeChannelVideoScraper:
             if not video_id:
                 continue
             title = video.get("title") or video_id
+            safe_video = yt_dlp.YoutubeDL.sanitize_info(video)
             video_model = YouTubeVideo(
                 id=video_id,
                 title=title,
-                url=video.get("url")
-                or f"https://www.youtube.com/watch?v={video_id}",
-                channel_id=video.get("channel_id")
-                or video.get("uploader_id")
-                or "",
+                url=self._video_url(video, video_id),
+                channel_id=video.get("channel_id") or video.get("uploader_id") or "",
                 # Flat extracts omit upload_date; derive from timestamp fields.
                 upload_date=upload_date_from_entry(video),
                 # Title keywords + soft duration / live_status confirms.
@@ -147,7 +192,7 @@ class YouTubeChannelVideoScraper:
                     live_status=video.get("live_status"),
                     duration=video.get("duration"),
                 ),
-                raw_data=video,
+                raw_data=safe_video,
             )
             video_models.append(video_model)
 
@@ -173,7 +218,6 @@ class YouTubeChannelVideoScraper:
             "skip_download": True,
             "quiet": True,
             "no_warnings": True,
-            "ignoreerrors": True,
             "sleep_interval": 1,
             "max_sleep_interval": 2,
         }
@@ -189,11 +233,7 @@ class YouTubeChannelVideoScraper:
                     enriched.append(entry)
                     continue
 
-                url = (
-                    entry.get("url")
-                    or entry.get("webpage_url")
-                    or f"https://www.youtube.com/watch?v={video_id}"
-                )
+                url = self._video_url(entry, video_id)
                 logger.info(
                     "Enriching metadata %s/%s for %s",
                     index + 1,
@@ -202,7 +242,8 @@ class YouTubeChannelVideoScraper:
                 )
                 try:
                     info = ydl.extract_info(url, download=False)
-                except Exception:
+                except Exception as exc:
+                    raise_if_block_error(exc)
                     logger.exception("Failed enriching metadata for %s", video_id)
                     enriched.append(entry)
                     continue

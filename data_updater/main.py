@@ -1,12 +1,18 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 
-from config import IS_DEV, DATA_UPDATE_INTERVAL, CORS_ORIGINS
-from db import async_session_factory
-from repositories import ChannelRepository, VideoRepository, SongRepository
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from config import (
+    BACKGROUND_UPDATER_ENABLED,
+    CORS_ORIGINS,
+    DATA_UPDATE_INTERVAL,
+    IS_DEV,
+)
+from db import async_session_factory, engine
+from repositories import ChannelRepository, SongRepository, VideoRepository
 from routers.v1 import router as v1_router
 from services.data_updater import DataUpdater
 
@@ -25,9 +31,7 @@ async def run_periodic_data_updater():
                 channel_repo = ChannelRepository(session)
                 video_repo = VideoRepository(session)
                 song_repo = SongRepository(session)
-                data_updater = DataUpdater(
-                    session, channel_repo, video_repo, song_repo
-                )
+                data_updater = DataUpdater(session, channel_repo, video_repo, song_repo)
                 await data_updater.update()
             logger.info("Song list data updated successfully.")
         except asyncio.CancelledError:
@@ -39,22 +43,27 @@ async def run_periodic_data_updater():
         await asyncio.sleep(DATA_UPDATE_INTERVAL)
 
 
-# 啟動時啟動背景任務
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 啟動背景任務
-    updater_task = asyncio.create_task(run_periodic_data_updater())
-    logger.info("Background data updater task started.")
+    del app  # FastAPI requires the lifespan argument; no app state is needed.
+    updater_task: asyncio.Task[None] | None = None
+    if BACKGROUND_UPDATER_ENABLED:
+        updater_task = asyncio.create_task(run_periodic_data_updater())
+        logger.info("Background data updater task started.")
+    else:
+        logger.info("Background data updater is disabled.")
 
-    yield  # 應用程式運行中
-
-    # 關閉時取消背景任務
-    logger.info("Shutting down background data updater task...")
-    updater_task.cancel()
     try:
-        await updater_task
-    except asyncio.CancelledError:
-        logger.info("Background data updater task cancelled successfully.")
+        yield
+    finally:
+        if updater_task is not None:
+            logger.info("Shutting down background data updater task...")
+            updater_task.cancel()
+            try:
+                await updater_task
+            except asyncio.CancelledError:
+                logger.info("Background data updater task cancelled successfully.")
+        await engine.dispose()
 
 
 app = FastAPI(
@@ -72,17 +81,17 @@ if IS_DEV:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Accept", "Content-Type"],
     )
 else:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=CORS_ORIGINS,
-        allow_credentials=bool(CORS_ORIGINS),
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Accept", "Content-Type"],
     )
 
 # 註冊 v1 路由

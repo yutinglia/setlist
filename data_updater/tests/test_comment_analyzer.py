@@ -68,6 +68,28 @@ class TestCommentAnalyzerDetection:
         )
         assert analyzer.has_song_list_comment() is True
 
+    def test_invalid_timestamps_do_not_qualify(self):
+        text = "1:99 nope\n2:77 nope\n3:60 nope"
+        analyzer = CommentAnalyzer([_comment(text)], video_id=VIDEO_ID)
+        assert analyzer.has_song_list_comment() is False
+
+    def test_ignores_non_mapping_comment_items(self):
+        analyzer = CommentAnalyzer(
+            [None, _comment("0:10 A\n0:20 B\n0:30 C")],  # type: ignore[list-item]
+            video_id=VIDEO_ID,
+        )
+        assert analyzer.has_song_list_comment() is True
+
+    def test_ignores_comment_with_non_string_text(self):
+        analyzer = CommentAnalyzer(
+            [
+                {"text": 12345},
+                _comment("0:10 A\n0:20 B\n0:30 C"),
+            ],
+            video_id=VIDEO_ID,
+        )
+        assert analyzer.has_song_list_comment() is True
+
 
 class TestCommentPreference:
     def test_prefers_pinned_over_earlier_viewer_setlist(self):
@@ -112,6 +134,23 @@ class TestCommentPreference:
         analyzer = CommentAnalyzer([uploader, pinned], video_id=VIDEO_ID)
         assert analyzer.has_song_list_comment() is True
         assert analyzer.extract_song_list()[0].title == "PinA"
+
+    def test_malformed_like_count_does_not_abort_analysis(self):
+        comments = [
+            _comment("0:10 A\n0:20 B\n0:30 C", like_count="not-a-number"),  # type: ignore[arg-type]
+            _comment("1:10 D\n1:20 E\n1:30 F", like_count="1.2K"),  # type: ignore[arg-type]
+        ]
+        analyzer = CommentAnalyzer(comments, video_id=VIDEO_ID)
+        assert analyzer.has_song_list_comment() is True
+        assert analyzer.extract_song_list()[0].title == "D"
+
+    @pytest.mark.parametrize("like_count", [float("nan"), float("inf"), "inf"])
+    def test_non_finite_like_count_does_not_abort_analysis(self, like_count):
+        analyzer = CommentAnalyzer(
+            [_comment("0:10 A\n0:20 B\n0:30 C", like_count=like_count)],
+            video_id=VIDEO_ID,
+        )
+        assert analyzer.has_song_list_comment() is True
 
 
 class TestCommentAnalyzerParsing:
@@ -172,6 +211,10 @@ class TestCommentAnalyzerParsing:
         assert songs[0].timestamp == "12:34"
         assert songs[0].title == "曲名"
 
+    def test_cumulative_minutes_timestamp(self):
+        songs = self._songs_from("125:04 Long Stream Song")
+        assert songs[0].timestamp == "125:04"
+
     def test_skips_empty_titles(self):
         text = _setlist("0:10", "0:20 有歌名", "0:30 ---")
         songs = self._songs_from(text)
@@ -221,22 +264,22 @@ class TestCommentAnalyzerParsing:
         analyzer = CommentAnalyzer([_comment("nope")], video_id=VIDEO_ID)
         assert analyzer.extract_song_list() == []
 
+    def test_long_title_is_bounded_to_database_limit(self):
+        songs = self._songs_from("0:10 " + ("x" * 600))
+        assert len(songs[0].title) == 500
+
 
 class TestLlmCleanerSkip:
     @pytest.mark.asyncio
     async def test_disabled_returns_none(self, monkeypatch):
-        monkeypatch.setattr(
-            "services.analyzer.llm_cleaner.LLM_CLEANING_ENABLED", False
-        )
+        monkeypatch.setattr("services.analyzer.llm_cleaner.LLM_CLEANING_ENABLED", False)
         from services.analyzer.llm_cleaner import maybe_clean_song_list_comment
 
         assert await maybe_clean_song_list_comment("0:10 A\n0:20 B\n0:30 C") is None
 
     @pytest.mark.asyncio
     async def test_enabled_without_key_returns_none(self, monkeypatch):
-        monkeypatch.setattr(
-            "services.analyzer.llm_cleaner.LLM_CLEANING_ENABLED", True
-        )
+        monkeypatch.setattr("services.analyzer.llm_cleaner.LLM_CLEANING_ENABLED", True)
         monkeypatch.setattr("services.analyzer.llm_cleaner.LLM_API_KEY", "")
         from services.analyzer.llm_cleaner import maybe_clean_song_list_comment
 

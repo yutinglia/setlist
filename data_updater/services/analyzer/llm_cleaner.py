@@ -10,6 +10,7 @@ from config import (
     LLM_API_KEY,
     LLM_API_URL,
     LLM_CLEANING_ENABLED,
+    LLM_MAX_INPUT_CHARS,
     LLM_MODEL,
     LLM_TIMEOUT_SECONDS,
 )
@@ -43,6 +44,12 @@ async def maybe_clean_song_list_comment(text: str) -> str | None:
     raw = (text or "").strip()
     if not raw:
         return None
+    if len(raw) > LLM_MAX_INPUT_CHARS:
+        logger.warning(
+            "Setlist comment exceeds LLM_MAX_INPUT_CHARS=%s; truncating",
+            LLM_MAX_INPUT_CHARS,
+        )
+        raw = raw[:LLM_MAX_INPUT_CHARS]
 
     payload = {
         "model": LLM_MODEL,

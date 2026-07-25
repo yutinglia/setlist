@@ -13,6 +13,8 @@ services:
       - frontend-node-modules:/workspace/frontend/node_modules
     environment:
       APP_ENV: dev
+      BACKGROUND_UPDATER_ENABLED: "false"
+      MANAGEMENT_API_ENABLED: "true"
       DB_HOST: db
       DB_PORT: "5432"
       DB_NAME: vks_db
@@ -32,6 +34,9 @@ services:
   db:
     image: postgres:18-bookworm
     restart: unless-stopped
+    ports:
+      # Supports the documented local (non-Dev-Container) Python workflow.
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     environment:
       POSTGRES_DB: vks_db
       POSTGRES_USER: vks_db_user
@@ -59,6 +64,7 @@ services:
       - -url=jdbc:postgresql://db:5432/vks_db
       - -user=vks_db_user
       - -password=vks_db_pwd
+      - -locations=filesystem:/flyway/sql
       - -connectRetries=5
       - migrate
     networks:

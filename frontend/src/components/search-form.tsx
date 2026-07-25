@@ -1,5 +1,5 @@
 import { Search } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,14 +23,24 @@ export function SearchForm({
   const recent = useUiStore((s) => s.recentSearches)
   const addRecent = useUiStore((s) => s.addRecentSearch)
   const clearRecent = useUiStore((s) => s.clearRecentSearches)
+  const onQueryChangeRef = useRef(onQueryChange)
+  const initialQueryRef = useRef(initialQuery)
+
+  onQueryChangeRef.current = onQueryChange
+  initialQueryRef.current = initialQuery
 
   useEffect(() => {
     setValue(initialQuery)
   }, [initialQuery])
 
   useEffect(() => {
-    onQueryChange(debounced.trim())
-  }, [debounced, onQueryChange])
+    const next = debounced.trim()
+    // Depending on the callback identity here creates a back/forward race:
+    // the old debounced value can overwrite a newly restored URL query.
+    if (next !== initialQueryRef.current.trim()) {
+      onQueryChangeRef.current(next)
+    }
+  }, [debounced])
 
   return (
     <form
@@ -52,6 +62,7 @@ export function SearchForm({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={m.search_placeholder()}
+            maxLength={200}
             className="h-12 border-border/80 bg-card/80 pl-10 text-base shadow-none backdrop-blur-sm"
             autoFocus={autoFocus}
             aria-label={m.search_placeholder()}

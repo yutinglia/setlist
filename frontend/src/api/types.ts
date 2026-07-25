@@ -16,7 +16,7 @@ export type SongSearchResult = {
   video_title: string | null
   channel_id: string
   channel_name: string
-  analyzed_by_llm: boolean | null
+  analyzed_by_llm: boolean
 }
 
 export type YouTubeChannel = {
@@ -35,7 +35,7 @@ export type YouTubeVideo = {
   channel_id: string
   upload_date: string | null
   type: string | null
-  has_song_list_comment: boolean | null
+  has_song_list_comment: boolean
   created_at: string | null
   updated_at: string | null
 }
@@ -45,7 +45,7 @@ export type Song = {
   title: string
   video_id: string
   timestamp: string | null
-  analyzed_by_llm: boolean | null
+  analyzed_by_llm: boolean
   created_at: string | null
   updated_at: string | null
 }

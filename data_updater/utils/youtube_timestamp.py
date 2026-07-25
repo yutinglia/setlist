@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-import re
-
-_TIMESTAMP_RE = re.compile(
-    r"^(?:(?P<hours>\d{1,2}):)?(?P<minutes>\d{1,2}):(?P<seconds>\d{1,2})$"
-)
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 
 def timestamp_to_seconds(timestamp: str | None) -> int | None:
@@ -16,18 +12,26 @@ def timestamp_to_seconds(timestamp: str | None) -> int | None:
     """
     if timestamp is None:
         return None
-    text = timestamp.strip()
+    text = timestamp.strip().replace("：", ":")
     if not text:
         return None
 
-    match = _TIMESTAMP_RE.match(text)
-    if not match:
+    parts = text.split(":")
+    if len(parts) not in {2, 3} or not all(part.isdigit() for part in parts):
         return None
 
-    hours = int(match.group("hours") or 0)
-    minutes = int(match.group("minutes"))
-    seconds = int(match.group("seconds"))
-    if minutes > 59 or seconds > 59:
+    values = [int(part) for part in parts]
+    seconds = values[-1]
+    if seconds > 59:
+        return None
+
+    if len(values) == 2:
+        # YouTube setlists commonly use cumulative minutes (e.g. 75:04).
+        minutes = values[0]
+        return minutes * 60 + seconds
+
+    hours, minutes, seconds = values
+    if minutes > 59:
         return None
     return hours * 3600 + minutes * 60 + seconds
 
@@ -37,5 +41,13 @@ def youtube_url_with_timestamp(video_url: str, timestamp: str | None) -> str:
     seconds = timestamp_to_seconds(timestamp)
     if seconds is None:
         return video_url
-    sep = "&" if "?" in video_url else "?"
-    return f"{video_url}{sep}t={seconds}s"
+    parsed = urlsplit(video_url)
+    query = [
+        (key, value)
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        if key != "t"
+    ]
+    query.append(("t", f"{seconds}s"))
+    return urlunsplit(
+        (parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment)
+    )

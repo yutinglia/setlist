@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
@@ -45,7 +45,7 @@ class ChannelRepository:
 
     async def upsert(self, channel: YouTubeChannel) -> YouTubeChannel:
         """Insert or update a channel by primary key ``id``. Does not commit."""
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
         values = {
             "id": channel.id,
             "name": channel.name,

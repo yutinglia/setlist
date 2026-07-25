@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router"
+import { useEffect } from "react"
 
 import { useHealth } from "@/api/hooks"
 import { Button } from "@/components/ui/button"
@@ -12,6 +13,10 @@ export function SiteHeader() {
   const setLocalePref = useUiStore((s) => s.setLocalePref)
   const health = useHealth()
   const current = locale || getLocale()
+
+  useEffect(() => {
+    document.documentElement.lang = current
+  }, [current])
 
   const apiLabel = health.isLoading
     ? m.api_checking()

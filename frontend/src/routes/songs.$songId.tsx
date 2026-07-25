@@ -14,6 +14,7 @@ export const Route = createFileRoute("/songs/$songId")({
 function SongDetailPage() {
   const { songId } = Route.useParams()
   const id = Number(songId)
+  const invalidId = !Number.isSafeInteger(id) || id <= 0
   const query = useSong(id)
 
   return (
@@ -34,8 +35,8 @@ function SongDetailPage() {
         <QueryState
           isLoading={query.isLoading}
           isError={query.isError}
-          isEmpty={false}
-          emptyMessage=""
+          isEmpty={invalidId}
+          emptyMessage={m.song_not_found()}
           onRetry={() => void query.refetch()}
         >
           {query.data ? (

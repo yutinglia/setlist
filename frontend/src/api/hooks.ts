@@ -27,7 +27,7 @@ export function useSong(id: number) {
   return useQuery({
     queryKey: ["songs", id],
     queryFn: () => api.getSong(id),
-    enabled: Number.isFinite(id) && id > 0,
+    enabled: Number.isSafeInteger(id) && id > 0,
   })
 }
 

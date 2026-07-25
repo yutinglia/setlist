@@ -36,12 +36,11 @@ _WEAK_KARAOKE_KEYWORDS: tuple[str, ...] = ("singing",)
 _SONG_KEYWORDS: tuple[str, ...] = (
     "mv",
     "cover",
-    "music",
-    "song",
-    "official",
+    "music video",
+    "official audio",
+    "original song",
     "歌ってみた",
     "オリジナル曲",
-    "original song",
     "official music video",
     "カバー",
     "翻唱",
@@ -146,7 +145,7 @@ def _song_duration_ok(duration: float | int | None) -> bool:
         seconds = float(duration)
     except (TypeError, ValueError):
         return True
-    return seconds < SONG_MAX_DURATION_SECONDS
+    return seconds <= SONG_MAX_DURATION_SECONDS
 
 
 def is_song_video(
@@ -198,9 +197,7 @@ def should_scrape_comments(
     """
     if (stored_type or "").lower() == VIDEO_TYPE_SONG:
         return False
-    return is_karaoke_stream(
-        title, live_status=live_status, duration=duration
-    )
+    return is_karaoke_stream(title, live_status=live_status, duration=duration)
 
 
 def classify_video_type(

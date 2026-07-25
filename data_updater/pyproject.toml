@@ -1,0 +1,16 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+extend-exclude = ["db/models.py", "NOTE.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "RUF"]
+# FastAPI's dependency injection intentionally uses Depends(...) defaults.
+ignore = [
+    "B008",
+    # Multilingual title/timestamp fixtures intentionally contain full-width
+    # punctuation that the parser must recognize.
+    "RUF001",
+    # Pydantic's Generic[T] form remains clearer and works across tooling.
+    "UP046",
+]

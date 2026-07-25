@@ -2,8 +2,23 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Mapping
+import re
+from collections.abc import Mapping
+from datetime import UTC, datetime
+from typing import Any
+
+_UPLOAD_DATE_RE = re.compile(r"^\d{8}$")
+
+
+def _valid_upload_date(value: str) -> str | None:
+    text = value.strip()
+    if not _UPLOAD_DATE_RE.fullmatch(text):
+        return None
+    try:
+        datetime.strptime(text, "%Y%m%d")
+    except ValueError:
+        return None
+    return text
 
 
 def upload_date_from_entry(entry: Mapping[str, Any] | None) -> str | None:
@@ -18,9 +33,9 @@ def upload_date_from_entry(entry: Mapping[str, Any] | None) -> str | None:
 
     raw = entry.get("upload_date")
     if isinstance(raw, str):
-        text = raw.strip()
-        if text:
-            return text
+        validated = _valid_upload_date(raw)
+        if validated:
+            return validated
 
     for key in ("timestamp", "release_timestamp"):
         ts = entry.get(key)
@@ -32,6 +47,9 @@ def upload_date_from_entry(entry: Mapping[str, Any] | None) -> str | None:
             continue
         if ts_i <= 0:
             continue
-        return datetime.fromtimestamp(ts_i, tz=timezone.utc).strftime("%Y%m%d")
+        try:
+            return datetime.fromtimestamp(ts_i, tz=UTC).strftime("%Y%m%d")
+        except (OverflowError, OSError, ValueError):
+            continue
 
     return None

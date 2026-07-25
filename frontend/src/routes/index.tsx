@@ -6,6 +6,7 @@ import { PaginationControls } from "@/components/pagination-controls"
 import { QueryState } from "@/components/query-state"
 import { SearchForm } from "@/components/search-form"
 import { SongResultRow } from "@/components/song-result-row"
+import { useClampPage } from "@/hooks/use-clamp-page"
 import { songSearchSchema } from "@/lib/search-schemas"
 import { m } from "@/paraglide/messages"
 import { useUiStore } from "@/stores/ui-store"
@@ -20,6 +21,16 @@ function SearchPage() {
   const navigate = Route.useNavigate()
   const addRecent = useUiStore((s) => s.addRecentSearch)
   const query = useSongSearch(q, page)
+  const changePage = useCallback(
+    (next: number) => {
+      void navigate({
+        search: (prev) => ({ ...prev, page: next || undefined }),
+        replace: true,
+      })
+    },
+    [navigate],
+  )
+  useClampPage(page, query.data?.total, PAGE_SIZE, changePage)
 
   const setQuery = useCallback(
     (next: string) => {
@@ -97,11 +108,7 @@ function SearchPage() {
                   total={query.data.total}
                   pageSize={PAGE_SIZE}
                   disabled={query.isFetching}
-                  onPageChange={(next) =>
-                    void navigate({
-                      search: (prev) => ({ ...prev, page: next || undefined }),
-                    })
-                  }
+                  onPageChange={changePage}
                 />
               ) : null}
             </QueryState>

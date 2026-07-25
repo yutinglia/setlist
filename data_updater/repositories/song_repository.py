@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
@@ -31,9 +31,7 @@ class SongRepository:
 
     async def get_by_id(self, song_id: int) -> Song | None:
         """根據 ID 取得單一歌曲"""
-        result = await self.session.execute(
-            select(Songs).where(Songs.id == song_id)
-        )
+        result = await self.session.execute(select(Songs).where(Songs.id == song_id))
         song = result.scalar_one_or_none()
         return Song.model_validate(song) if song else None
 
@@ -76,12 +74,15 @@ class SongRepository:
         if not q:
             return [], 0
 
-        pattern = f"%{q}%"
+        # Treat user input literally: SQL LIKE wildcards in titles are data,
+        # not an alternate query language.
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
         base = (
             select(Songs, Videos, Channels)
             .join(Videos, Songs.video_id == Videos.id)
             .join(Channels, Videos.channel_id == Channels.id)
-            .where(Songs.title.ilike(pattern))
+            .where(Songs.title.ilike(pattern, escape="\\"))
         )
         count_stmt = select(func.count()).select_from(base.subquery())
         total = int((await self.session.execute(count_stmt)).scalar_one())
@@ -91,7 +92,6 @@ class SongRepository:
         items = [
             SongSearchResult.from_parts(
                 song=Song.model_validate(song),
-                video_url=video.url,
                 video_title=video.title,
                 channel_id=channel.id,
                 channel_name=channel.name,
@@ -115,7 +115,6 @@ class SongRepository:
         song, video, channel = row
         return SongSearchResult.from_parts(
             song=Song.model_validate(song),
-            video_url=video.url,
             video_title=video.title,
             channel_id=channel.id,
             channel_name=channel.name,
@@ -133,15 +132,13 @@ class SongRepository:
             await self.session.flush()
             return []
 
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
         rows = [
             {
                 "title": song.title,
                 "video_id": video_id,
                 "timestamp": song.timestamp,
-                "analyzed_by_llm": (
-                    song.analyzed_by_llm if song.analyzed_by_llm is not None else False
-                ),
+                "analyzed_by_llm": song.analyzed_by_llm,
                 "created_at": now,
                 "updated_at": now,
             }

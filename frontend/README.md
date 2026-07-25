@@ -17,7 +17,7 @@ Terminal 1 — API (from repo root):
 
 ```bash
 cd data_updater
-APP_ENV=dev uvicorn main:app --host 0.0.0.0 --port 8000
+APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 `APP_ENV=dev` enables loose CORS. The Vite proxy also forwards `/v1` so the browser can call same-origin paths.
@@ -39,12 +39,18 @@ Open http://localhost:5173
 | `npm run dev` (default) | Leave `VITE_API_BASE_URL` unset; Vite proxies `/v1` → `http://127.0.0.1:8000` |
 | Custom / preview | Set `VITE_API_BASE_URL=http://localhost:8000` (see `.env.example`) and ensure `CORS_ORIGINS` includes the UI origin when not in `APP_ENV=dev` |
 
+Production builds hide channel-add and metadata-refresh controls by default.
+For a trusted private deployment, build with
+`VITE_MANAGEMENT_UI_ENABLED=true` and set `MANAGEMENT_API_ENABLED=true` on the
+API. Refresh is non-destructive and preserves existing videos and setlists.
+
 ## Scripts
 
 | Command | Purpose |
 |---------|---------|
 | `npm run dev` | Vite dev server (port 5173) |
 | `npm run build` | Typecheck + production build |
+| `npm run lint` | Oxlint static checks |
 | `npm run preview` | Preview production build |
 | `npx @tanstack/router-cli generate` | Regenerate `src/routeTree.gen.ts` if needed |
 

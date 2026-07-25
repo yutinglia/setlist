@@ -4,6 +4,10 @@ Checklist aligned with [PLAN.md](PLAN.md). Check items off as they land.
 
 ## Done recently
 
+- [x] Full reliability review: non-destructive refresh, scraper serialization, URL validation, literal search, raw-payload response trimming
+- [x] Config validation, safe dev updater default, prod management gating, DB integrity/index migration V3
+- [x] Backend Ruff + expanded regressions; runtime/dev dependency split; frontend debounce/pagination fixes
+- [x] CI for Ruff, PostgreSQL/Flyway integration tests, frontend lint/build, and production image build
 - [x] Direct-dependency `requirements.txt` (FastAPI 0.139, yt-dlp 2026.7, sqlacodegen 4, …)
 - [x] Dev Container (Python 3.12 + Postgres 18 + Flyway)
 - [x] Keep development and production Compose stacks separate
@@ -48,7 +52,7 @@ Checklist aligned with [PLAN.md](PLAN.md). Check items off as they land.
 - [x] Compose: postgres + flyway + app workspace (Dev Container)
 - [x] Production-oriented `data_updater` image / service (`data_updater/Dockerfile` + Compose `data_updater`)
 - [x] Tighten CORS outside `APP_ENV=dev` (`CORS_ORIGINS`)
-- [x] Gate `/v1/example` to `APP_ENV=dev`
+- [x] Remove placeholder `/v1/example`; gate mutation/scraper endpoints to trusted management mode
 - [x] Health check pings DB
 - [x] Document yt-dlp bump process (`data_updater/NOTE.md`)
 - [x] Expand root `.gitignore` (`.env`, `__pycache__`, …)

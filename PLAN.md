@@ -137,7 +137,7 @@ Do **not** rely only on yt-dlp `sleep_interval`. Implement updater-level pacing 
 - [x] Compose: `postgres` + `flyway` + app workspace (`.devcontainer/`; root compose includes it).
 - [x] Dev Container Dockerfile (Python 3.12). Production `data_updater` image + Compose service (`docker compose up --build data_updater`); IDE `app` stays `sleep infinity`.
 - [x] Fix CORS: explicit origins in prod (`CORS_ORIGINS`); keep loose only when `APP_ENV=dev`.
-- [x] Gate `example` router to `APP_ENV=dev`; keep `/v1/health`.
+- [x] Remove the placeholder example router; keep `/v1/health` and gate management mutations by environment.
 - [x] Health check pings DB (`SELECT 1`; 503 if unavailable).
 - [x] yt-dlp bump notes in `data_updater/NOTE.md` (keep pin in `requirements.txt` after upgrades).
 - [x] Root `.gitignore`: `.env`, `__pycache__`, venvs, caches, etc.
@@ -220,7 +220,7 @@ Defer LLM until regex path is useful.
 
 | Risk | Mitigation |
 |------|------------|
-| YouTube / yt-dlp breakage | Pin version; rate-limit; `ignoreerrors`; cap scrapes per cycle |
+| YouTube / yt-dlp breakage | Pin version; rate-limit; classify failures explicitly; cap scrapes per cycle |
 | YouTube access / bot limits | Tier B: cycle caps, inter-scrape jitter, skip/retry, block detect → abort cycle + cooldown (no proxies/cookies yet) |
 | Event loop blocked | Always `asyncio.to_thread` for yt-dlp |
 | Duplicate / stale songs | `replace_for_video` or unique constraint; track `last_analyzed_at` |

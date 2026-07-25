@@ -25,7 +25,7 @@ Start the API and UI in separate terminals:
 
 ```bash
 # API (auto-reloads on Python changes)
-cd data_updater && APP_ENV=dev uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+cd data_updater && APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 # UI
 cd frontend && npm run dev
@@ -36,6 +36,9 @@ cd frontend && npm run dev
 | http://localhost:8000/v1/health | Health |
 | http://localhost:8000/docs | OpenAPI (`APP_ENV=dev`) |
 | http://localhost:5173 | Search UI |
+
+Set `BACKGROUND_UPDATER_ENABLED=true` only when you intentionally want the dev
+server to scrape. Keeping it false avoids duplicate YouTube work during reloads.
 
 ## Database
 

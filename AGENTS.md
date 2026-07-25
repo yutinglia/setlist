@@ -23,7 +23,7 @@ vtuber-karaoke-search/
 │   ├── db/                # Engine + sqlacodegen ORM models
 │   ├── models/            # Pydantic DTOs (Channel / Video / Song / search)
 │   ├── repositories/      # DB access (reads + upserts; updater commits)
-│   ├── routers/v1/        # HTTP API (health, search, lists; example gated to APP_ENV=dev)
+│   ├── routers/v1/        # HTTP API (health, search, lists; management env-gated)
 │   ├── utils/             # Small helpers (YouTube timestamp deep links)
 │   ├── services/
 │   │   ├── data_updater.py
@@ -48,11 +48,12 @@ vtuber-karaoke-search/
    a container-only `node_modules` volume.
 4. From `data_updater/`:
    ```bash
-   APP_ENV=dev uvicorn main:app --host 0.0.0.0 --port 8000
+   APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false uvicorn main:app --host 0.0.0.0 --port 8000
    ```
 5. Health: `GET /v1/health` (port 8000 forwarded). Inside the container, DB host is `db` (not `localhost`).
 6. Search API (example): `GET /v1/songs/search?q=Stellar` — OpenAPI at `/docs` when `APP_ENV=dev`.
-7. Search UI (needs Node 20+):
+7. Background scraping is opt-in in dev: set `BACKGROUND_UPDATER_ENABLED=true`.
+8. Search UI (needs Node 20+):
    ```bash
    cd frontend && npm install && npm run dev
    ```
@@ -67,9 +68,9 @@ vtuber-karaoke-search/
 2. Optional: regenerate ORM with `db/devscript/sqlacodegen.ps1` (overwrites `data_updater/db/models.py`)
 3. From `data_updater/`:
    ```bash
-   pip install -r requirements.txt
-   # APP_ENV=dev for docs + short update interval + loose CORS
-   APP_ENV=dev uvicorn main:app --host 0.0.0.0 --port 8000
+   pip install -r requirements-dev.txt
+   # APP_ENV=dev enables docs, loose CORS, and trusted management endpoints
+   APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false uvicorn main:app --host 0.0.0.0 --port 8000
    ```
 4. From `frontend/`:
    ```bash
@@ -86,7 +87,7 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
 - **Imports assume cwd = `data_updater/`** (e.g. `from config import ...`). Do not introduce package-relative imports without making it a proper installable package.
 - **Frontend** lives under `frontend/` with its own cwd; do not mix Python package imports into the UI tree.
 - **yt-dlp scrapers are synchronous and blocking.** If calling them from async FastAPI code, wrap with `asyncio.to_thread` (or similar). Do not block the event loop.
-- **Background updater** lives in `main.py` lifespan and calls `DataUpdater.update()` on an interval (`DATA_UPDATE_INTERVAL`; default 10s in `APP_ENV=dev`, else 30m; override via env). Keep long scraping work isolated and resilient (one failure should not kill the loop).
+- **Background updater** lives in `main.py` lifespan and calls `DataUpdater.update()` on an interval (`DATA_UPDATE_INTERVAL`; default 10s in `APP_ENV=dev`, else 30m; override via env). It defaults off in dev and on in prod via `BACKGROUND_UPDATER_ENABLED`. Keep long scraping work isolated and resilient (one failure should not kill the loop).
 - **Repositories do not commit.** `DataUpdater` owns `session.commit()` / `rollback()` (commit per channel in Phase 2). Read-only search routes open a session via `deps.get_session` and do not commit.
 - **Song setlist writes** use `SongRepository.replace_for_video` (delete all songs for that video, then insert) so re-analysis can shrink the list cleanly. **Conflict policy:** last successful analysis wins (no merge). Within one extract, duplicates keyed by `(timestamp, casefold(title))` are dropped (first kept).
 - **Video list upserts** only refresh metadata columns; analysis fields are updated via `VideoRepository.update_analysis` (includes optional LLM cleaning columns when used).
@@ -125,7 +126,7 @@ Seed channels: `db/devscript/seed_channels.sql` (see README).
 ## Known gaps (as of last review)
 
 - Phases 0–6 MVP done (pipeline, Tier B pacing, search API, extraction quality, search UI).
-- No CI; no auth / multi-user / public deploy hardening.
+- No auth / multi-user / public deploy hardening. CI covers lint, tests, frontend build, and the production image.
 - Tune Tier B caps/cooldown if YouTube still limits you (Tier C proxies/cookies only if needed).
 - LLM cleaning is optional and off by default; enable only with a real `LLM_API_KEY` if regex quality is still weak.
 

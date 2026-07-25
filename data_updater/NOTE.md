@@ -12,14 +12,15 @@ yt-dlp wrappers collect channel metadata, video lists, and top comments for VTub
 |--------|--------|
 | Dev Container | Python **3.12** (recommended) |
 | Local / conda | Python **3.11–3.12** recommended; avoid bleeding-edge versions unless you need them |
-| Deps | `pip install -r requirements.txt` from `data_updater/` |
+| Runtime deps | `pip install -r requirements.txt` from `data_updater/` |
+| Dev/test deps | `pip install -r requirements-dev.txt` |
 
 ```bash
 # Local example (conda)
 conda create -n vks-yt-scraper python=3.12 -y
 conda activate vks-yt-scraper
 cd data_updater
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
 Manual scratch script (not a real test suite): `services/yt_scraper/test.py`.

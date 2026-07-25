@@ -9,6 +9,7 @@ from db import async_session_factory
 
 DEFAULT_LIMIT = 20
 MAX_LIMIT = 100
+MAX_OFFSET = 1_000_000
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
@@ -19,7 +20,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 def pagination_params(
     limit: int = Query(DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
-    offset: int = Query(0, ge=0),
+    offset: int = Query(0, ge=0, le=MAX_OFFSET),
 ) -> tuple[int, int]:
     """Common ``limit`` / ``offset`` query params for list endpoints."""
     return limit, offset
