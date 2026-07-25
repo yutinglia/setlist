@@ -115,9 +115,7 @@ class DataUpdater:
 
     @classmethod
     def set_youtube_cooldown(cls, seconds: float | None = None) -> None:
-        seconds = (
-            SCRAPE_POLICY.youtube_cooldown_seconds if seconds is None else seconds
-        )
+        seconds = SCRAPE_POLICY.youtube_cooldown_seconds if seconds is None else seconds
         cls._youtube_cooldown_until = time.monotonic() + max(0.0, seconds)
         logger.warning(
             "YouTube cooldown set for %ss (until monotonic+%.0f)",
@@ -513,13 +511,11 @@ class DataUpdater:
                 failures = max(0, channel.video_scan_failures) + 1
                 retry_seconds = min(
                     self.policy.steady_scan_interval_seconds,
-                    self.policy.steady_retry_base_seconds
-                    * (2 ** min(failures - 1, 5)),
+                    self.policy.steady_retry_base_seconds * (2 ** min(failures - 1, 5)),
                 )
                 await self.channel_repo.schedule_video_scan(
                     channel.id,
-                    next_scan_at=self._utc_now()
-                    + timedelta(seconds=retry_seconds),
+                    next_scan_at=self._utc_now() + timedelta(seconds=retry_seconds),
                     succeeded=False,
                 )
                 logger.exception(
@@ -577,8 +573,7 @@ class DataUpdater:
     async def _process_analysis_queue(self) -> None:
         """Analyze a global, due queue independently from channel discovery."""
         remaining = (
-            self.policy.comment_scrapes_per_cycle
-            - self._comment_scrapes_this_cycle
+            self.policy.comment_scrapes_per_cycle - self._comment_scrapes_this_cycle
         )
         if remaining <= 0:
             return
@@ -898,9 +893,9 @@ class DataUpdater:
             comments = await asyncio.to_thread(_scrape_comments)
         except Exception as exc:
             video.last_analyzed_at = now
-            blocked = isinstance(
-                exc, YouTubeAccessBlocked
-            ) or is_youtube_block_error(exc)
+            blocked = isinstance(exc, YouTubeAccessBlocked) or is_youtube_block_error(
+                exc
+            )
             if blocked:
                 # A process/IP block says nothing about this video's content and
                 # must not permanently exhaust the record's analysis attempts.

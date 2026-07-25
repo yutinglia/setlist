@@ -283,9 +283,7 @@ class TestCommentAnalyzerParsing:
         ]
 
     def test_no_heading_keeps_existing_all_timestamp_behavior(self):
-        songs = self._songs_from(
-            _setlist("0:10 Song A", "0:20 chat", "0:30 Song B")
-        )
+        songs = self._songs_from(_setlist("0:10 Song A", "0:20 chat", "0:30 Song B"))
         assert [song.title for song in songs] == ["Song A", "chat", "Song B"]
 
     def test_long_title_is_bounded_to_database_limit(self):

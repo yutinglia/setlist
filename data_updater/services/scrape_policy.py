@@ -36,4 +36,3 @@ class ScrapePolicy:
     ytdlp_comment_sleep_interval: float
     ytdlp_comment_max_sleep_interval: float
     youtube_cooldown_seconds: int
-

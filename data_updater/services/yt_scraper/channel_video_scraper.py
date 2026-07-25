@@ -362,9 +362,7 @@ class YouTubeChannelVideoScraper:
                 type=video_type,
                 raw_data=safe_video,
                 analysis_status=(
-                    ANALYSIS_PENDING
-                    if video_type == "karaoke"
-                    else ANALYSIS_SKIPPED
+                    ANALYSIS_PENDING if video_type == "karaoke" else ANALYSIS_SKIPPED
                 ),
             )
             video_models.append(video_model)

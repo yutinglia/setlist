@@ -188,10 +188,7 @@ class VideoRepository:
                 Videos.type == VIDEO_TYPE_KARAOKE,
                 Videos.analysis_status.in_(("pending", "retry", "no_setlist")),
                 func.coalesce(Videos.analyze_attempts, 0) < max_attempts,
-                (
-                    Videos.next_analysis_at.is_(None)
-                    | (Videos.next_analysis_at <= due)
-                ),
+                (Videos.next_analysis_at.is_(None) | (Videos.next_analysis_at <= due)),
             )
             .order_by(
                 Videos.next_analysis_at.asc().nulls_first(),
