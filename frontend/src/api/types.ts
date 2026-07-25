@@ -56,6 +56,42 @@ export type HealthResponse = {
   database?: string
 }
 
+export type SummaryReport = {
+  generated_at: string
+  channels: number
+  backfill: {
+    pending: number
+    running: number
+    done: number
+    failed: number
+  }
+  videos: {
+    total: number
+    karaoke: number
+    song: number
+    latest_discovered_at: string | null
+  }
+  analysis: {
+    attempted: number
+    with_setlist: number
+    videos_with_comments: number
+    comments: number
+    latest_analyzed_at: string | null
+    status: {
+      pending: number
+      retry: number
+      no_setlist: number
+      done: number
+      exhausted: number
+      skipped: number
+    }
+  }
+  songs: {
+    total: number
+    analyzed_by_llm: number
+  }
+}
+
 export type ChannelVideoRefresh = {
   channel_id: string
   mode: string

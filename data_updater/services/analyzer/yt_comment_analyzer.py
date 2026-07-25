@@ -42,6 +42,7 @@ _NON_SETLIST_HEADER_RE = re.compile(
     r"(?:配信内容|配信チャプター|チャプター|chapters?|stream\s+contents?)",
     flags=re.IGNORECASE,
 )
+_TITLE_CHAR_RE = re.compile(r"[\w\u3040-\u30ff\u3400-\u9fff]")
 
 
 class CommentAnalyzer:
@@ -169,11 +170,16 @@ class CommentAnalyzer:
         analyzed_by_llm: bool = False,
     ) -> list[Song]:
         """Parse songs from arbitrary setlist text (regex path or LLM-cleaned)."""
+        if not isinstance(text, str):
+            logger.warning(
+                "Ignoring non-string setlist text for video %s", self.video_id
+            )
+            return []
         songs: list[Song] = []
         lines = self._song_section_lines(self._normalize_text(text).splitlines())
         for line in lines:
-            song = self._parse_song_line(line)
-            if song is not None:
+            parsed = self._parse_song_line(line)
+            for song in parsed:
                 if analyzed_by_llm:
                     song.analyzed_by_llm = True
                 songs.append(song)
@@ -183,9 +189,14 @@ class CommentAnalyzer:
     def _song_section_lines(lines: list[str]) -> list[str]:
         """Keep an explicit setlist section out of a mixed setlist/chapter post."""
         start: int | None = None
+        inline_first_line: str | None = None
         for index, line in enumerate(lines):
-            if _SETLIST_HEADER_RE.search(line):
+            header = _SETLIST_HEADER_RE.search(line)
+            if header:
                 start = index + 1
+                suffix = line[header.end() :]
+                if _TIMESTAMP_RE.search(suffix):
+                    inline_first_line = suffix
                 break
         if start is None:
             return lines
@@ -195,25 +206,65 @@ class CommentAnalyzer:
             if _NON_SETLIST_HEADER_RE.search(lines[index]):
                 end = index
                 break
-        return lines[start:end]
+        section = lines[start:end]
+        return [inline_first_line, *section] if inline_first_line else section
 
-    def _parse_song_line(self, line: str) -> Song | None:
+    def _parse_song_line(self, line: str) -> list[Song]:
         line = line.strip()
         if not line:
-            return None
+            return []
 
         line = _NUMBERING_RE.sub("", line, count=1).strip()
         if not line:
-            return None
+            return []
 
         matches = self._timestamp_matches(line)
         if not matches:
-            return None
-        match = matches[0]
+            return []
 
-        timestamp: str = match.group(0)
-        before = line[: match.start()].strip()
-        after = line[match.end() :].strip()
+        if len(matches) == 1:
+            match = matches[0]
+            song = self._song_from_timestamp_parts(
+                match.group(0),
+                line[: match.start()],
+                line[match.end() :],
+            )
+            return [song] if song is not None else []
+
+        # Compact comments sometimes put an entire setlist on one line:
+        # ``0:10 A | 3:20 B`` or ``A 0:10 | B 3:20``. Detect orientation
+        # from meaningful text before the first timestamp and parse each entry.
+        prefix, _ = self._clean_timestamp_parts(line[: matches[0].start()], "")
+        title_before = bool(_TITLE_CHAR_RE.search(prefix)) and not bool(
+            _SETLIST_HEADER_RE.search(prefix)
+        )
+        songs: list[Song] = []
+        for index, match in enumerate(matches):
+            if title_before:
+                previous_end = matches[index - 1].end() if index else 0
+                before = line[previous_end : match.start()]
+                after = ""
+            else:
+                next_start = (
+                    matches[index + 1].start()
+                    if index + 1 < len(matches)
+                    else len(line)
+                )
+                before = ""
+                after = line[match.end() : next_start]
+            song = self._song_from_timestamp_parts(
+                match.group(0),
+                before,
+                after,
+            )
+            if song is not None:
+                songs.append(song)
+        return songs
+
+    @staticmethod
+    def _clean_timestamp_parts(before: str, after: str) -> tuple[str, str]:
+        before = before.strip()
+        after = after.strip()
 
         # Drop brackets that wrapped the timestamp: "(1:23)", "【1:23】", etc.
         before = re.sub(r"[(\[【（]+$", "", before).strip()
@@ -221,7 +272,15 @@ class CommentAnalyzer:
 
         before = re.sub(rf"^{_SEPARATORS}|{_SEPARATORS}$", "", before).strip()
         after = re.sub(rf"^{_SEPARATORS}|{_SEPARATORS}$", "", after).strip()
+        return before, after
 
+    def _song_from_timestamp_parts(
+        self,
+        timestamp: str,
+        before: str,
+        after: str,
+    ) -> Song | None:
+        before, after = self._clean_timestamp_parts(before, after)
         # Prefer title after timestamp; fall back to title before
         # (covers "1:23 Title", "Title - 1:23", "01. Title 0:12:00").
         title = after or before
@@ -229,7 +288,7 @@ class CommentAnalyzer:
             return None
 
         # Reject titles that are only leftover punctuation / separators
-        if not re.search(r"[\w\u3040-\u30ff\u3400-\u9fff]", title):
+        if not _TITLE_CHAR_RE.search(title):
             return None
         if len(title) > 500:
             title = title[:500].rstrip()

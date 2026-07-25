@@ -23,9 +23,20 @@ class YouTubeAccessBlocked(Exception):
 
 
 def is_youtube_block_error(exc: BaseException) -> bool:
-    """Return True if ``exc`` looks like a YouTube bot / HTTP access block."""
-    msg = str(exc).lower()
-    return any(marker in msg for marker in _BLOCK_MARKERS)
+    """Return True if an exception chain looks like an access block.
+
+    yt-dlp and wrappers sometimes replace the outer message while retaining
+    the useful HTTP/bot-check text in ``__cause__`` or ``__context__``.
+    """
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        msg = str(current).lower()
+        if any(marker in msg for marker in _BLOCK_MARKERS):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
 
 
 def raise_if_block_error(exc: BaseException) -> None:

@@ -15,6 +15,7 @@ from db import async_session_factory, engine
 from repositories import ChannelRepository, SongRepository, VideoRepository
 from routers.v1 import router as v1_router
 from services.data_updater import DataUpdater
+from services.update_cycle_trigger import update_cycle_trigger
 from services.updater_status import UpdaterPhase, updater_status
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ async def run_periodic_data_updater():
         clear_channel=True,
         clear_video=True,
     )
+    priority_channel_id: str | None = None
     while True:
         logger.info("Updating song list data...")
         try:
@@ -39,7 +41,9 @@ async def run_periodic_data_updater():
                 video_repo = VideoRepository(session)
                 song_repo = SongRepository(session)
                 data_updater = DataUpdater(session, channel_repo, video_repo, song_repo)
-                await data_updater.update()
+                await data_updater.update(
+                    priority_channel_id=priority_channel_id,
+                )
             logger.info("Song list data updated successfully.")
         except asyncio.CancelledError:
             logger.info("Data updater task cancelled. Terminating loop.")
@@ -64,13 +68,26 @@ async def run_periodic_data_updater():
                 clear_channel=True,
                 clear_video=True,
             )
-        await asyncio.sleep(DATA_UPDATE_INTERVAL)
+        request = await update_cycle_trigger.wait(DATA_UPDATE_INTERVAL)
+        priority_channel_id = (
+            request.priority_channel_id if request is not None else None
+        )
+        if request is not None:
+            logger.info(
+                "Update cycle awakened by newly queued work%s",
+                (
+                    f" for channel {priority_channel_id}"
+                    if priority_channel_id is not None
+                    else ""
+                ),
+            )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     del app  # FastAPI requires the lifespan argument; no app state is needed.
     updater_task: asyncio.Task[None] | None = None
+    update_cycle_trigger.clear()
     if BACKGROUND_UPDATER_ENABLED:
         updater_task = asyncio.create_task(run_periodic_data_updater())
         logger.info("Background data updater task started.")
@@ -88,6 +105,7 @@ async def lifespan(app: FastAPI):
                 await updater_task
             except asyncio.CancelledError:
                 logger.info("Background data updater task cancelled successfully.")
+        update_cycle_trigger.clear()
         await engine.dispose()
 
 

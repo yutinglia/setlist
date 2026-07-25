@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StatusRouteImport } from './routes/status'
+import { Route as SummaryRouteImport } from './routes/summary'
 import { Route as ChannelsIndexRouteImport } from './routes/channels.index'
 import { Route as ChannelsChannelIdRouteImport } from './routes/channels.$channelId'
 import { Route as ChannelsNewRouteImport } from './routes/channels.new'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const StatusRoute = StatusRouteImport.update({
   id: '/status',
   path: '/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SummaryRoute = SummaryRouteImport.update({
+  id: '/summary',
+  path: '/summary',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChannelsIndexRoute = ChannelsIndexRouteImport.update({
@@ -56,6 +62,7 @@ const VideosVideoIdRoute = VideosVideoIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/status': typeof StatusRoute
+  '/summary': typeof SummaryRoute
   '/channels/$channelId': typeof ChannelsChannelIdRoute
   '/channels/new': typeof ChannelsNewRoute
   '/songs/$songId': typeof SongsSongIdRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/status': typeof StatusRoute
+  '/summary': typeof SummaryRoute
   '/channels/$channelId': typeof ChannelsChannelIdRoute
   '/channels/new': typeof ChannelsNewRoute
   '/songs/$songId': typeof SongsSongIdRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/status': typeof StatusRoute
+  '/summary': typeof SummaryRoute
   '/channels/$channelId': typeof ChannelsChannelIdRoute
   '/channels/new': typeof ChannelsNewRoute
   '/songs/$songId': typeof SongsSongIdRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/status'
+    | '/summary'
     | '/channels/$channelId'
     | '/channels/new'
     | '/songs/$songId'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/status'
+    | '/summary'
     | '/channels/$channelId'
     | '/channels/new'
     | '/songs/$songId'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/status'
+    | '/summary'
     | '/channels/$channelId'
     | '/channels/new'
     | '/songs/$songId'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   StatusRoute: typeof StatusRoute
+  SummaryRoute: typeof SummaryRoute
   ChannelsChannelIdRoute: typeof ChannelsChannelIdRoute
   ChannelsNewRoute: typeof ChannelsNewRoute
   SongsSongIdRoute: typeof SongsSongIdRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/status'
       fullPath: '/status'
       preLoaderRoute: typeof StatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/summary': {
+      id: '/summary'
+      path: '/summary'
+      fullPath: '/summary'
+      preLoaderRoute: typeof SummaryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/channels/': {
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   StatusRoute: StatusRoute,
+  SummaryRoute: SummaryRoute,
   ChannelsChannelIdRoute: ChannelsChannelIdRoute,
   ChannelsNewRoute: ChannelsNewRoute,
   SongsSongIdRoute: SongsSongIdRoute,

@@ -3,10 +3,7 @@ from typing import Any
 
 import yt_dlp
 
-from services.yt_scraper.errors import (
-    YouTubeAccessBlocked,
-    raise_if_block_error,
-)
+from services.yt_scraper.errors import raise_if_block_error
 
 logger = logging.getLogger(__name__)
 
@@ -55,13 +52,29 @@ class YouTubeVideoCommentScraper:
             raise_if_block_error(exc)
             raise
 
-        if not info:
-            raise YouTubeAccessBlocked(
-                f"Empty extract_info response for comments: {self.video_url}"
+        if not isinstance(info, dict) or not info:
+            # Empty/malformed output is a transient per-video extraction error,
+            # not evidence that the whole process/IP has been blocked.
+            raise RuntimeError(
+                f"Empty or invalid comment response for {self.video_url}"
             )
 
         # A missing field is also how disabled/unavailable comments are exposed;
         # it is not enough evidence for a process-wide YouTube cooldown.
-        comments = info.get("comments") or []
+        raw_comments = info.get("comments")
+        if raw_comments is None:
+            comments: list[dict[str, Any]] = []
+        elif not isinstance(raw_comments, list):
+            raise RuntimeError(f"Unexpected comments response for {self.video_url}")
+        else:
+            comments = [
+                comment for comment in raw_comments if isinstance(comment, dict)
+            ]
+            if len(comments) != len(raw_comments):
+                logger.warning(
+                    "Discarded %s malformed comment item(s) for %s",
+                    len(raw_comments) - len(comments),
+                    self.video_url,
+                )
         logger.info("Fetched %s comments for %s", len(comments), self.video_url)
         return comments

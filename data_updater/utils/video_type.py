@@ -36,6 +36,7 @@ _WEAK_KARAOKE_KEYWORDS: tuple[str, ...] = ("singing",)
 _SONG_KEYWORDS: tuple[str, ...] = (
     "mv",
     "cover",
+    "covered by",
     "music video",
     "official audio",
     "original song",

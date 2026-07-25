@@ -23,6 +23,16 @@ export function useUpdaterStatus() {
   })
 }
 
+export function useSummaryReport() {
+  return useQuery({
+    queryKey: ["report", "summary"],
+    queryFn: () => api.summaryReport(),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    retry: 1,
+  })
+}
+
 export function useSongSearch(q: string, page: number) {
   const offset = page * PAGE_SIZE
   return useQuery({

@@ -211,6 +211,26 @@ class TestCommentAnalyzerParsing:
         assert songs[0].timestamp == "12:34"
         assert songs[0].title == "曲名"
 
+    def test_compact_timestamp_first_setlist_on_one_line(self):
+        songs = self._songs_from("0:10 Song A | 3:20 Song B | 7:30 Song C")
+        assert [(song.timestamp, song.title) for song in songs] == [
+            ("0:10", "Song A"),
+            ("3:20", "Song B"),
+            ("7:30", "Song C"),
+        ]
+
+    def test_compact_title_first_setlist_on_one_line(self):
+        songs = self._songs_from("Song A 0:10 | Song B 3:20 | Song C 7:30")
+        assert [(song.timestamp, song.title) for song in songs] == [
+            ("0:10", "Song A"),
+            ("3:20", "Song B"),
+            ("7:30", "Song C"),
+        ]
+
+    def test_compact_setlist_heading_is_not_treated_as_first_title(self):
+        songs = self._songs_from("Setlist: 0:10 Song A | 3:20 Song B | 7:30 Song C")
+        assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
+
     def test_cumulative_minutes_timestamp(self):
         songs = self._songs_from("125:04 Long Stream Song")
         assert songs[0].timestamp == "125:04"
@@ -259,6 +279,10 @@ class TestCommentAnalyzerParsing:
         )
         assert len(songs) == 2
         assert all(s.analyzed_by_llm for s in songs)
+
+    def test_extract_from_text_ignores_non_string_input(self):
+        analyzer = CommentAnalyzer([], video_id=VIDEO_ID, minimum_timestamp_count=1)
+        assert analyzer.extract_from_text(None) == []  # type: ignore[arg-type]
 
     def test_extract_without_detection_returns_empty(self):
         analyzer = CommentAnalyzer([_comment("nope")], video_id=VIDEO_ID)

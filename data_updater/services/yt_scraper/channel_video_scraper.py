@@ -279,7 +279,7 @@ class YouTubeChannelVideoScraper:
             logger.exception("Failed scraping tab %s", tab_url)
             return [], 0, False
 
-        if not info:
+        if not isinstance(info, dict) or not info:
             logger.warning("Empty extract for %s", tab_url)
             return [], 0, False
 
@@ -410,7 +410,10 @@ class YouTubeChannelVideoScraper:
                     enriched.append(entry)
                     continue
 
-                if not info:
+                if not isinstance(info, dict) or not info:
+                    logger.warning(
+                        "Unexpected metadata response for video %s", video_id
+                    )
                     enriched.append(entry)
                     continue
 

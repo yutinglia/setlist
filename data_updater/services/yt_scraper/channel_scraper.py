@@ -34,10 +34,11 @@ class YouTubeChannelScraper:
             raise_if_block_error(exc)
             raise
 
-        if info:
-            info = yt_dlp.YoutubeDL.sanitize_info(info)
-        if not info:
+        if not isinstance(info, dict) or not info:
             raise RuntimeError(f"Failed to extract channel info for {channel_url}")
+        info = yt_dlp.YoutubeDL.sanitize_info(info)
+        if not isinstance(info, dict):
+            raise RuntimeError(f"Unexpected channel info response for {channel_url}")
 
         # Prefer the uncropped avatar, then fall back to the last usable image.
         thumbnails = info.get("thumbnails") or []

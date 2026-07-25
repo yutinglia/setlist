@@ -7,13 +7,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import MANAGEMENT_API_ENABLED, SCRAPE_POLICY
+from config import BACKGROUND_UPDATER_ENABLED, MANAGEMENT_API_ENABLED, SCRAPE_POLICY
 from deps import get_session, pagination_params
 from models.channel import VIDEO_BACKFILL_PENDING, ChannelCreate, YouTubeChannel
 from models.search import ChannelRead, Paginated, SongSearchResult, VideoRead
 from models.song import Song
 from repositories import ChannelRepository, SongRepository, VideoRepository
 from services.data_updater import DataUpdater, youtube_operation_lock
+from services.update_cycle_trigger import update_cycle_trigger
 from services.yt_scraper.channel_scraper import YouTubeChannelScraper
 from services.yt_scraper.errors import YouTubeAccessBlocked, raise_if_block_error
 
@@ -98,8 +99,8 @@ async def create_channel(
 ):
     """Scrape a YouTube channel URL and add it to the tracked list.
 
-    Does not scrape videos in this request; sets ``video_backfill_status=pending``
-    so the background updater walks the full catalog in bounded, durable pages.
+    Sets ``video_backfill_status=pending`` and wakes the background updater so
+    it starts walking the full catalog in bounded, durable pages immediately.
     Returns 409 if the channel id is already tracked.
     """
 
@@ -185,11 +186,38 @@ async def create_channel(
     )
 
     try:
-        created = await repo.upsert(to_create)
+        created = await repo.create(to_create)
+        if created is None:
+            await session.rollback()
+            existing = await repo.get_by_id(scraped.id)
+            existing_label = (
+                f"{existing.name} ({existing.id})"
+                if existing is not None
+                else scraped.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Channel already tracked: {existing_label}",
+            )
         await session.commit()
+    except HTTPException:
+        raise
     except Exception:
         await session.rollback()
         raise
+
+    if BACKGROUND_UPDATER_ENABLED:
+        queued = update_cycle_trigger.request(priority_channel_id=created.id)
+        logger.info(
+            "Channel %s committed with pending backfill; updater wake %s",
+            created.id,
+            "queued" if queued else "already pending",
+        )
+    else:
+        logger.warning(
+            "Channel %s has pending backfill, but background updater is disabled",
+            created.id,
+        )
 
     return created
 

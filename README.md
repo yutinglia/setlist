@@ -85,6 +85,7 @@ List/search endpoints accept `limit` (1–100, default 20) and `offset`
 | GET | `/v1/channels/{id}/videos` | Videos for a channel |
 | GET | `/v1/videos/{id}/songs` | Songs for a video |
 | GET | `/v1/updater/status` | Process-local scraper/analyzer status; internal errors are redacted |
+| GET | `/v1/report/summary` | Database totals for scraped records, analysis, comments, songs, and backfill |
 | POST | `/v1/channels` | Trusted management mode only; add a validated YouTube channel |
 | POST | `/v1/channels/{id}/videos/refresh` | Trusted management mode only; safe metadata upsert |
 
@@ -149,10 +150,12 @@ Then start the API from `data_updater/` with
 five-minute worker heartbeat and scraping policy. A persisted per-channel due
 time means established channels call YouTube at most every six hours. Newly
 added channels instead backfill full Streams + Videos history in 100-entry,
-durable pages (up to three pages per cycle); failed/partial pages retain their
-cursor and retry fairly. Comment analysis is a separate global queue, limited
-to three archives per cycle with 20–40 second jitter. Live, upcoming, and
-post-live records are ignored until yt-dlp reports an archive. Playlist
+durable pages (up to three pages per cycle). A successful `POST /v1/channels`
+immediately wakes the enabled background updater and prioritizes that channel;
+multiple additions remain separate bounded cycles. Failed/partial pages retain
+their cursor and retry fairly. Comment analysis is a separate global queue,
+limited to three archives per cycle with 20–40 second jitter. Live, upcoming,
+and post-live records are ignored until yt-dlp reports an archive. Playlist
 position preserves newest-first ordering when flat yt-dlp entries omit dates,
 and a block cooldown is persisted across process restarts.
 

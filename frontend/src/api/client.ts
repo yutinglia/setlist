@@ -4,6 +4,7 @@ import type {
   Paginated,
   Song,
   SongSearchResult,
+  SummaryReport,
   UpdaterStatus,
   YouTubeChannel,
   YouTubeVideo,
@@ -68,6 +69,8 @@ export const api = {
   health: () => request<HealthResponse>("/v1/health"),
 
   updaterStatus: () => request<UpdaterStatus>("/v1/updater/status"),
+
+  summaryReport: () => request<SummaryReport>("/v1/report/summary"),
 
   searchSongs: (q: string, limit: number, offset: number) =>
     request<Paginated<SongSearchResult>>(

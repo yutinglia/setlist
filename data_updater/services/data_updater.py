@@ -123,11 +123,17 @@ class DataUpdater:
             seconds,
         )
 
-    async def update(self) -> None:
+    async def update(self, *, priority_channel_id: str | None = None) -> None:
         async with youtube_operation_lock:
-            await self._update_without_lock()
+            await self._update_without_lock(
+                priority_channel_id=priority_channel_id,
+            )
 
-    async def _update_without_lock(self) -> None:
+    async def _update_without_lock(
+        self,
+        *,
+        priority_channel_id: str | None = None,
+    ) -> None:
         await self._sync_persisted_cooldown()
         remaining = self.youtube_cooldown_remaining()
         if remaining > 0:
@@ -168,7 +174,10 @@ class DataUpdater:
                 clear_video=True,
             )
             channels = await self.channel_repo.get_all()
-            channels = self._prioritize_backfill_channels(channels)
+            channels = self._prioritize_backfill_channels(
+                channels,
+                priority_channel_id=priority_channel_id,
+            )
             logger.info("Fetched %s channels from the database.", len(channels))
 
             for channel in channels:
@@ -258,13 +267,22 @@ class DataUpdater:
     @staticmethod
     def _prioritize_backfill_channels(
         channels: list[YouTubeChannel],
+        *,
+        priority_channel_id: str | None = None,
     ) -> list[YouTubeChannel]:
-        """Round-robin active backfills by their oldest persisted attempt time."""
+        """Put an explicitly added channel first, then rotate oldest backfills."""
         active = [
             channel
             for channel in channels
             if channel.video_backfill_status in VIDEO_BACKFILL_ACTIVE
         ]
+        priority = [
+            channel
+            for channel in active
+            if priority_channel_id is not None and channel.id == priority_channel_id
+        ]
+        priority_ids = {channel.id for channel in priority}
+        active = [channel for channel in active if channel.id not in priority_ids]
 
         def _oldest_attempt_key(
             channel: YouTubeChannel,
@@ -278,10 +296,12 @@ class DataUpdater:
             )
 
         active.sort(key=_oldest_attempt_key)
-        active_ids = {channel.id for channel in active}
-        return active + [
-            channel for channel in channels if channel.id not in active_ids
-        ]
+        active_ids = {channel.id for channel in priority + active}
+        return (
+            priority
+            + active
+            + [channel for channel in channels if channel.id not in active_ids]
+        )
 
     async def refresh_channel_video_list(
         self, channel: YouTubeChannel

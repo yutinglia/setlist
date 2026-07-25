@@ -23,3 +23,13 @@ def test_raise_if_block_error_wraps():
 
 def test_generic_extractor_error_is_not_global_block():
     assert not is_youtube_block_error(RuntimeError("Unable to extract title"))
+
+
+def test_block_marker_in_wrapped_cause_is_detected():
+    try:
+        try:
+            raise RuntimeError("HTTP Error 429: Too Many Requests")
+        except RuntimeError as exc:
+            raise RuntimeError("yt-dlp extraction failed") from exc
+    except RuntimeError as wrapped:
+        assert is_youtube_block_error(wrapped)

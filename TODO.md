@@ -11,6 +11,8 @@ Checklist aligned with [PLAN.md](PLAN.md). Check items off as they land.
 - [x] CI for Ruff, PostgreSQL/Flyway integration tests, frontend lint/build, and production image build
 - [x] Direct-dependency `requirements.txt` (FastAPI 0.139, yt-dlp 2026.7, sqlacodegen 4, …)
 - [x] Paced full-catalog backfill for new channels with retry/fair rotation and live updater status
+- [x] Immediate updater wake + per-channel priority after a new channel commit
+- [x] Database-backed scraper/analyzer summary report API and bilingual UI
 - [x] Dev Container (Python 3.12 + Postgres 18 + Flyway)
 - [x] Keep development and production Compose stacks separate
 - [x] `AGENTS.md` / `PLAN.md` / README / NOTE refresh

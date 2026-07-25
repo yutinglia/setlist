@@ -47,6 +47,35 @@ class ChannelRepository:
         channel = result.scalar_one_or_none()
         return YouTubeChannel.model_validate(channel) if channel else None
 
+    async def create(self, channel: YouTubeChannel) -> YouTubeChannel | None:
+        """Atomically insert a channel, returning ``None`` on an id conflict."""
+        now = datetime.now(UTC).replace(tzinfo=None)
+        stmt = (
+            insert(Channels)
+            .values(
+                id=channel.id,
+                name=channel.name,
+                url=channel.url,
+                thumbnail_url=channel.thumbnail_url,
+                raw_data=channel.raw_data,
+                created_at=now,
+                updated_at=now,
+                video_backfill_status=channel.video_backfill_status
+                or VIDEO_BACKFILL_DONE,
+                video_backfill_offset=channel.video_backfill_offset or 1,
+                video_backfill_updated_at=channel.video_backfill_updated_at,
+                last_video_scan_at=channel.last_video_scan_at,
+                next_video_scan_at=channel.next_video_scan_at,
+                video_scan_failures=channel.video_scan_failures,
+            )
+            .on_conflict_do_nothing(index_elements=[Channels.id])
+            .returning(Channels)
+        )
+        result = await self.session.execute(stmt)
+        row = result.scalar_one_or_none()
+        await self.session.flush()
+        return YouTubeChannel.model_validate(row) if row else None
+
     async def upsert(self, channel: YouTubeChannel) -> YouTubeChannel:
         """Insert or update a channel by primary key ``id``. Does not commit.
 

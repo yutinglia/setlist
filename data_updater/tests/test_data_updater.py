@@ -306,6 +306,28 @@ def test_backfill_priority_retries_failures_and_rotates_oldest_first():
     ]
 
 
+def test_explicit_new_channel_priority_overrides_backfill_rotation():
+    old_failed = _channel("old-failed").model_copy(
+        update={
+            "video_backfill_status": VIDEO_BACKFILL_FAILED,
+            "video_backfill_updated_at": datetime(2026, 1, 1),
+        }
+    )
+    newly_added = _channel("newly-added").model_copy(
+        update={
+            "video_backfill_status": VIDEO_BACKFILL_PENDING,
+            "created_at": datetime(2026, 3, 1),
+        }
+    )
+
+    ordered = DataUpdater._prioritize_backfill_channels(
+        [old_failed, newly_added],
+        priority_channel_id=newly_added.id,
+    )
+
+    assert [channel.id for channel in ordered] == ["newly-added", "old-failed"]
+
+
 @pytest.mark.asyncio
 async def test_partial_backfill_page_keeps_cursor_and_schedules_retry(monkeypatch):
     channel = _channel("channel-1").model_copy(

@@ -44,6 +44,7 @@ class TestSongTitles:
     def test_known_keywords(self):
         assert is_song_title("【MV】Stellar Stellar")
         assert is_song_title("Song Cover - Hello")
+        assert is_song_title("革命道中 / Covered by VTuber")
         assert is_song_title("Official Music Video")
         assert is_song_title("歌ってみた / 曲名")
         assert is_song_title("オリジナル曲を公開")

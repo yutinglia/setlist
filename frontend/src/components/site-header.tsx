@@ -25,8 +25,8 @@ export function SiteHeader() {
       : m.api_down()
 
   return (
-    <header className="animate-fade mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-4 pt-6 sm:px-6">
-      <nav className="flex items-center gap-1 text-sm">
+    <header className="animate-fade mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 pt-6 sm:flex-nowrap sm:px-6">
+      <nav className="order-2 flex w-full items-center justify-center gap-1 text-sm sm:order-1 sm:w-auto sm:justify-start">
         <Link
           to="/"
           activeOptions={{ exact: true }}
@@ -46,9 +46,15 @@ export function SiteHeader() {
         >
           {m.nav_status()}
         </Link>
+        <Link
+          to="/summary"
+          className="rounded-md px-2.5 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground data-[status=active]:bg-secondary data-[status=active]:text-foreground"
+        >
+          {m.nav_summary()}
+        </Link>
       </nav>
 
-      <div className="flex items-center gap-2">
+      <div className="order-1 ml-auto flex items-center gap-2 sm:order-2">
         <span
           className={cn(
             "hidden items-center gap-1.5 text-xs sm:inline-flex",
