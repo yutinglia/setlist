@@ -105,7 +105,10 @@ async def create_channel(
     """
 
     def _scrape() -> YouTubeChannel:
-        return YouTubeChannelScraper().get_channel_info(body.url)
+        return YouTubeChannelScraper(
+            sleep_interval=SCRAPE_POLICY.ytdlp_list_sleep_interval,
+            max_sleep_interval=SCRAPE_POLICY.ytdlp_list_max_sleep_interval,
+        ).get_channel_info(body.url)
 
     repo = ChannelRepository(session)
     persisted_cooldown = await repo.get_youtube_cooldown_until()

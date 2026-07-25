@@ -57,9 +57,6 @@ VIDEO_TYPE_OTHER = "other"
 # be incomplete, so discovery waits for ``was_live``.
 ACTIVE_LIVE_STATUSES = frozenset({"is_live", "is_upcoming", "post_live"})
 
-# Only these types are stored in the videos table / shown in channel lists.
-PERSISTED_VIDEO_TYPES = frozenset({VIDEO_TYPE_KARAOKE, VIDEO_TYPE_SONG})
-
 # Karaoke streams are usually long; short clips with karaoke words are not archives.
 KARAOKE_MIN_DURATION_SECONDS = 20 * 60
 
@@ -226,16 +223,3 @@ def classify_video_type(
     if is_song_video(title, duration=duration):
         return VIDEO_TYPE_SONG
     return VIDEO_TYPE_OTHER
-
-
-def should_persist_video(
-    title: str,
-    *,
-    live_status: str | None = None,
-    duration: float | int | None = None,
-) -> bool:
-    """True when the video should be kept in DB (song or karaoke only)."""
-    return (
-        classify_video_type(title, live_status=live_status, duration=duration)
-        in PERSISTED_VIDEO_TYPES
-    )

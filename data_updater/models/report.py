@@ -16,6 +16,12 @@ class VideoReport(BaseModel):
     total: int = Field(ge=0)
     karaoke: int = Field(ge=0)
     song: int = Field(ge=0)
+    other: int = Field(ge=0)
+    with_list_snapshot: int = Field(ge=0)
+    with_metadata_snapshot: int = Field(ge=0)
+    date_unknown: int = Field(ge=0)
+    date_approximate: int = Field(ge=0)
+    date_exact: int = Field(ge=0)
     latest_discovered_at: datetime | None = None
 
 

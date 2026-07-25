@@ -1,11 +1,22 @@
 import logging
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 import yt_dlp
 
 from services.yt_scraper.errors import raise_if_block_error
+from utils.ytdlp_snapshot import snapshot_payload, snapshot_ytdlp_info
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class VideoCommentScrapeResult:
+    comments: list[dict[str, Any]]
+    comments_available: bool
+    metadata_raw_data: dict[str, Any]
+    scraped_at: datetime
 
 
 class YouTubeVideoCommentScraper:
@@ -19,8 +30,13 @@ class YouTubeVideoCommentScraper:
         self.video_url = video_url
         self.sleep_interval = sleep_interval
         self.max_sleep_interval = max_sleep_interval
+        # The comment request already performs a full video extraction. Keep a
+        # bounded stable-field snapshot so callers can upgrade dates and reuse
+        # richer metadata without making another YouTube request.
+        self.video_metadata: dict[str, Any] = {}
+        self.last_result: VideoCommentScrapeResult | None = None
 
-    def get_video_top_comments(self, max_comments: int) -> list[dict[str, Any]]:
+    def scrape(self, max_comments: int) -> VideoCommentScrapeResult:
         ydl_opts = {
             "skip_download": True,
             "getcomments": True,
@@ -59,9 +75,18 @@ class YouTubeVideoCommentScraper:
                 f"Empty or invalid comment response for {self.video_url}"
             )
 
+        scraped_at = datetime.now(UTC).replace(tzinfo=None)
+        metadata_raw_data = snapshot_ytdlp_info(
+            info,
+            source="video_comments",
+            captured_at=scraped_at,
+        )
+        self.video_metadata = snapshot_payload(metadata_raw_data)
+
         # A missing field is also how disabled/unavailable comments are exposed;
         # it is not enough evidence for a process-wide YouTube cooldown.
         raw_comments = info.get("comments")
+        comments_available = raw_comments is not None
         if raw_comments is None:
             comments: list[dict[str, Any]] = []
         elif not isinstance(raw_comments, list):
@@ -76,5 +101,20 @@ class YouTubeVideoCommentScraper:
                     len(raw_comments) - len(comments),
                     self.video_url,
                 )
+        sanitized = yt_dlp.YoutubeDL.sanitize_info({"comments": comments})
+        safe_comments = sanitized.get("comments") if isinstance(sanitized, dict) else []
+        if not isinstance(safe_comments, list):
+            raise RuntimeError(f"Comments did not sanitize for {self.video_url}")
+        comments = [comment for comment in safe_comments if isinstance(comment, dict)]
         logger.info("Fetched %s comments for %s", len(comments), self.video_url)
-        return comments
+        self.last_result = VideoCommentScrapeResult(
+            comments=comments,
+            comments_available=comments_available,
+            metadata_raw_data=metadata_raw_data,
+            scraped_at=scraped_at,
+        )
+        return self.last_result
+
+    def get_video_top_comments(self, max_comments: int) -> list[dict[str, Any]]:
+        """Compatibility wrapper for callers that only need comment objects."""
+        return self.scrape(max_comments).comments

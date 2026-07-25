@@ -2,7 +2,6 @@
 
 from utils.video_type import (
     KARAOKE_MIN_DURATION_SECONDS,
-    PERSISTED_VIDEO_TYPES,
     VIDEO_TYPE_KARAOKE,
     VIDEO_TYPE_OTHER,
     VIDEO_TYPE_SONG,
@@ -10,7 +9,6 @@ from utils.video_type import (
     is_karaoke_stream,
     is_karaoke_title,
     is_song_title,
-    should_persist_video,
     should_scrape_comments,
 )
 
@@ -32,7 +30,6 @@ class TestKaraokeTitles:
         outing = "tuki.ちゃんと星街すいせいでカラオケ行ってみた‼🌙✨（前編）"
         assert not is_karaoke_title(outing)
         assert classify_video_type(outing) == VIDEO_TYPE_OTHER
-        assert not should_persist_video(outing)
 
     def test_karaoke_stream_context(self):
         assert is_karaoke_title("今夜はカラオケ配信！")
@@ -98,11 +95,6 @@ class TestKaraokeSoftConfirms:
                 duration=3600,
             )
             == VIDEO_TYPE_KARAOKE
-        )
-        assert should_persist_video(
-            "【歌枠】",
-            live_status="not_live",
-            duration=3600,
         )
         assert should_scrape_comments(
             "【歌枠】",
@@ -213,7 +205,3 @@ class TestClassifyVideoType:
     def test_other(self):
         assert classify_video_type("Minecraft 実況") == VIDEO_TYPE_OTHER
         assert classify_video_type("") == VIDEO_TYPE_OTHER
-        assert not should_persist_video("Minecraft 実況")
-        assert should_persist_video("【MV】新曲")
-        assert should_persist_video("【歌枠】", live_status="was_live", duration=3600)
-        assert PERSISTED_VIDEO_TYPES == frozenset({VIDEO_TYPE_KARAOKE, VIDEO_TYPE_SONG})

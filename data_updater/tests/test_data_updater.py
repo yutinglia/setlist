@@ -90,7 +90,7 @@ async def test_persisted_cooldown_survives_process_restart():
 
 
 @pytest.mark.asyncio
-async def test_successful_no_setlist_analysis_clears_old_songs(monkeypatch):
+async def test_negative_reanalysis_preserves_prior_successful_setlist(monkeypatch):
     class CommentScraper:
         def __init__(self, *_args, **_kwargs) -> None:
             pass
@@ -112,15 +112,110 @@ async def test_successful_no_setlist_analysis_clears_old_songs(monkeypatch):
 
     video = _video()
     video.has_song_list_comment = True
+    video.comments_raw_data = {
+        "comments": [{"text": "0:10 Old Song"}],
+        "comments_available": True,
+    }
     video.cleaned_song_list_comment = {"text": "old"}
     video.cleaning_attempts = 2
     await updater._analyze_video(video)
 
-    song_repo.replace_for_video.assert_awaited_once_with(video.id, [])
-    assert video.has_song_list_comment is False
-    assert video.cleaned_song_list_comment is None
-    assert video.cleaning_attempts == 0
+    song_repo.replace_for_video.assert_not_awaited()
+    assert video.has_song_list_comment is True
+    assert video.comments_raw_data["comments"] == [{"text": "0:10 Old Song"}]
+    assert video.comments_raw_data["last_negative_observation"]["comments"] == [
+        {"text": "Great stream, thank you!"}
+    ]
+    assert video.cleaned_song_list_comment == {"text": "old"}
+    assert video.analysis_status == "done"
     video_repo.update_analysis.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_comment_request_upgrades_approximate_date_without_another_scrape(
+    monkeypatch,
+):
+    class CommentScraper:
+        def __init__(self, *_args, **_kwargs) -> None:
+            self.video_metadata = {
+                "upload_date": "20260725",
+                "timestamp": 1_784_997_784,
+                "duration": 3600,
+                "live_status": "was_live",
+            }
+
+        def get_video_top_comments(self, _max_comments: int) -> list[dict]:
+            return []
+
+    monkeypatch.setattr(
+        "services.data_updater.YouTubeVideoCommentScraper", CommentScraper
+    )
+    video_repo = SimpleNamespace(
+        upsert=AsyncMock(),
+        update_analysis=AsyncMock(),
+    )
+    updater = DataUpdater(
+        SimpleNamespace(),
+        SimpleNamespace(),
+        video_repo,
+        SimpleNamespace(replace_for_video=AsyncMock(return_value=[])),
+    )
+    video = _video().model_copy(
+        update={
+            "upload_date": "20260726",
+            "upload_date_precision": "approximate",
+        }
+    )
+
+    await updater._analyze_video(video)
+
+    assert video.upload_date == "20260725"
+    assert video.upload_date_precision == "exact"
+    assert video.metadata_raw_data is not None
+    assert video.metadata_raw_data["data"]["upload_date"] == "20260725"
+    video_repo.upsert.assert_awaited_once_with(video)
+
+
+@pytest.mark.asyncio
+async def test_full_metadata_reclassifies_false_positive_and_keeps_observations(
+    monkeypatch,
+):
+    class CommentScraper:
+        def __init__(self, *_args, **_kwargs) -> None:
+            self.video_metadata = {
+                "title": "Short chat clip",
+                "duration": 45,
+                "live_status": "not_live",
+            }
+
+        def get_video_top_comments(self, _max_comments: int) -> list[dict]:
+            return [{"text": "Useful raw comment"}]
+
+    monkeypatch.setattr(
+        "services.data_updater.YouTubeVideoCommentScraper", CommentScraper
+    )
+    video_repo = SimpleNamespace(
+        upsert=AsyncMock(),
+        update_analysis=AsyncMock(),
+    )
+    song_repo = SimpleNamespace(replace_for_video=AsyncMock(return_value=[]))
+    updater = DataUpdater(
+        SimpleNamespace(),
+        SimpleNamespace(),
+        video_repo,
+        song_repo,
+    )
+    video = _video()
+
+    await updater._analyze_video(video)
+
+    assert video.type == "other"
+    assert video.analysis_status == "skipped"
+    assert video.comments_raw_data["comments"] == [{"text": "Useful raw comment"}]
+    assert video.metadata_raw_data["data"]["duration"] == 45
+    song_repo.replace_for_video.assert_awaited_once_with(video.id, [])
+    video_repo.upsert.assert_awaited_once_with(video)
+    video_repo.update_analysis.assert_awaited_once_with(video)
 
 
 @pytest.mark.asyncio
@@ -251,8 +346,11 @@ async def test_manual_refresh_commits_inside_lock_and_never_cleans_existing_data
     monkeypatch,
 ):
     session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
-    scraped = [_video()]
-    video_repo = SimpleNamespace(upsert_many=AsyncMock(return_value=scraped))
+    scraped = [_video().model_copy(update={"title": "Chat", "type": "other"})]
+    video_repo = SimpleNamespace(
+        upsert_many=AsyncMock(return_value=scraped),
+        reclassify_for_channel=AsyncMock(return_value=1),
+    )
     updater = DataUpdater(
         session,
         SimpleNamespace(),
@@ -268,7 +366,10 @@ async def test_manual_refresh_commits_inside_lock_and_never_cleans_existing_data
     result = await updater.refresh_channel_video_list(_channel("channel-1"))
 
     assert result.scraped == 1
-    assert result.deleted == result.reclassified == result.cleared == 0
+    assert result.deleted == result.cleared == 0
+    assert result.reclassified == 1
+    video_repo.upsert_many.assert_awaited_once_with(scraped)
+    video_repo.reclassify_for_channel.assert_awaited_once_with("channel-1")
     session.commit.assert_awaited_once()
     session.rollback.assert_not_awaited()
 
@@ -386,7 +487,6 @@ async def test_backfill_processes_multiple_durable_pages_per_cycle(monkeypatch):
     session = SimpleNamespace(commit=AsyncMock())
     video_repo = SimpleNamespace(
         reclassify_for_channel=AsyncMock(return_value=0),
-        delete_non_persisted_for_channel=AsyncMock(return_value=0),
         clear_analysis_for_non_karaoke=AsyncMock(return_value=[]),
     )
     policy = replace(
@@ -449,7 +549,10 @@ async def test_manual_refresh_commit_failure_does_not_leave_running_status(monke
     updater = DataUpdater(
         session,
         SimpleNamespace(),
-        SimpleNamespace(upsert_many=AsyncMock(return_value=scraped)),
+        SimpleNamespace(
+            upsert_many=AsyncMock(return_value=scraped),
+            reclassify_for_channel=AsyncMock(return_value=0),
+        ),
         SimpleNamespace(),
     )
     monkeypatch.setattr(

@@ -1,7 +1,12 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from utils.youtube_upload_date import (
+    UPLOAD_DATE_EXACT,
+    UploadDatePrecision,
+)
 
 AnalysisStatus = Literal[
     "pending",
@@ -28,9 +33,13 @@ class YouTubeVideo(BaseModel):
     url: str = Field(..., max_length=500)
     channel_id: str = Field(..., max_length=255)
     upload_date: str | None = Field(default=None, max_length=50)
+    upload_date_precision: UploadDatePrecision | None = None
     playlist_position: int | None = Field(default=None, ge=1)
     type: str | None = Field(default=None, max_length=50)
     raw_data: dict[str, Any] | None = None
+    metadata_raw_data: dict[str, Any] | None = None
+    list_scraped_at: datetime | None = None
+    metadata_scraped_at: datetime | None = None
     comments_raw_data: dict[str, Any] | None = None
     analyze_attempts: int = Field(default=0, ge=0)
     last_analyzed_at: datetime | None = None
@@ -47,3 +56,14 @@ class YouTubeVideo(BaseModel):
     model_config = {
         "from_attributes": True,
     }
+
+    @model_validator(mode="after")
+    def normalize_upload_date_precision(self) -> "YouTubeVideo":
+        """Keep the date/precision pair valid at every repository boundary."""
+        if self.upload_date is None:
+            self.upload_date_precision = None
+        elif self.upload_date_precision is None:
+            # Manually supplied and full-metadata dates are authoritative by
+            # default. Flat-list callers explicitly mark approximate values.
+            self.upload_date_precision = UPLOAD_DATE_EXACT
+        return self

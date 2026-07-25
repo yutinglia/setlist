@@ -40,7 +40,12 @@ function VideoDetailPage() {
     [navigate],
   )
   useClampPage(page, songsQuery.data?.total, PAGE_SIZE, changePage)
-  const uploadDateLabel = formatUploadDate(videoQuery.data?.upload_date)
+  const formattedUploadDate = formatUploadDate(videoQuery.data?.upload_date)
+  const uploadDateLabel =
+    formattedUploadDate &&
+    videoQuery.data?.upload_date_precision === "approximate"
+      ? m.video_date_approximate({ date: formattedUploadDate })
+      : formattedUploadDate
 
   return (
     <section className="animate-fade pt-10">
@@ -79,7 +84,10 @@ function VideoDetailPage() {
                 </h1>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
                   <time
-                    dateTime={uploadDateTimeAttr(videoQuery.data.upload_date)}
+                    dateTime={uploadDateTimeAttr(
+                      videoQuery.data.upload_date,
+                      videoQuery.data.upload_date_precision,
+                    )}
                     className="font-mono tabular-nums tracking-wide"
                   >
                     {uploadDateLabel ?? m.video_date_unknown()}
@@ -114,7 +122,10 @@ function VideoDetailPage() {
                   </dt>
                   <dd className="mt-0.5">
                     <time
-                      dateTime={uploadDateTimeAttr(videoQuery.data.upload_date)}
+                      dateTime={uploadDateTimeAttr(
+                        videoQuery.data.upload_date,
+                        videoQuery.data.upload_date_precision,
+                      )}
                       className="font-mono tabular-nums"
                     >
                       {uploadDateLabel ?? m.video_date_unknown()}

@@ -155,9 +155,29 @@ immediately wakes the enabled background updater and prioritizes that channel;
 multiple additions remain separate bounded cycles. Failed/partial pages retain
 their cursor and retry fairly. Comment analysis is a separate global queue,
 limited to three archives per cycle with 20–40 second jitter. Live, upcoming,
-and post-live records are ignored until yt-dlp reports an archive. Playlist
-position preserves newest-first ordering when flat yt-dlp entries omit dates,
-and a block cooldown is persisted across process restarts.
+and post-live records are ignored until yt-dlp reports an archive. Flat
+channel-tab entries derive an approximate date from the same list response
+(no per-video metadata fan-out); the UI labels it as approximate. A later
+manual metadata refresh or already-required comment scrape upgrades it to an
+exact date. Exact dates are never downgraded by later flat refreshes. Playlist
+position remains the fallback ordering when YouTube omits even relative date
+text, and a block cooldown is persisted across process restarts.
+
+Every normal archive discovered in the bounded Streams + Videos scans is kept,
+including records currently classified as `other`. Only karaoke candidates
+enter the comment queue. This preserves enough history to reclassify old rows
+when the title rules improve instead of requiring another full channel
+backfill.
+
+Channel-list and full-video yt-dlp observations are stored separately with
+source, capture time, schema version, and dropped-field provenance. Snapshots
+retain stable metadata (including description, tags, statistics, language,
+availability, dates, and unknown future extractor fields) within a 256 KiB
+record / 64 KiB field bound. Volatile playback formats, signed URLs, headers,
+captions, and subtitles are deliberately excluded; comments are stored in
+their own analysis snapshot. A sparse list refresh therefore cannot erase
+richer full metadata. A temporary negative re-analysis also preserves any
+previous successful setlist and songs.
 
 To test the exact background path once without leaving a scheduler running:
 
@@ -188,7 +208,7 @@ migrations, the frontend lint/build, and a production runtime image build.
 - Comment choice prefers **pinned**, then **uploader**, then timestamp density / likes.
 - Line formats include `1:23 Title`, `Title - 1:23`, `01. Title 0:12:00`, parenthesized timestamps, and full-width `：`.
 - An explicit setlist section stops at a later stream-chapter heading, avoiding chat/announcement timestamps in mixed community comments.
-- Songs are deduped within a video by `(timestamp, casefold(title))`. Re-analysis uses `replace_for_video` (delete + insert); last successful analysis wins — no merge.
+- Songs are deduped within a video by `(timestamp, casefold(title))`. A successful re-analysis uses `replace_for_video` (delete + insert), while a temporary negative observation does not erase the previous successful setlist.
 
 ## Layout
 
@@ -197,7 +217,7 @@ vtuber-karaoke-search/
 ├── .devcontainer/     # Dev Container (app + Postgres + Flyway)
 ├── frontend/          # Vite React search UI
 ├── data_updater/      # FastAPI service (run with cwd = this dir)
-├── db/migrations/     # Flyway SQL (schema source of truth; V1–V7)
+├── db/migrations/     # Flyway SQL (schema source of truth; V1–V8)
 ├── .env.example       # Sample env vars (copy to .env)
 ├── AGENTS.md          # Instructions for coding agents
 ├── PLAN.md            # Phased implementation plan

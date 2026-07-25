@@ -74,6 +74,7 @@ class Videos(Base):
         CheckConstraint('analyze_attempts >= 0', name='ck_videos_analyze_attempts_nonnegative'),
         CheckConstraint('cleaning_attempts >= 0', name='ck_videos_cleaning_attempts_nonnegative'),
         CheckConstraint('playlist_position IS NULL OR playlist_position >= 1', name='ck_videos_playlist_position_positive'),
+        CheckConstraint("upload_date IS NULL AND upload_date_precision IS NULL OR upload_date IS NOT NULL AND (upload_date_precision::text = ANY (ARRAY['exact'::character varying, 'approximate'::character varying]::text[]))", name='ck_videos_upload_date_precision'),
         ForeignKeyConstraint(['channel_id'], ['channels.id'], ondelete='CASCADE', name='fk_videos_channel'),
         PrimaryKeyConstraint('id', name='videos_pkey'),
         Index('idx_videos_analysis_queue', 'analysis_status', 'next_analysis_at', 'upload_date', 'playlist_position', 'id', postgresql_where="((type)::text = 'karaoke'::text)"),
@@ -101,6 +102,10 @@ class Videos(Base):
     updated_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
     next_analysis_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     playlist_position: Mapped[Optional[int]] = mapped_column(Integer)
+    upload_date_precision: Mapped[Optional[str]] = mapped_column(String(20))
+    metadata_raw_data: Mapped[Optional[dict]] = mapped_column(JSONB)
+    list_scraped_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
+    metadata_scraped_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
 
     channel: Mapped['Channels'] = relationship('Channels', back_populates='videos')
     songs: Mapped[list['Songs']] = relationship('Songs', back_populates='video')

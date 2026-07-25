@@ -210,7 +210,12 @@ function ChannelVideosPage() {
           >
             <ul className="divide-y divide-border/70">
               {videos.map((video, i) => {
-                const dateLabel = formatUploadDate(video.upload_date)
+                const formattedDate = formatUploadDate(video.upload_date)
+                const dateLabel =
+                  formattedDate &&
+                  video.upload_date_precision === "approximate"
+                    ? m.video_date_approximate({ date: formattedDate })
+                    : formattedDate
                 return (
                   <li
                     key={video.id}
@@ -226,7 +231,10 @@ function ChannelVideosPage() {
                       </span>
                       <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
                         <time
-                          dateTime={uploadDateTimeAttr(video.upload_date)}
+                          dateTime={uploadDateTimeAttr(
+                            video.upload_date,
+                            video.upload_date_precision,
+                          )}
                           className="font-mono tabular-nums tracking-wide"
                         >
                           {dateLabel ?? m.video_date_unknown()}

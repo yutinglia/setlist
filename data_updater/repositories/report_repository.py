@@ -57,6 +57,22 @@ class ReportRepository:
                     func.count().label("total"),
                     func.count().filter(Videos.type == "karaoke").label("karaoke"),
                     func.count().filter(Videos.type == "song").label("song"),
+                    func.count().filter(Videos.type == "other").label("other"),
+                    func.count()
+                    .filter(Videos.raw_data.is_not(None))
+                    .label("with_list_snapshot"),
+                    func.count()
+                    .filter(Videos.metadata_raw_data.is_not(None))
+                    .label("with_metadata_snapshot"),
+                    func.count()
+                    .filter(Videos.upload_date.is_(None))
+                    .label("date_unknown"),
+                    func.count()
+                    .filter(Videos.upload_date_precision == "approximate")
+                    .label("date_approximate"),
+                    func.count()
+                    .filter(Videos.upload_date_precision == "exact")
+                    .label("date_exact"),
                     func.max(Videos.created_at).label("latest_discovered_at"),
                     func.count()
                     .filter(Videos.last_analyzed_at.is_not(None))
@@ -115,6 +131,12 @@ class ReportRepository:
                 total=int(video_counts.total),
                 karaoke=int(video_counts.karaoke),
                 song=int(video_counts.song),
+                other=int(video_counts.other),
+                with_list_snapshot=int(video_counts.with_list_snapshot),
+                with_metadata_snapshot=int(video_counts.with_metadata_snapshot),
+                date_unknown=int(video_counts.date_unknown),
+                date_approximate=int(video_counts.date_approximate),
+                date_exact=int(video_counts.date_exact),
                 latest_discovered_at=video_counts.latest_discovered_at,
             ),
             analysis=AnalysisReport(

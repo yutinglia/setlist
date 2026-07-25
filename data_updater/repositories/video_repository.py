@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import cast, delete, func, select, update
-from sqlalchemy.dialects.postgresql import JSONB, insert
+from sqlalchemy import case, func, select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import Videos
@@ -11,13 +11,16 @@ from models.video import (
     YouTubeVideo,
 )
 from utils.video_type import (
-    PERSISTED_VIDEO_TYPES,
     VIDEO_TYPE_KARAOKE,
-    VIDEO_TYPE_OTHER,
     classify_video_type,
     should_scrape_comments,
 )
-from utils.youtube_upload_date import upload_date_from_entry
+from utils.youtube_upload_date import (
+    UPLOAD_DATE_APPROXIMATE,
+    UPLOAD_DATE_EXACT,
+    best_upload_date_info,
+)
+from utils.ytdlp_snapshot import merged_video_metadata, snapshot_payload
 
 # Columns refreshed from channel/video list scrapes. Analysis fields are preserved.
 _METADATA_UPDATE_KEYS = (
@@ -25,9 +28,13 @@ _METADATA_UPDATE_KEYS = (
     "url",
     "channel_id",
     "upload_date",
+    "upload_date_precision",
     "playlist_position",
     "type",
     "raw_data",
+    "metadata_raw_data",
+    "list_scraped_at",
+    "metadata_scraped_at",
 )
 
 
@@ -53,12 +60,17 @@ class VideoRepository:
         model = YouTubeVideo.model_validate(video)
         if (model.upload_date or "").strip():
             return model
-        derived = upload_date_from_entry(
-            model.raw_data if isinstance(model.raw_data, dict) else None
-        )
+        list_data = snapshot_payload(model.raw_data)
+        metadata_data = snapshot_payload(model.metadata_raw_data)
+        derived = best_upload_date_info(list_data, metadata_data)
         if not derived:
             return model
-        return model.model_copy(update={"upload_date": derived})
+        return model.model_copy(
+            update={
+                "upload_date": derived.value,
+                "upload_date_precision": derived.precision,
+            }
+        )
 
     async def get_all(self) -> list[YouTubeVideo]:
         """從資料庫取得所有影片列表"""
@@ -158,7 +170,7 @@ class VideoRepository:
         out: list[YouTubeVideo] = []
         for video in videos:
             model = self._to_model(video)
-            raw = model.raw_data if isinstance(model.raw_data, dict) else {}
+            raw = merged_video_metadata(model.raw_data, model.metadata_raw_data)
             if not should_scrape_comments(
                 model.title or "",
                 live_status=raw.get("live_status"),
@@ -203,7 +215,7 @@ class VideoRepository:
         out: list[YouTubeVideo] = []
         for video in result.scalars().all():
             model = self._to_model(video)
-            raw = model.raw_data if isinstance(model.raw_data, dict) else {}
+            raw = merged_video_metadata(model.raw_data, model.metadata_raw_data)
             if not should_scrape_comments(
                 model.title or "",
                 live_status=raw.get("live_status"),
@@ -217,10 +229,10 @@ class VideoRepository:
         return out
 
     async def reclassify_for_channel(self, channel_id: str) -> int:
-        """Recompute ``type`` from title + stored raw_data for all channel videos.
+        """Recompute ``type`` from list + full metadata for all channel videos.
 
-        Uses ``live_status`` / ``duration`` from ``raw_data`` when present (soft
-        karaoke confirms). Does not commit. Returns how many rows changed.
+        Full-video metadata overrides the flat-list observation. Does not
+        commit. Returns how many rows changed.
         """
         result = await self.session.execute(
             select(Videos).where(Videos.channel_id == channel_id)
@@ -229,7 +241,7 @@ class VideoRepository:
         now = datetime.now(UTC).replace(tzinfo=None)
         changed = 0
         for row in rows:
-            raw = row.raw_data if isinstance(row.raw_data, dict) else {}
+            raw = merged_video_metadata(row.raw_data, row.metadata_raw_data)
             new_type = classify_video_type(
                 row.title or "",
                 live_status=raw.get("live_status"),
@@ -261,10 +273,12 @@ class VideoRepository:
         *,
         max_attempts: int,
     ) -> list[str]:
-        """Clear comment/setlist data for videos that are not karaoke streams.
+        """Clear derived analysis state for videos that are not karaoke streams.
 
         Also sets ``analyze_attempts`` to ``max_attempts`` so the background
-        updater never re-queues them. Does not commit. Returns cleared video ids.
+        updater never re-queues them. Raw comments and selected setlist inputs
+        are preserved for future reclassification/parser improvements. Does
+        not commit. Returns cleared video ids.
         """
         result = await self.session.execute(
             select(Videos).where(Videos.channel_id == channel_id)
@@ -273,7 +287,7 @@ class VideoRepository:
         now = datetime.now(UTC).replace(tzinfo=None)
         cleared_ids: list[str] = []
         for row in rows:
-            raw = row.raw_data if isinstance(row.raw_data, dict) else {}
+            raw = merged_video_metadata(row.raw_data, row.metadata_raw_data)
             live_status = raw.get("live_status")
             duration = raw.get("duration")
             # Keep stored type in sync while deciding.
@@ -295,9 +309,6 @@ class VideoRepository:
 
             needs_clear = any(
                 (
-                    row.comments_raw_data is not None,
-                    row.song_list_comment_raw_data is not None,
-                    row.cleaned_song_list_comment is not None,
                     bool(row.has_song_list_comment),
                     row.analyze_attempts != max_attempts,
                     bool(row.cleaning_attempts),
@@ -308,10 +319,10 @@ class VideoRepository:
             if not needs_clear:
                 continue
 
-            row.comments_raw_data = None
-            row.song_list_comment_raw_data = None
-            row.cleaned_song_list_comment = None
+            # Source observations are expensive and remain useful if rules
+            # later classify this record as karaoke again.
             row.has_song_list_comment = False
+            row.cleaned_song_list_comment = None
             # Exhaust attempts so the periodic updater never re-queues this row.
             row.analyze_attempts = max_attempts
             row.last_analyzed_at = None
@@ -326,79 +337,68 @@ class VideoRepository:
             await self.session.flush()
         return cleared_ids
 
-    async def delete_non_persisted_for_channel(
-        self,
-        channel_id: str,
-        *,
-        reclassify: bool = True,
-    ) -> int:
-        """Delete videos that are not song/karaoke (type ``other`` or legacy).
-
-        Cascades to ``songs``. Does not commit. Returns number of rows deleted.
-        """
-        if reclassify:
-            await self.reclassify_for_channel(channel_id)
-
-        result = await self.session.execute(
-            select(Videos).where(Videos.channel_id == channel_id)
-        )
-        rows = result.scalars().all()
-        to_delete: list[str] = []
-        for row in rows:
-            if reclassify:
-                raw = row.raw_data if isinstance(row.raw_data, dict) else {}
-                classified = classify_video_type(
-                    row.title or "",
-                    live_status=raw.get("live_status"),
-                    duration=raw.get("duration"),
-                )
-            else:
-                classified = row.type or VIDEO_TYPE_OTHER
-            if classified in PERSISTED_VIDEO_TYPES:
-                if row.type != classified:
-                    row.type = classified
-                continue
-            to_delete.append(row.id)
-
-        if not to_delete:
-            await self.session.flush()
-            return 0
-
-        await self.session.execute(delete(Videos).where(Videos.id.in_(to_delete)))
-        await self.session.flush()
-        return len(to_delete)
-
     async def upsert(self, video: YouTubeVideo) -> YouTubeVideo:
         """Insert or update video metadata by primary key ``id``.
 
         On conflict, only scrape metadata is updated so analysis fields
         (attempts, song-list flags, comments) are preserved. Does not commit.
 
-        Flat extracts often omit ``upload_date``; never overwrite a known date
-        with NULL on conflict.
+        Flat extracts use an approximate date. Never overwrite an exact date
+        with NULL or an approximate value on conflict.
         """
         now = datetime.now(UTC).replace(tzinfo=None)
         insert_values = self._to_row_values(video, now)
         update_values = {key: insert_values[key] for key in _METADATA_UPDATE_KEYS}
-        # Prefer newly scraped date; keep existing when scrape has none.
-        update_values["upload_date"] = func.coalesce(
-            insert_values["upload_date"],
-            Videos.upload_date,
-        )
+        incoming_date = insert_values["upload_date"]
+        incoming_precision = insert_values["upload_date_precision"]
+        if incoming_date is None:
+            update_values["upload_date"] = Videos.upload_date
+            update_values["upload_date_precision"] = Videos.upload_date_precision
+        elif incoming_precision == UPLOAD_DATE_APPROXIMATE:
+            # Legacy non-null dates without precision are treated as
+            # authoritative. Migration V8 fills their precision explicitly.
+            existing_is_authoritative = Videos.upload_date.is_not(None) & (
+                Videos.upload_date_precision.is_(None)
+                | (Videos.upload_date_precision == UPLOAD_DATE_EXACT)
+            )
+            update_values["upload_date"] = case(
+                (existing_is_authoritative, Videos.upload_date),
+                else_=incoming_date,
+            )
+            update_values["upload_date_precision"] = case(
+                (
+                    existing_is_authoritative,
+                    func.coalesce(
+                        Videos.upload_date_precision,
+                        UPLOAD_DATE_EXACT,
+                    ),
+                ),
+                else_=UPLOAD_DATE_APPROXIMATE,
+            )
+        else:
+            # Exact full metadata upgrades an approximate list date.
+            update_values["upload_date"] = incoming_date
+            update_values["upload_date_precision"] = UPLOAD_DATE_EXACT
         update_values["playlist_position"] = func.coalesce(
             insert_values["playlist_position"],
             Videos.playlist_position,
         )
-        # Periodic channel-tab extracts are intentionally flat and omit fields
-        # such as duration/live_status. Merge their JSON over the previous full
-        # payload instead of destroying richer metadata used for classification.
+        # Keep one latest observation per source. A sparse channel-tab snapshot
+        # cannot erase the separate, richer full-video metadata snapshot.
         if insert_values["raw_data"] is None:
             update_values["raw_data"] = Videos.raw_data
+            update_values["list_scraped_at"] = Videos.list_scraped_at
         else:
-            update_values["raw_data"] = func.coalesce(
-                Videos.raw_data,
-                cast({}, JSONB),
-            ).op("||")(cast(insert_values["raw_data"], JSONB))
+            update_values["raw_data"] = insert_values["raw_data"]
+            update_values["list_scraped_at"] = insert_values["list_scraped_at"] or now
+        if insert_values["metadata_raw_data"] is None:
+            update_values["metadata_raw_data"] = Videos.metadata_raw_data
+            update_values["metadata_scraped_at"] = Videos.metadata_scraped_at
+        else:
+            update_values["metadata_raw_data"] = insert_values["metadata_raw_data"]
+            update_values["metadata_scraped_at"] = (
+                insert_values["metadata_scraped_at"] or now
+            )
         update_values["updated_at"] = now
 
         stmt = (
@@ -453,9 +453,13 @@ class VideoRepository:
             "url": video.url,
             "channel_id": video.channel_id,
             "upload_date": video.upload_date,
+            "upload_date_precision": video.upload_date_precision,
             "playlist_position": video.playlist_position,
             "type": video.type,
             "raw_data": video.raw_data,
+            "metadata_raw_data": video.metadata_raw_data,
+            "list_scraped_at": video.list_scraped_at,
+            "metadata_scraped_at": video.metadata_scraped_at,
             "comments_raw_data": video.comments_raw_data,
             "analyze_attempts": video.analyze_attempts,
             "last_analyzed_at": video.last_analyzed_at,

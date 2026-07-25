@@ -94,7 +94,8 @@ async def test_upsert_channel_video_and_replace_songs(session: AsyncSession):
             url=f"https://www.youtube.com/watch?v={video_id}",
             channel_id=channel_id,
             type="karaoke",
-            raw_data={"duration": 3600, "live_status": "was_live"},
+            raw_data={"title": "Karaoke Test"},
+            metadata_raw_data={"duration": 3600, "live_status": "was_live"},
         )
     )
     assert video.id == video_id
@@ -112,9 +113,11 @@ async def test_upsert_channel_video_and_replace_songs(session: AsyncSession):
         )
     )
     assert refreshed.raw_data == {
+        "title": "Karaoke Test (updated)",
+    }
+    assert refreshed.metadata_raw_data == {
         "duration": 3600,
         "live_status": "was_live",
-        "title": "Karaoke Test (updated)",
     }
     refreshed.comments_raw_data = {"comments": [{"text": "one"}, {"text": "two"}]}
     refreshed.last_analyzed_at = datetime.now(UTC).replace(tzinfo=None)
@@ -172,6 +175,11 @@ async def test_upsert_channel_video_and_replace_songs(session: AsyncSession):
     assert after.backfill.done == before.backfill.done + 1
     assert after.videos.total == before.videos.total + 1
     assert after.videos.karaoke == before.videos.karaoke + 1
+    assert after.videos.with_list_snapshot == before.videos.with_list_snapshot + 1
+    assert (
+        after.videos.with_metadata_snapshot == before.videos.with_metadata_snapshot + 1
+    )
+    assert after.videos.date_unknown == before.videos.date_unknown + 1
     assert after.analysis.attempted == before.analysis.attempted + 1
     assert after.analysis.with_setlist == before.analysis.with_setlist + 1
     assert (
@@ -186,4 +194,143 @@ async def test_upsert_channel_video_and_replace_songs(session: AsyncSession):
 
     # Leave DB clean even if outer rollback is skipped somehow
     await song_repo.replace_for_video(video_id, [])
+    await session.rollback()
+
+
+@pytest.mark.asyncio
+async def test_non_karaoke_cleanup_preserves_expensive_source_observations(
+    session: AsyncSession,
+):
+    suffix = uuid.uuid4().hex[:8]
+    channel_id = f"ch_raw_{suffix}"
+    video_id = f"vid_raw_{suffix}"
+    channel_repo = ChannelRepository(session)
+    video_repo = VideoRepository(session)
+    await channel_repo.create(
+        YouTubeChannel(
+            id=channel_id,
+            name="Raw Preservation Test",
+            url=f"https://www.youtube.com/channel/{channel_id}",
+        )
+    )
+    video = await video_repo.upsert(
+        YouTubeVideo(
+            id=video_id,
+            title="Karaoke Test",
+            url=f"https://www.youtube.com/watch?v={video_id}",
+            channel_id=channel_id,
+            type="karaoke",
+            raw_data={"title": "Karaoke Test"},
+            metadata_raw_data={"duration": 3600, "live_status": "was_live"},
+        )
+    )
+    video.comments_raw_data = {
+        "comments": [{"text": "0:10 Song A"}],
+        "comments_available": True,
+    }
+    video.song_list_comment_raw_data = {"text": "0:10 Song A"}
+    video.cleaned_song_list_comment = {"text": "0:10 Song A"}
+    video.has_song_list_comment = True
+    video.analysis_status = "done"
+    video.last_analyzed_at = datetime.now(UTC).replace(tzinfo=None)
+    video.cleaning_attempts = 1
+    video.last_cleaned_at = video.last_analyzed_at
+    await video_repo.update_analysis(video)
+
+    # New full metadata proves the flat title was a false positive.
+    await video_repo.upsert(
+        video.model_copy(
+            update={
+                "type": "karaoke",
+                "metadata_raw_data": {
+                    "duration": 45,
+                    "live_status": "not_live",
+                },
+            }
+        )
+    )
+    assert await video_repo.reclassify_for_channel(channel_id) == 1
+    assert await video_repo.clear_analysis_for_non_karaoke(
+        channel_id,
+        max_attempts=3,
+    ) == [video_id]
+
+    preserved = await video_repo.get_by_id(video_id)
+    assert preserved is not None
+    assert preserved.type == "other"
+    assert preserved.analysis_status == "skipped"
+    assert preserved.has_song_list_comment is False
+    assert preserved.comments_raw_data == video.comments_raw_data
+    assert preserved.song_list_comment_raw_data == video.song_list_comment_raw_data
+    assert preserved.cleaned_song_list_comment is None
+    assert preserved.analyze_attempts == 3
+
+    await session.rollback()
+
+
+@pytest.mark.asyncio
+async def test_exact_upload_date_is_never_downgraded_by_flat_refresh(
+    session: AsyncSession,
+):
+    suffix = uuid.uuid4().hex[:8]
+    channel_id = f"ch_date_{suffix}"
+    video_id = f"vid_date_{suffix}"
+    channel_repo = ChannelRepository(session)
+    video_repo = VideoRepository(session)
+    await channel_repo.create(
+        YouTubeChannel(
+            id=channel_id,
+            name="Date Test",
+            url=f"https://www.youtube.com/channel/{channel_id}",
+        )
+    )
+
+    approximate = await video_repo.upsert(
+        YouTubeVideo(
+            id=video_id,
+            title="Karaoke",
+            url=f"https://www.youtube.com/watch?v={video_id}",
+            channel_id=channel_id,
+            upload_date="20260726",
+            upload_date_precision="approximate",
+            type="karaoke",
+            raw_data={"timestamp": 1_784_998_800},
+        )
+    )
+    assert approximate.upload_date_precision == "approximate"
+
+    exact = await video_repo.upsert(
+        YouTubeVideo(
+            id=video_id,
+            title="Karaoke",
+            url=f"https://www.youtube.com/watch?v={video_id}",
+            channel_id=channel_id,
+            upload_date="20260725",
+            upload_date_precision="exact",
+            type="karaoke",
+            raw_data={"upload_date": "20260725"},
+        )
+    )
+    assert (exact.upload_date, exact.upload_date_precision) == (
+        "20260725",
+        "exact",
+    )
+
+    preserved = await video_repo.upsert(
+        YouTubeVideo(
+            id=video_id,
+            title="Karaoke",
+            url=f"https://www.youtube.com/watch?v={video_id}",
+            channel_id=channel_id,
+            upload_date="20260726",
+            upload_date_precision="approximate",
+            type="karaoke",
+            raw_data={"timestamp": 1_784_998_800},
+        )
+    )
+    assert (preserved.upload_date, preserved.upload_date_precision) == (
+        "20260725",
+        "exact",
+    )
+
     await session.rollback()

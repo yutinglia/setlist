@@ -4,6 +4,7 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel, Field
 
 from models.song import Song
+from utils.youtube_upload_date import UploadDatePrecision
 
 T = TypeVar("T")
 
@@ -38,6 +39,7 @@ class VideoRead(BaseModel):
     url: str
     channel_id: str
     upload_date: str | None = None
+    upload_date_precision: UploadDatePrecision | None = None
     type: str | None = None
     has_song_list_comment: bool = False
     created_at: datetime | None = None

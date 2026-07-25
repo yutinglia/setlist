@@ -20,6 +20,12 @@ def _summary() -> SummaryReport:
             "total": 20,
             "karaoke": 12,
             "song": 8,
+            "other": 0,
+            "with_list_snapshot": 20,
+            "with_metadata_snapshot": 10,
+            "date_unknown": 2,
+            "date_approximate": 8,
+            "date_exact": 10,
             "latest_discovered_at": datetime(2026, 7, 26, 11, 0),
         },
         analysis={

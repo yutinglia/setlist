@@ -8,6 +8,7 @@ from services.analyzer.yt_comment_analyzer import CommentAnalyzer
 from services.yt_scraper.channel_scraper import YouTubeChannelScraper
 from services.yt_scraper.channel_video_scraper import YouTubeChannelVideoScraper
 from services.yt_scraper.video_comment_scraper import YouTubeVideoCommentScraper
+from utils.ytdlp_snapshot import merged_video_metadata
 
 
 def inspect_comments() -> None:
@@ -40,7 +41,7 @@ def inspect_videos() -> None:
         # group by live_status
         type_count = {}
         for video in videos:
-            raw = video.raw_data if isinstance(video.raw_data, dict) else {}
+            raw = merged_video_metadata(video.raw_data, video.metadata_raw_data)
             vtype = raw.get("live_status", "unknown")
             type_count[vtype] = type_count.get(vtype, 0) + 1
 

@@ -5,12 +5,20 @@ import yt_dlp
 from models.channel import YouTubeChannel
 from services.yt_scraper.errors import raise_if_block_error
 from utils.youtube_channel_url import normalize_youtube_channel_url
+from utils.ytdlp_snapshot import snapshot_payload, snapshot_ytdlp_info
 
 logger = logging.getLogger(__name__)
 
 
 class YouTubeChannelScraper:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        sleep_interval: float = 1.0,
+        max_sleep_interval: float = 2.0,
+    ) -> None:
+        self.sleep_interval = sleep_interval
+        self.max_sleep_interval = max_sleep_interval
         self.channel: YouTubeChannel | None = None
 
     def get_channel_info(self, channel_url: str) -> YouTubeChannel:
@@ -22,8 +30,8 @@ class YouTubeChannelScraper:
             "quiet": True,
             "no_warnings": True,
             # speed limit
-            "sleep_interval": 1,
-            "max_sleep_interval": 2,
+            "sleep_interval": self.sleep_interval,
+            "max_sleep_interval": self.max_sleep_interval,
         }
 
         logger.info("Scraping channel metadata: %s", channel_url)
@@ -36,12 +44,11 @@ class YouTubeChannelScraper:
 
         if not isinstance(info, dict) or not info:
             raise RuntimeError(f"Failed to extract channel info for {channel_url}")
-        info = yt_dlp.YoutubeDL.sanitize_info(info)
-        if not isinstance(info, dict):
-            raise RuntimeError(f"Unexpected channel info response for {channel_url}")
+        raw_snapshot = snapshot_ytdlp_info(info, source="channel")
+        stable_info = snapshot_payload(raw_snapshot)
 
         # Prefer the uncropped avatar, then fall back to the last usable image.
-        thumbnails = info.get("thumbnails") or []
+        thumbnails = stable_info.get("thumbnails") or []
         fallback_thumbnail = next(
             (
                 thumb.get("url")
@@ -61,13 +68,19 @@ class YouTubeChannelScraper:
             fallback_thumbnail,
         )
 
-        channel_id = info.get("channel_id") or info.get("id") or ""
+        channel_id = stable_info.get("channel_id") or stable_info.get("id")
+        if not isinstance(channel_id, str) or not channel_id.strip():
+            raise RuntimeError(
+                f"Channel id missing from extractor response: {channel_url}"
+            )
         self.channel = YouTubeChannel(
             id=channel_id,
-            name=info.get("channel") or info.get("uploader") or channel_id,
+            name=(
+                stable_info.get("channel") or stable_info.get("uploader") or channel_id
+            ),
             url=channel_url,
             thumbnail_url=thumbnail_url,
-            raw_data=info,
+            raw_data=raw_snapshot,
         )
 
         logger.info("Scraped channel %s (%s)", self.channel.name, self.channel.id)

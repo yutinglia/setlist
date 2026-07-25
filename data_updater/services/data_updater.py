@@ -49,9 +49,25 @@ from services.yt_scraper.errors import (
     is_youtube_block_error,
     raise_if_block_error,
 )
-from services.yt_scraper.video_comment_scraper import YouTubeVideoCommentScraper
-from utils.video_type import PERSISTED_VIDEO_TYPES, should_scrape_comments
-from utils.youtube_upload_date import upload_date_from_entry
+from services.yt_scraper.video_comment_scraper import (
+    VideoCommentScrapeResult,
+    YouTubeVideoCommentScraper,
+)
+from utils.video_type import (
+    VIDEO_TYPE_KARAOKE,
+    classify_video_type,
+    should_scrape_comments,
+)
+from utils.youtube_upload_date import (
+    UPLOAD_DATE_EXACT,
+    upload_date_from_entry,
+    upload_date_info_from_entry,
+)
+from utils.ytdlp_snapshot import (
+    merged_video_metadata,
+    snapshot_payload,
+    snapshot_ytdlp_info,
+)
 
 
 @dataclass(frozen=True)
@@ -421,11 +437,16 @@ class DataUpdater:
 
         videos = await self.video_repo.upsert_many(scraped)
         scraped_count = len(videos)
+        # Re-evaluate using the newly stored full-video snapshot. This only
+        # updates classification state; the manual refresh never deletes
+        # videos, comments, songs, or prior setlist inputs.
+        reclassified = await self.video_repo.reclassify_for_channel(channel.id)
 
         logger.info(
-            "Channel %s safe metadata refresh done scraped=%s",
+            "Channel %s safe metadata refresh done scraped=%s reclassified=%s",
             channel.id,
             scraped_count,
+            reclassified,
         )
         updater_status.set(
             self._manual_operation_resting_phase(),
@@ -439,11 +460,12 @@ class DataUpdater:
             mode="refresh",
             scraped=scraped_count,
             deleted=0,
-            reclassified=0,
+            reclassified=reclassified,
             cleared=0,
             message=(
-                f"Refreshed {scraped_count} recent video(s) without deleting "
-                "videos, comments, or existing setlists."
+                f"Refreshed {scraped_count} recent video(s), reclassified "
+                f"{reclassified}, without deleting videos, comments, or "
+                "existing setlists."
             ),
         )
 
@@ -524,7 +546,7 @@ class DataUpdater:
                 )
                 discovered = True
                 if not videos:
-                    logger.info("No new song/archive records for %s", channel.id)
+                    logger.info("No normal archive records found for %s", channel.id)
             except YouTubeAccessBlocked:
                 raise
             except Exception:
@@ -555,7 +577,8 @@ class DataUpdater:
         if not discovered:
             return
 
-        # Keep types aligned; drop chatter/other; clear stray song analysis.
+        # Keep types aligned and clear derived songs for non-karaoke records.
+        # Raw archive/list/comment observations are retained for future rules.
         updater_status.set(
             UpdaterPhase.RECLASSIFYING,
             detail=f"Reclassifying videos for {channel.name}",
@@ -563,20 +586,16 @@ class DataUpdater:
             channel_name=channel.name,
         )
         await self.video_repo.reclassify_for_channel(channel.id)
-        deleted = await self.video_repo.delete_non_persisted_for_channel(
-            channel.id, reclassify=False
-        )
         cleared_ids = await self.video_repo.clear_analysis_for_non_karaoke(
             channel.id,
             max_attempts=self.policy.max_analysis_attempts,
         )
         for video_id in cleared_ids:
             await self.song_repo.replace_for_video(video_id, [])
-        if deleted or cleared_ids:
+        if cleared_ids:
             logger.info(
-                "Channel %s: deleted %s other video(s), cleared analysis on %s",
+                "Channel %s: preserved all archives, cleared derived analysis on %s",
                 channel.id,
-                deleted,
                 len(cleared_ids),
             )
 
@@ -688,19 +707,18 @@ class DataUpdater:
             key=lambda v: (
                 v.upload_date
                 or upload_date_from_entry(
-                    v.raw_data if isinstance(v.raw_data, dict) else None
+                    merged_video_metadata(v.raw_data, v.metadata_raw_data)
                 )
                 or ""
             ),
             reverse=True,
         )
-        persisted = [
-            v for v in scraped_sorted if (v.type or "") in PERSISTED_VIDEO_TYPES
-        ]
-        for video in persisted:
+        for video in scraped_sorted:
             video.channel_id = channel.id
 
-        upserted = await self.video_repo.upsert_many(persisted) if persisted else []
+        upserted = (
+            await self.video_repo.upsert_many(scraped_sorted) if scraped_sorted else []
+        )
         if not page.all_tabs_succeeded:
             # Saving the usable rows is safe, but advancing would permanently
             # skip the failed tab's current window.
@@ -769,7 +787,10 @@ class DataUpdater:
         logger.info("Refreshing channel metadata for %s", channel.url)
 
         def _scrape() -> YouTubeChannel:
-            return YouTubeChannelScraper().get_channel_info(channel.url)
+            return YouTubeChannelScraper(
+                sleep_interval=self.policy.ytdlp_list_sleep_interval,
+                max_sleep_interval=self.policy.ytdlp_list_max_sleep_interval,
+            ).get_channel_info(channel.url)
 
         try:
             scraped = await asyncio.to_thread(_scrape)
@@ -796,7 +817,7 @@ class DataUpdater:
         *,
         full_metadata: bool = False,
     ) -> list[YouTubeVideo]:
-        """Scrape Streams+Videos tabs; return song/karaoke rows (newest first)."""
+        """Scrape Streams+Videos tabs; retain all normal archived records."""
 
         def _scrape() -> list[YouTubeVideo]:
             return YouTubeChannelVideoScraper(
@@ -820,30 +841,24 @@ class DataUpdater:
             key=lambda v: (
                 v.upload_date
                 or upload_date_from_entry(
-                    v.raw_data if isinstance(v.raw_data, dict) else None
+                    merged_video_metadata(v.raw_data, v.metadata_raw_data)
                 )
                 or ""
             ),
             reverse=True,
         )
-        # Only persist song + karaoke stream records (drop chatter / other).
-        persisted = [
-            v for v in scraped_sorted if (v.type or "") in PERSISTED_VIDEO_TYPES
-        ]
-        limited = persisted[: self.policy.recent_videos_per_channel]
         logger.info(
-            "Channel %s: scraped %s, kept %s song/karaoke (full_metadata=%s)",
+            "Channel %s: retained %s normal archive record(s) (full_metadata=%s)",
             channel.id,
-            len(scraped),
-            len(limited),
+            len(scraped_sorted),
             full_metadata,
         )
 
-        for video in limited:
+        for video in scraped_sorted:
             # Flat extracts sometimes omit channel_id; bind to the DB channel.
             video.channel_id = channel.id
 
-        return limited
+        return scraped_sorted
 
     async def _scrape_and_upsert_videos(
         self,
@@ -858,7 +873,7 @@ class DataUpdater:
 
     async def _analyze_video(self, video: YouTubeVideo) -> None:
         # Re-check from title + raw_data: song/MV/cover must never scrape comments.
-        raw = video.raw_data if isinstance(video.raw_data, dict) else {}
+        raw = merged_video_metadata(video.raw_data, video.metadata_raw_data)
         if not should_scrape_comments(
             video.title or "",
             live_status=raw.get("live_status"),
@@ -898,19 +913,37 @@ class DataUpdater:
             comment_scrapes_this_cycle=self._comment_scrapes_this_cycle,
         )
 
-        def _scrape_comments() -> list:
+        def _scrape_comments() -> VideoCommentScrapeResult:
             scraper = YouTubeVideoCommentScraper(
                 video.url,
                 sleep_interval=self.policy.ytdlp_comment_sleep_interval,
                 max_sleep_interval=self.policy.ytdlp_comment_max_sleep_interval,
             )
-            return scraper.get_video_top_comments(self.policy.max_comments_per_video)
+            scrape = getattr(scraper, "scrape", None)
+            if callable(scrape):
+                return scrape(self.policy.max_comments_per_video)
+
+            # Compatibility for small test/manual fakes that only implement
+            # the original comments-only method.
+            comments = scraper.get_video_top_comments(
+                self.policy.max_comments_per_video
+            )
+            metadata = getattr(scraper, "video_metadata", {})
+            return VideoCommentScrapeResult(
+                comments=comments,
+                comments_available=True,
+                metadata_raw_data=snapshot_ytdlp_info(
+                    metadata,
+                    source="video_comments:test_compat",
+                ),
+                scraped_at=datetime.now(UTC).replace(tzinfo=None),
+            )
 
         now = datetime.now(UTC).replace(tzinfo=None)
         attempts = (video.analyze_attempts or 0) + 1
 
         try:
-            comments = await asyncio.to_thread(_scrape_comments)
+            scrape_result = await asyncio.to_thread(_scrape_comments)
         except Exception as exc:
             video.last_analyzed_at = now
             blocked = isinstance(exc, YouTubeAccessBlocked) or is_youtube_block_error(
@@ -939,9 +972,65 @@ class DataUpdater:
             await self.video_repo.update_analysis(video)
             raise
 
-        video.comments_raw_data = {"comments": comments}
+        comments = scrape_result.comments
+        scraped_metadata = snapshot_payload(scrape_result.metadata_raw_data)
+        exact_date = upload_date_info_from_entry(scraped_metadata)
+        if exact_date and (
+            video.upload_date != exact_date.value
+            or video.upload_date_precision != UPLOAD_DATE_EXACT
+        ):
+            # The comment request already extracted this full video metadata.
+            # Upgrade the approximate channel-list date without another call.
+            video.upload_date = exact_date.value
+            video.upload_date_precision = exact_date.precision
+        scraped_title = scraped_metadata.get("title")
+        if isinstance(scraped_title, str) and scraped_title.strip():
+            video.title = scraped_title
+        if scraped_metadata:
+            video.metadata_raw_data = scrape_result.metadata_raw_data
+            video.metadata_scraped_at = scrape_result.scraped_at
+        effective_metadata = merged_video_metadata(
+            video.raw_data,
+            video.metadata_raw_data,
+        )
+        video.type = classify_video_type(
+            video.title,
+            live_status=effective_metadata.get("live_status"),
+            duration=effective_metadata.get("duration"),
+        )
+        if scraped_metadata:
+            await self.video_repo.upsert(video)
+
+        comment_snapshot = {
+            "schema_version": 1,
+            "comments": comments,
+            "comments_available": scrape_result.comments_available,
+            "captured_at": scrape_result.scraped_at.isoformat() + "Z",
+            "source": "yt-dlp:top",
+        }
         video.analyze_attempts = attempts
         video.last_analyzed_at = now
+
+        # Flat metadata can produce a false-positive karaoke classification.
+        # The already-fetched full snapshot is authoritative; retain the raw
+        # comments but do not create/retain derived songs for non-karaoke rows.
+        if video.type != VIDEO_TYPE_KARAOKE:
+            self._record_comments_observation(
+                video,
+                comment_snapshot,
+                preserve_existing=video.has_song_list_comment,
+            )
+            video.has_song_list_comment = False
+            video.analysis_status = ANALYSIS_SKIPPED
+            video.next_analysis_at = None
+            await self.song_repo.replace_for_video(video.id, [])
+            await self.video_repo.update_analysis(video)
+            logger.info(
+                "Video %s reclassified as %s after full metadata; analysis skipped",
+                video.id,
+                video.type,
+            )
+            return
 
         updater_status.set(
             UpdaterPhase.ANALYZING,
@@ -954,6 +1043,11 @@ class DataUpdater:
         if analyzer.has_song_list_comment():
             songs = analyzer.extract_song_list()
             if songs:
+                self._record_comments_observation(
+                    video,
+                    comment_snapshot,
+                    preserve_existing=False,
+                )
                 video.has_song_list_comment = True
                 video.analysis_status = ANALYSIS_DONE
                 video.next_analysis_at = None
@@ -967,29 +1061,75 @@ class DataUpdater:
                     "Video %s: found setlist with %s song(s)", video.id, len(songs)
                 )
             else:
-                video.has_song_list_comment = False
-                video.song_list_comment_raw_data = None
-                video.cleaned_song_list_comment = None
-                video.cleaning_attempts = 0
-                video.last_cleaned_at = None
-                self._schedule_no_setlist_recheck(video, now, attempts)
-                await self.song_repo.replace_for_video(video.id, [])
+                self._record_comments_observation(
+                    video,
+                    comment_snapshot,
+                    preserve_existing=video.has_song_list_comment,
+                )
+                cleared = self._record_no_setlist_result(video, now, attempts)
+                if cleared:
+                    await self.song_repo.replace_for_video(video.id, [])
                 logger.info(
                     "Video %s: timestamp comment had no parseable songs", video.id
                 )
         else:
-            video.has_song_list_comment = False
-            video.song_list_comment_raw_data = None
-            video.cleaned_song_list_comment = None
-            video.cleaning_attempts = 0
-            video.last_cleaned_at = None
-            self._schedule_no_setlist_recheck(video, now, attempts)
-            # Re-analysis is authoritative: a successful "no setlist" result
-            # must not leave songs from an older analysis behind.
-            await self.song_repo.replace_for_video(video.id, [])
+            self._record_comments_observation(
+                video,
+                comment_snapshot,
+                preserve_existing=video.has_song_list_comment,
+            )
+            cleared = self._record_no_setlist_result(video, now, attempts)
+            if cleared:
+                await self.song_repo.replace_for_video(video.id, [])
             logger.info("Video %s: no setlist comment found", video.id)
 
         await self.video_repo.update_analysis(video)
+
+    @staticmethod
+    def _record_comments_observation(
+        video: YouTubeVideo,
+        snapshot: dict,
+        *,
+        preserve_existing: bool,
+    ) -> None:
+        """Keep source comments behind a successful result on negative refreshes."""
+        if preserve_existing and video.comments_raw_data:
+            preserved = dict(video.comments_raw_data)
+            preserved["last_negative_observation"] = snapshot
+            video.comments_raw_data = preserved
+            return
+        video.comments_raw_data = snapshot
+
+    def _record_no_setlist_result(
+        self,
+        video: YouTubeVideo,
+        now: datetime,
+        attempts: int,
+    ) -> bool:
+        """Record an absence without erasing a prior successful extraction.
+
+        Top-comment membership and comment availability can change. A negative
+        observation is useful for a never-successful record, but is not strong
+        enough evidence to destroy an existing setlist and songs.
+
+        Returns ``True`` when derived songs should be cleared.
+        """
+        if video.has_song_list_comment:
+            video.analysis_status = ANALYSIS_DONE
+            video.next_analysis_at = None
+            logger.warning(
+                "Video %s: current comments had no setlist; preserving prior result",
+                video.id,
+            )
+            return False
+
+        video.has_song_list_comment = False
+        video.song_list_comment_raw_data = None
+        video.cleaned_song_list_comment = None
+        video.cleaning_attempts = 0
+        video.last_cleaned_at = None
+        self._schedule_no_setlist_recheck(video, now, attempts)
+        return True
 
     def _schedule_no_setlist_recheck(
         self,

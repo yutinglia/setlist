@@ -27,7 +27,11 @@ export function formatUploadDate(
 /** ISO date (``YYYY-MM-DD``) for ``<time dateTime>``, or undefined when unknown. */
 export function uploadDateTimeAttr(
   uploadDate: string | null | undefined,
+  precision?: "exact" | "approximate" | null,
 ): string | undefined {
+  // An approximate relative date should not be machine-readable as an exact
+  // calendar date in <time dateTime>.
+  if (precision === "approximate") return undefined
   return formatUploadDate(uploadDate) ?? undefined
 }
 

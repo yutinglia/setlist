@@ -2,7 +2,13 @@
 
 from datetime import UTC, datetime
 
-from utils.youtube_upload_date import upload_date_from_entry
+from utils.youtube_upload_date import (
+    UPLOAD_DATE_APPROXIMATE,
+    UPLOAD_DATE_EXACT,
+    best_upload_date_info,
+    upload_date_from_entry,
+    upload_date_info_from_entry,
+)
 
 
 class TestUploadDateFromEntry:
@@ -58,3 +64,59 @@ class TestUploadDateFromEntry:
 
     def test_out_of_range_timestamp_is_ignored(self):
         assert upload_date_from_entry({"timestamp": 10**100}) is None
+
+    def test_flat_timestamp_can_be_marked_approximate(self):
+        ts = int(datetime(2026, 7, 25, 17, 0, tzinfo=UTC).timestamp())
+
+        info = upload_date_info_from_entry(
+            {"timestamp": ts},
+            timestamp_precision=UPLOAD_DATE_APPROXIMATE,
+        )
+
+        assert info is not None
+        assert info.value == "20260725"
+        assert info.precision == UPLOAD_DATE_APPROXIMATE
+
+    def test_explicit_date_stays_exact_when_timestamp_is_approximate(self):
+        info = upload_date_info_from_entry(
+            {
+                "upload_date": "20260725",
+                "timestamp": 1_784_998_800,
+            },
+            timestamp_precision=UPLOAD_DATE_APPROXIMATE,
+        )
+
+        assert info is not None
+        assert info.value == "20260725"
+        assert info.precision == UPLOAD_DATE_EXACT
+
+    def test_scheduled_release_timestamp_is_exact(self):
+        ts = int(datetime(2026, 8, 1, 12, 0, tzinfo=UTC).timestamp())
+
+        info = upload_date_info_from_entry(
+            {"release_timestamp": ts},
+            timestamp_precision=UPLOAD_DATE_APPROXIMATE,
+        )
+
+        assert info is not None
+        assert info.precision == UPLOAD_DATE_EXACT
+
+    def test_unrelated_full_metadata_does_not_upgrade_flat_timestamp(self):
+        info = best_upload_date_info(
+            {"timestamp": 1_784_998_800},
+            {"duration": 3600, "live_status": "was_live"},
+        )
+
+        assert info is not None
+        assert info.value == "20260725"
+        assert info.precision == UPLOAD_DATE_APPROXIMATE
+
+    def test_full_metadata_date_wins_over_flat_approximation(self):
+        info = best_upload_date_info(
+            {"timestamp": 1_784_998_800},
+            {"upload_date": "20260724"},
+        )
+
+        assert info is not None
+        assert info.value == "20260724"
+        assert info.precision == UPLOAD_DATE_EXACT

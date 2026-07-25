@@ -8,9 +8,20 @@ from models.video import ANALYSIS_PENDING, ANALYSIS_SKIPPED, YouTubeVideo
 from services.yt_scraper.errors import raise_if_block_error
 from utils.video_type import classify_video_type
 from utils.youtube_channel_url import channel_list_urls
-from utils.youtube_upload_date import upload_date_from_entry
+from utils.youtube_upload_date import (
+    UPLOAD_DATE_APPROXIMATE,
+    UPLOAD_DATE_EXACT,
+    best_upload_date_info,
+    upload_date_info_from_entry,
+)
+from utils.ytdlp_snapshot import (
+    snapshot_captured_at,
+    snapshot_payload,
+    snapshot_ytdlp_info,
+)
 
 logger = logging.getLogger(__name__)
+_METADATA_SNAPSHOT_KEY = "_vks_metadata_snapshot"
 
 
 @dataclass(frozen=True)
@@ -248,8 +259,14 @@ class YouTubeChannelVideoScraper:
         ydl_opts: dict = {
             "skip_download": True,
             # Flat list is reliable for channel tabs; full tab extract often
-            # fails or times out. Dates are filled in _enrich_metadata later.
+            # fails or times out. approximate_date parses YouTube's relative
+            # time text from this same response; it does not open each video.
             "extract_flat": "in_playlist",
+            "extractor_args": {
+                "youtubetab": {
+                    "approximate_date": [""],
+                }
+            },
             "quiet": True,
             "no_warnings": True,
             "sleep_interval": self.sleep_interval,
@@ -343,24 +360,43 @@ class YouTubeChannelVideoScraper:
             video_id = video.get("id")
             if not video_id:
                 continue
-            title = video.get("title") or video_id
-            safe_video = yt_dlp.YoutubeDL.sanitize_info(video)
+            list_entry = dict(video)
+            metadata_snapshot = list_entry.pop(_METADATA_SNAPSHOT_KEY, None)
+            metadata = snapshot_payload(
+                metadata_snapshot if isinstance(metadata_snapshot, dict) else None
+            )
+            effective = {**list_entry, **metadata}
+            title = effective.get("title") or video_id
+            list_snapshot = snapshot_ytdlp_info(
+                list_entry,
+                source=f"channel_tab:{list_entry.get('_vks_source_tab', 'unknown')}",
+            )
+            upload_date = best_upload_date_info(list_entry, metadata)
             video_type = classify_video_type(
                 title,
-                live_status=video.get("live_status"),
-                duration=video.get("duration"),
+                live_status=effective.get("live_status"),
+                duration=effective.get("duration"),
             )
             video_model = YouTubeVideo(
                 id=video_id,
                 title=title,
-                url=self._video_url(video, video_id),
-                channel_id=video.get("channel_id") or video.get("uploader_id") or "",
-                # Flat extracts omit upload_date; derive from timestamp fields.
-                upload_date=upload_date_from_entry(video),
-                playlist_position=video.get("_vks_playlist_position"),
+                url=self._video_url(effective, video_id),
+                channel_id=(
+                    effective.get("channel_id") or effective.get("uploader_id") or ""
+                ),
+                # Flat extracts omit upload_date. yt-dlp derives an approximate
+                # timestamp from the same tab response when enabled above.
+                upload_date=upload_date.value if upload_date else None,
+                upload_date_precision=upload_date.precision if upload_date else None,
+                playlist_position=list_entry.get("_vks_playlist_position"),
                 # Title keywords + soft duration / live_status confirms.
                 type=video_type,
-                raw_data=safe_video,
+                raw_data=list_snapshot,
+                metadata_raw_data=metadata_snapshot,
+                list_scraped_at=snapshot_captured_at(list_snapshot),
+                metadata_scraped_at=snapshot_captured_at(
+                    metadata_snapshot if isinstance(metadata_snapshot, dict) else None
+                ),
                 analysis_status=(
                     ANALYSIS_PENDING if video_type == "karaoke" else ANALYSIS_SKIPPED
                 ),
@@ -391,7 +427,15 @@ class YouTubeChannelVideoScraper:
                     enriched.append(entry)
                     continue
 
-                if upload_date_from_entry(entry) and entry.get("duration") is not None:
+                current_date = upload_date_info_from_entry(
+                    entry,
+                    timestamp_precision=UPLOAD_DATE_APPROXIMATE,
+                )
+                if (
+                    current_date
+                    and current_date.precision == UPLOAD_DATE_EXACT
+                    and entry.get("duration") is not None
+                ):
                     enriched.append(entry)
                     continue
 
@@ -418,18 +462,10 @@ class YouTubeChannelVideoScraper:
                     continue
 
                 merged = dict(entry)
-                for key in (
-                    "upload_date",
-                    "timestamp",
-                    "release_timestamp",
-                    "live_status",
-                    "duration",
-                    "was_live",
-                    "title",
-                ):
-                    value = info.get(key)
-                    if value is not None and value != "":
-                        merged[key] = value
+                merged[_METADATA_SNAPSHOT_KEY] = snapshot_ytdlp_info(
+                    info,
+                    source="video_metadata",
+                )
                 enriched.append(merged)
 
         return enriched

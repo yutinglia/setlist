@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 import {
+  Archive,
   BarChart3,
   Clock3,
   ListMusic,
@@ -85,6 +86,11 @@ function SummaryPage() {
                   icon={Video}
                   label={m.summary_song_videos()}
                   value={data.videos.song}
+                />
+                <MetricCard
+                  icon={Archive}
+                  label={m.summary_other_videos()}
+                  value={data.videos.other}
                 />
                 <MetricCard
                   icon={Users}
@@ -177,6 +183,27 @@ function SummaryPage() {
                     <DetailRow
                       label={m.summary_comment_snapshots()}
                       value={integer.format(data.analysis.videos_with_comments)}
+                    />
+                    <DetailRow
+                      label={m.summary_list_snapshots()}
+                      value={integer.format(data.videos.with_list_snapshot)}
+                    />
+                    <DetailRow
+                      label={m.summary_metadata_snapshots()}
+                      value={integer.format(data.videos.with_metadata_snapshot)}
+                    />
+                    <DetailRow
+                      label={m.summary_date_exact()}
+                      value={integer.format(data.videos.date_exact)}
+                    />
+                    <DetailRow
+                      label={m.summary_date_approximate()}
+                      value={integer.format(data.videos.date_approximate)}
+                    />
+                    <DetailRow
+                      label={m.summary_date_unknown()}
+                      value={integer.format(data.videos.date_unknown)}
+                      warning={data.videos.date_unknown > 0}
                     />
                     <DetailRow
                       label={m.summary_llm_songs()}

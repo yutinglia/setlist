@@ -4,6 +4,8 @@ Checklist aligned with [PLAN.md](PLAN.md). Check items off as they land.
 
 ## Done recently
 
+- [x] Scrape-data resilience: keep all normal archives, separate bounded list/full yt-dlp snapshots, preserve raw observations and prior successful setlists, and report date/snapshot coverage
+- [x] Upload-date reliability: approximate dates from the existing channel-list response, exact upgrades from existing full/comment extraction, and exact-over-approximate conflict handling
 - [x] Scheduler redesign: fast durable backfill, persisted 6h steady scans, separate delayed analysis queue, dev/prod policy parity
 - [x] Full reliability review: non-destructive refresh, scraper serialization, URL validation, literal search, raw-payload response trimming
 - [x] Config validation, safe dev updater default, prod management gating, DB integrity/index migration V3

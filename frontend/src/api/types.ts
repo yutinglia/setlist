@@ -34,6 +34,7 @@ export type YouTubeVideo = {
   url: string
   channel_id: string
   upload_date: string | null
+  upload_date_precision: "exact" | "approximate" | null
   type: string | null
   has_song_list_comment: boolean
   created_at: string | null
@@ -69,6 +70,12 @@ export type SummaryReport = {
     total: number
     karaoke: number
     song: number
+    other: number
+    with_list_snapshot: number
+    with_metadata_snapshot: number
+    date_unknown: number
+    date_approximate: number
+    date_exact: number
     latest_discovered_at: string | null
   }
   analysis: {
