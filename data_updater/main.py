@@ -43,16 +43,11 @@ async def run_periodic_data_updater():
             logger.info("Song list data updated successfully.")
         except asyncio.CancelledError:
             logger.info("Data updater task cancelled. Terminating loop.")
-            updater_status.set(
-                UpdaterPhase.IDLE,
-                detail="Updater stopped",
-                clear_channel=True,
-                clear_video=True,
-            )
+            updater_status.stop()
             break
-        except Exception as exc:
+        except Exception:
             logger.exception("Error updating song list data")
-            updater_status.end_cycle(error=str(exc))
+            updater_status.end_cycle(error="The update cycle failed")
         logger.info("Waiting for the next update cycle...")
         remaining = DataUpdater.youtube_cooldown_remaining()
         if remaining > 0:
@@ -80,6 +75,7 @@ async def lifespan(app: FastAPI):
         updater_task = asyncio.create_task(run_periodic_data_updater())
         logger.info("Background data updater task started.")
     else:
+        updater_status.stop(detail="Background updater is disabled")
         logger.info("Background data updater is disabled.")
 
     try:

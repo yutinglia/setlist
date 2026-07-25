@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import MANAGEMENT_API_ENABLED
 from deps import get_session, pagination_params
-from models.channel import ChannelCreate, VIDEO_BACKFILL_PENDING, YouTubeChannel
+from models.channel import VIDEO_BACKFILL_PENDING, ChannelCreate, YouTubeChannel
 from models.search import ChannelRead, Paginated, SongSearchResult, VideoRead
 from models.song import Song
 from repositories import ChannelRepository, SongRepository, VideoRepository

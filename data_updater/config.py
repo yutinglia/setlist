@@ -111,11 +111,11 @@ UPDATE_YOUTUBE_COOLDOWN_SECONDS = _env_int("UPDATE_YOUTUBE_COOLDOWN_SECONDS", 36
 UPDATE_MAX_ANALYZE_ATTEMPTS = _env_int("UPDATE_MAX_ANALYZE_ATTEMPTS", 3, minimum=1)
 
 # New-channel full-catalog backfill (one playlist page per channel per cycle)
-UPDATE_BACKFILL_PAGE_SIZE = int(
-    os.getenv("UPDATE_BACKFILL_PAGE_SIZE", str(UPDATE_MAX_VIDEOS))
+UPDATE_BACKFILL_PAGE_SIZE = _env_int(
+    "UPDATE_BACKFILL_PAGE_SIZE", UPDATE_MAX_VIDEOS, minimum=1
 )
-UPDATE_BACKFILL_CHANNELS_PER_CYCLE = int(
-    os.getenv("UPDATE_BACKFILL_CHANNELS_PER_CYCLE", "1")
+UPDATE_BACKFILL_CHANNELS_PER_CYCLE = _env_int(
+    "UPDATE_BACKFILL_CHANNELS_PER_CYCLE", 1, minimum=1
 )
 # yt-dlp sleep intervals for comment scraping (raised vs channel/video list scrapers)
 YTDLP_COMMENT_SLEEP_INTERVAL = _env_float("YTDLP_COMMENT_SLEEP_INTERVAL", 2)

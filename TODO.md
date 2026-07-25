@@ -9,6 +9,7 @@ Checklist aligned with [PLAN.md](PLAN.md). Check items off as they land.
 - [x] Backend Ruff + expanded regressions; runtime/dev dependency split; frontend debounce/pagination fixes
 - [x] CI for Ruff, PostgreSQL/Flyway integration tests, frontend lint/build, and production image build
 - [x] Direct-dependency `requirements.txt` (FastAPI 0.139, yt-dlp 2026.7, sqlacodegen 4, …)
+- [x] Paced full-catalog backfill for new channels with retry/fair rotation and live updater status
 - [x] Dev Container (Python 3.12 + Postgres 18 + Flyway)
 - [x] Keep development and production Compose stacks separate
 - [x] `AGENTS.md` / `PLAN.md` / README / NOTE refresh
@@ -79,6 +80,7 @@ Checklist aligned with [PLAN.md](PLAN.md). Check items off as they land.
 - [x] Tailwind + shadcn/ui (input, button, skeleton)
 - [x] Search + song detail + channel/video browse
 - [x] Debounced search, loading/empty/error, pagination
+- [x] Live updater status route/page with cooldown and redacted error reporting
 - [x] Dev proxy / `VITE_API_BASE_URL` + docs
 
 ## Out of scope for now

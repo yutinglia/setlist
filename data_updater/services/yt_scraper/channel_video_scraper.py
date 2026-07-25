@@ -22,6 +22,9 @@ class ChannelVideoPageResult:
     raw_entry_count: int
     # True when every tab returned fewer than ``page_size`` raw entries.
     exhausted: bool
+    # Cursor movement is safe only when every non-missing tab succeeded.
+    all_tabs_succeeded: bool
+    failed_tabs: tuple[str, ...]
     page_size: int
     playlist_start: int
     playlist_end: int
@@ -80,6 +83,15 @@ class YouTubeChannelVideoScraper:
             if parsed.scheme in {"http", "https"} and parsed.netloc:
                 return candidate
         return f"https://www.youtube.com/watch?v={video_id}"
+
+    @staticmethod
+    def _is_missing_channel_tab_error(exc: Exception, tab_url: str) -> bool:
+        """Recognize yt-dlp's expected error for a channel without a tab."""
+        tab_name = urlsplit(tab_url).path.rstrip("/").rsplit("/", 1)[-1].casefold()
+        if tab_name not in {"streams", "videos"}:
+            return False
+        expected = f"this channel does not have a {tab_name} tab"
+        return expected in str(exc).casefold()
 
     def get_channel_videos(self) -> list[YouTubeVideo]:
         """Scrape recent channel tab entries (optional ``max_videos`` / window)."""
@@ -163,6 +175,7 @@ class YouTubeChannelVideoScraper:
 
         all_raw: list[dict] = []
         successful_raw_counts: list[int] = []
+        failed_tabs: list[str] = []
 
         for tab_url in list_urls:
             entries, raw_count, ok = self._extract_tab_entries(
@@ -172,6 +185,7 @@ class YouTubeChannelVideoScraper:
                 use_match_filter=False,
             )
             if not ok:
+                failed_tabs.append(tab_url)
                 continue
             successful_raw_counts.append(raw_count)
             all_raw.extend(entries)
@@ -190,12 +204,15 @@ class YouTubeChannelVideoScraper:
         video_models = self._entries_to_models(filtered)
         self.videos = video_models
 
-        exhausted = bool(successful_raw_counts) and all(
-            count < page_size for count in successful_raw_counts
+        all_tabs_succeeded = not failed_tabs
+        exhausted = (
+            all_tabs_succeeded
+            and bool(successful_raw_counts)
+            and all(count < page_size for count in successful_raw_counts)
         )
         logger.info(
             "Backfill page %s-%s for %s: raw=%s kept=%s exhausted=%s "
-            "(tab_raw=%s)",
+            "(tab_raw=%s failed_tabs=%s)",
             playlist_start,
             playlist_end,
             self.channel_url,
@@ -203,11 +220,14 @@ class YouTubeChannelVideoScraper:
             len(video_models),
             exhausted,
             successful_raw_counts,
+            len(failed_tabs),
         )
         return ChannelVideoPageResult(
             videos=video_models,
             raw_entry_count=sum(successful_raw_counts),
             exhausted=exhausted,
+            all_tabs_succeeded=all_tabs_succeeded,
+            failed_tabs=tuple(failed_tabs),
             page_size=page_size,
             playlist_start=playlist_start,
             playlist_end=playlist_end,
@@ -249,6 +269,9 @@ class YouTubeChannelVideoScraper:
                 info = ydl.extract_info(tab_url, download=False)
         except Exception as exc:
             raise_if_block_error(exc)
+            if self._is_missing_channel_tab_error(exc, tab_url):
+                logger.info("Channel has no %s tab; treating it as empty", tab_url)
+                return [], 0, True
             logger.exception("Failed scraping tab %s", tab_url)
             return [], 0, False
 
@@ -258,15 +281,21 @@ class YouTubeChannelVideoScraper:
 
         entries = info.get("entries", []) or []
         flat: list[dict] = []
+        raw_count = 0
         for entry in entries:
             if not isinstance(entry, dict):
+                # Unavailable/deleted playlist slots still count toward the
+                # requested page window and must not signal early exhaustion.
+                raw_count += 1
                 continue
             if "entries" in entry:
                 sub_entries = entry.get("entries", []) or []
+                raw_count += len(sub_entries)
                 flat.extend([v for v in sub_entries if isinstance(v, dict)])
             else:
+                raw_count += 1
                 flat.append(entry)
-        return flat, len(flat), True
+        return flat, raw_count, True
 
     def _entries_to_models(self, all_videos: list[dict]) -> list[YouTubeVideo]:
         # for safety, remove duplicates based on video ID

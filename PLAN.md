@@ -12,7 +12,7 @@ Turn the current scaffold into a working **data pipeline** that scrapes VTuber k
 | yt-dlp scrapers (channel / videos / comments) | Done, used by DataUpdater |
 | Comment → song-list heuristics | Done (`video_id` required; unit tests) |
 | Repositories | Read + upsert / `replace_for_video` (updater-owned commits) |
-| `DataUpdater.update()` | Wired (scrape → analyze → persist) + Tier B pacing |
+| `DataUpdater.update()` | Wired (scrape → analyze → persist) + Tier B pacing + resumable new-channel backfill |
 | Search / UI | Search API + Phase 5 extraction + Phase 6 search UI MVP |
 
 | Requirements (`data_updater/requirements.txt`) | Direct deps updated (Jul 2026) |
@@ -198,6 +198,7 @@ Defer LLM until regex path is useful.
 - [x] TanStack Router + TanStack Query + Zustand (UI prefs) + Paraglide (`en` / `zh-hant`) + Tailwind + shadcn/ui
 - [x] Search page → `GET /v1/songs/search` with debounce, pagination, deep links
 - [x] Song detail + channel → videos → video songs browse
+- [x] Live updater status page → `GET /v1/updater/status`
 - [x] Dev proxy / `VITE_API_BASE_URL` + CORS notes (`APP_ENV=dev` or `CORS_ORIGINS`)
 
 **Still out of scope:** auth, multi-user, public deploy hardening, Flyway→Alembic / Poetry/uv rewrite, Celery/RQ, Tier C proxies/cookies.

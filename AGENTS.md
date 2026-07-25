@@ -91,7 +91,9 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
 - **Repositories do not commit.** `DataUpdater` owns `session.commit()` / `rollback()` (commit per channel in Phase 2). Read-only search routes open a session via `deps.get_session` and do not commit.
 - **Song setlist writes** use `SongRepository.replace_for_video` (delete all songs for that video, then insert) so re-analysis can shrink the list cleanly. **Conflict policy:** last successful analysis wins (no merge). Within one extract, duplicates keyed by `(timestamp, casefold(title))` are dropped (first kept).
 - **Video list upserts** only refresh metadata columns; analysis fields are updated via `VideoRepository.update_analysis` (includes optional LLM cleaning columns when used).
+- **New-channel video backfill** is cursor-based and paced. Failed/partial tab pages keep the same offset and retry; active channels rotate by oldest attempt time so one channel cannot starve the rest.
 - **Search deep links** use `utils.youtube_timestamp.youtube_url_with_timestamp` (`mm:ss` / `hh:mm:ss` → `&t=Ns`).
+- **Updater status** is process-local at `GET /v1/updater/status`; keep public error text redacted and detailed exceptions in server logs.
 - **Setlist comment choice** prefers pinned, then uploader, then denser timestamps / likes (`CommentAnalyzer`).
 - **Optional LLM cleaning** is behind `LLM_CLEANING_ENABLED` (default off); uses schema columns `cleaning_attempts`, `cleaned_song_list_comment`, `analyzed_by_llm`. Regex extract remains primary.
 - **Frontend server cache** = TanStack Query; Zustand is for UI prefs only (locale, recent searches).

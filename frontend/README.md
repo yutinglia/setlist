@@ -63,3 +63,4 @@ API. Refresh is non-destructive and preserves existing videos and setlists.
 | `/channels` | `GET /v1/channels` |
 | `/channels/$channelId` | `GET /v1/channels/{id}/videos` |
 | `/videos/$videoId` | `GET /v1/videos/{id}/songs` |
+| `/status` | `GET /v1/updater/status` |

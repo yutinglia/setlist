@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import (
+    BACKGROUND_UPDATER_ENABLED,
     LLM_API_KEY,
     LLM_CLEANING_ENABLED,
     LLM_MAX_CLEANING_ATTEMPTS,
@@ -165,6 +166,7 @@ class DataUpdater:
                 clear_video=True,
             )
             channels = await self.channel_repo.get_all()
+            channels = self._prioritize_backfill_channels(channels)
             logger.info("Fetched %s channels from the database.", len(channels))
 
             for channel in channels:
@@ -176,8 +178,7 @@ class DataUpdater:
                     updater_status.set(
                         UpdaterPhase.COOLDOWN,
                         detail=(
-                            f"YouTube cooldown mid-cycle "
-                            f"({remaining:.0f}s remaining)"
+                            f"YouTube cooldown mid-cycle ({remaining:.0f}s remaining)"
                         ),
                         clear_channel=True,
                         clear_video=True,
@@ -204,23 +205,25 @@ class DataUpdater:
                     self.set_youtube_cooldown()
                     updater_status.set(
                         UpdaterPhase.COOLDOWN,
-                        detail=f"YouTube blocked: {exc}",
+                        detail="YouTube temporarily blocked scraper requests",
                         channel_id=channel.id,
                         channel_name=channel.name,
-                        last_error=str(exc),
+                        last_error="YouTube access was temporarily blocked",
                     )
                     break
-                except Exception as exc:
+                except Exception:
                     await self.session.rollback()
                     logger.exception(
                         "Non-block failure for channel %s; continuing", channel.id
                     )
                     updater_status.set(
                         UpdaterPhase.ERROR,
-                        detail=f"Channel error (continuing): {exc}",
+                        detail=(
+                            "Channel processing failed; continuing with next channel"
+                        ),
                         channel_id=channel.id,
                         channel_name=channel.name,
-                        last_error=str(exc),
+                        last_error="A channel update failed",
                     )
             remaining = self.youtube_cooldown_remaining()
             if remaining > 0:
@@ -230,10 +233,38 @@ class DataUpdater:
                 )
             else:
                 updater_status.end_cycle()
-        except Exception as exc:
+        except Exception:
             await self.session.rollback()
-            updater_status.end_cycle(error=str(exc))
+            updater_status.end_cycle(error="The update cycle failed")
             raise
+
+    @staticmethod
+    def _prioritize_backfill_channels(
+        channels: list[YouTubeChannel],
+    ) -> list[YouTubeChannel]:
+        """Round-robin active backfills by their oldest persisted attempt time."""
+        active = [
+            channel
+            for channel in channels
+            if channel.video_backfill_status in VIDEO_BACKFILL_ACTIVE
+        ]
+
+        def _oldest_attempt_key(
+            channel: YouTubeChannel,
+        ) -> tuple[bool, str, str, str]:
+            scheduled_at = channel.video_backfill_updated_at or channel.created_at
+            return (
+                scheduled_at is not None,
+                scheduled_at.isoformat() if scheduled_at is not None else "",
+                channel.name.casefold(),
+                channel.id,
+            )
+
+        active.sort(key=_oldest_attempt_key)
+        active_ids = {channel.id for channel in active}
+        return active + [
+            channel for channel in channels if channel.id not in active_ids
+        ]
 
     async def refresh_channel_video_list(
         self, channel: YouTubeChannel
@@ -245,9 +276,36 @@ class DataUpdater:
                 # visible; otherwise the periodic updater can race this session.
                 await self.session.commit()
                 return result
+            except asyncio.CancelledError:
+                await self.session.rollback()
+                updater_status.set(
+                    self._manual_operation_resting_phase(),
+                    detail="Manual video refresh was cancelled",
+                    clear_channel=True,
+                    clear_video=True,
+                )
+                raise
+            except YouTubeAccessBlocked:
+                await self.session.rollback()
+                raise
+            except Exception:
+                await self.session.rollback()
+                updater_status.set(
+                    UpdaterPhase.ERROR,
+                    detail=f"Could not refresh video metadata for {channel.name}",
+                    channel_id=channel.id,
+                    channel_name=channel.name,
+                    clear_video=True,
+                    last_error="A manual video metadata refresh failed",
+                )
+                raise
             except BaseException:
                 await self.session.rollback()
                 raise
+
+    @staticmethod
+    def _manual_operation_resting_phase() -> UpdaterPhase:
+        return UpdaterPhase.WAITING if BACKGROUND_UPDATER_ENABLED else UpdaterPhase.IDLE
 
     async def _refresh_channel_video_list_without_lock(
         self, channel: YouTubeChannel
@@ -262,6 +320,13 @@ class DataUpdater:
         """
         remaining = self.youtube_cooldown_remaining()
         if remaining > 0:
+            updater_status.set(
+                UpdaterPhase.COOLDOWN,
+                detail=f"YouTube cooldown active ({remaining:.0f}s remaining)",
+                channel_id=channel.id,
+                channel_name=channel.name,
+                clear_video=True,
+            )
             raise YouTubeAccessBlocked(
                 f"YouTube cooldown active ({remaining:.0f}s remaining)"
             )
@@ -272,6 +337,7 @@ class DataUpdater:
             channel_id=channel.id,
             channel_name=channel.name,
             clear_video=True,
+            clear_error=True,
         )
 
         try:
@@ -285,6 +351,16 @@ class DataUpdater:
                 channel_name=channel.name,
             )
             raise
+        except Exception:
+            updater_status.set(
+                UpdaterPhase.ERROR,
+                detail=f"Could not refresh video metadata for {channel.name}",
+                channel_id=channel.id,
+                channel_name=channel.name,
+                clear_video=True,
+                last_error="A manual video metadata refresh failed",
+            )
+            raise
 
         videos = await self.video_repo.upsert_many(scraped)
         scraped_count = len(videos)
@@ -295,7 +371,7 @@ class DataUpdater:
             scraped_count,
         )
         updater_status.set(
-            UpdaterPhase.WAITING,
+            self._manual_operation_resting_phase(),
             detail=f"Safe metadata refresh finished for {channel.name}",
             channel_id=channel.id,
             channel_name=channel.name,
@@ -337,10 +413,7 @@ class DataUpdater:
 
         backfill_active = channel.video_backfill_status in VIDEO_BACKFILL_ACTIVE
         if backfill_active:
-            if (
-                self._backfill_channels_this_cycle
-                >= UPDATE_BACKFILL_CHANNELS_PER_CYCLE
-            ):
+            if self._backfill_channels_this_cycle >= UPDATE_BACKFILL_CHANNELS_PER_CYCLE:
                 logger.info(
                     "Backfill channel cap reached (%s); "
                     "deferring video backfill for %s",
@@ -348,6 +421,8 @@ class DataUpdater:
                     channel.id,
                 )
             else:
+                if self._backfill_channels_this_cycle > 0:
+                    await self._jitter_sleep()
                 await self._backfill_channel_video_page(channel)
                 self._backfill_channels_this_cycle += 1
                 # Reload cursor/status after backfill write.
@@ -421,18 +496,18 @@ class DataUpdater:
                 await self._analyze_video(video)
             except YouTubeAccessBlocked:
                 raise
-            except Exception as exc:
+            except Exception:
                 logger.exception(
                     "Non-block failure analyzing video %s; continuing", video.id
                 )
                 updater_status.set(
                     UpdaterPhase.ERROR,
-                    detail=f"Analyze error (continuing): {exc}",
+                    detail="Video analysis failed; continuing with the next video",
                     channel_id=channel.id,
                     channel_name=channel.name,
                     video_id=video.id,
                     video_title=video.title,
-                    last_error=str(exc),
+                    last_error="A video analysis failed",
                 )
 
     async def _backfill_channel_video_page(self, channel: YouTubeChannel) -> None:
@@ -461,7 +536,7 @@ class DataUpdater:
         except Exception as exc:
             raise_if_block_error(exc)
             logger.exception(
-                "Backfill page failed for channel %s; marking failed", channel.id
+                "Backfill page failed for channel %s; scheduling retry", channel.id
             )
             await self.channel_repo.update_video_backfill(
                 channel.id,
@@ -470,21 +545,23 @@ class DataUpdater:
             )
             updater_status.set(
                 UpdaterPhase.ERROR,
-                detail=f"Video backfill failed: {exc}",
+                detail="Video history backfill failed and will be retried",
                 channel_id=channel.id,
                 channel_name=channel.name,
-                last_error=str(exc),
+                last_error="A video history backfill page failed",
             )
             return
 
         # Prefer recent uploads across Streams + Videos; empty dates sort last.
         scraped_sorted = sorted(
             page.videos,
-            key=lambda v: v.upload_date
-            or upload_date_from_entry(
-                v.raw_data if isinstance(v.raw_data, dict) else None
-            )
-            or "",
+            key=lambda v: (
+                v.upload_date
+                or upload_date_from_entry(
+                    v.raw_data if isinstance(v.raw_data, dict) else None
+                )
+                or ""
+            ),
             reverse=True,
         )
         persisted = [
@@ -494,12 +571,37 @@ class DataUpdater:
             video.channel_id = channel.id
 
         upserted = await self.video_repo.upsert_many(persisted) if persisted else []
+        if not page.all_tabs_succeeded:
+            # Saving the usable rows is safe, but advancing would permanently
+            # skip the failed tab's current window.
+            await self.channel_repo.update_video_backfill(
+                channel.id,
+                status=VIDEO_BACKFILL_FAILED,
+                offset=offset,
+            )
+            logger.warning(
+                "Channel %s video backfill partially failed at offset=%s; "
+                "kept=%s raw=%s failed_tabs=%s; scheduling retry",
+                channel.id,
+                offset,
+                len(upserted),
+                page.raw_entry_count,
+                len(page.failed_tabs),
+            )
+            updater_status.set(
+                UpdaterPhase.ERROR,
+                detail="Part of the video history page failed and will be retried",
+                channel_id=channel.id,
+                channel_name=channel.name,
+                last_error="A channel tab failed during video history backfill",
+            )
+            return
+
         if page.exhausted:
             next_status = VIDEO_BACKFILL_DONE
             next_offset = offset
             logger.info(
-                "Channel %s video backfill done at offset=%s "
-                "(page kept=%s raw=%s)",
+                "Channel %s video backfill done at offset=%s (page kept=%s raw=%s)",
                 channel.id,
                 offset,
                 len(upserted),
@@ -509,8 +611,7 @@ class DataUpdater:
             next_status = VIDEO_BACKFILL_RUNNING
             next_offset = offset + page_size
             logger.info(
-                "Channel %s video backfill page offset=%s -> %s "
-                "(kept=%s raw=%s)",
+                "Channel %s video backfill page offset=%s -> %s (kept=%s raw=%s)",
                 channel.id,
                 offset,
                 next_offset,

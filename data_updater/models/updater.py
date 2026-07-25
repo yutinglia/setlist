@@ -1,7 +1,6 @@
 """DTO for live scraper/analyzer status."""
 
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -16,22 +15,25 @@ class UpdaterStatusResponse(BaseModel):
             "scraping_comments, analyzing, llm_cleaning, jitter, committing, error"
         )
     )
-    detail: Optional[str] = Field(
+    detail: str | None = Field(
         default=None, description="Human-readable description of current work"
     )
-    channel_id: Optional[str] = None
-    channel_name: Optional[str] = None
-    video_id: Optional[str] = None
-    video_title: Optional[str] = None
-    cycle_started_at: Optional[datetime] = None
-    last_cycle_finished_at: Optional[datetime] = None
-    last_error: Optional[str] = None
+    channel_id: str | None = None
+    channel_name: str | None = None
+    video_id: str | None = None
+    video_title: str | None = None
+    cycle_started_at: datetime | None = None
+    last_cycle_finished_at: datetime | None = None
+    last_error: str | None = None
     comment_scrapes_this_cycle: int = Field(ge=0)
     comment_scrape_cap: int = Field(
         ge=0, description="UPDATE_MAX_COMMENT_SCRAPES for this process"
     )
     is_cycle_active: bool = Field(
-        description="True while an update cycle (or manual refresh) is running"
+        description="True while a periodic background update cycle is running"
+    )
+    background_updater_enabled: bool = Field(
+        description="Whether the periodic updater is enabled for this process"
     )
     youtube_cooldown_remaining_seconds: float = Field(
         ge=0, description="Seconds left on YouTube block cooldown, or 0"
@@ -39,6 +41,6 @@ class UpdaterStatusResponse(BaseModel):
     update_interval_seconds: int = Field(
         ge=0, description="Seconds between update cycles (DATA_UPDATE_INTERVAL)"
     )
-    updated_at: Optional[datetime] = Field(
+    updated_at: datetime | None = Field(
         default=None, description="When this status snapshot was last mutated"
     )

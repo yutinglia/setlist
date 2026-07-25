@@ -13,7 +13,7 @@ VIDEO_BACKFILL_DONE: VideoBackfillStatus = "done"
 VIDEO_BACKFILL_FAILED: VideoBackfillStatus = "failed"
 
 VIDEO_BACKFILL_ACTIVE: frozenset[str] = frozenset(
-    {VIDEO_BACKFILL_PENDING, VIDEO_BACKFILL_RUNNING}
+    {VIDEO_BACKFILL_PENDING, VIDEO_BACKFILL_RUNNING, VIDEO_BACKFILL_FAILED}
 )
 
 
@@ -44,7 +44,7 @@ class YouTubeChannel(BaseModel):
     video_backfill_status: VideoBackfillStatus = Field(
         default=VIDEO_BACKFILL_DONE,
         description=(
-            "pending/running = paced full-catalog ingest; "
+            "pending/running/failed = paced full-catalog ingest or retry; "
             "done = recent-only refresh"
         ),
     )

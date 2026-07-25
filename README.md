@@ -35,7 +35,9 @@ npm run dev
 | URL | Purpose |
 |-----|---------|
 | http://localhost:5173 | Search UI |
+| http://localhost:5173/status | Live updater status |
 | http://localhost:8000/v1/health | Health check |
+| http://localhost:8000/v1/updater/status | Process-local updater status |
 | http://localhost:8000/v1/songs/search?q=... | Search songs by title |
 | http://localhost:8000/docs | OpenAPI (when `APP_ENV=dev`) |
 
@@ -72,6 +74,7 @@ Brand name in the UI: **Setlist** (`vtuber-karaoke-search`). Locales: English + 
 
 - Debounced song search with pagination and YouTube `&t=` deep links
 - Song detail, channel list → videos → video songs
+- Live updater phase, channel/video context, cooldown, and last-error status
 - Dev-only channel management; metadata refresh preserves existing setlists
 - Vite proxies `/v1` to `http://127.0.0.1:8000` in dev; or set `VITE_API_BASE_URL`
 - Use `APP_ENV=dev` for loose CORS, or set `CORS_ORIGINS` to the Vite origin (e.g. `http://localhost:5173`) in prod
@@ -88,6 +91,7 @@ List/search endpoints accept `limit` (1–100, default 20) and `offset`
 | GET | `/v1/channels` | Tracked channels |
 | GET | `/v1/channels/{id}/videos` | Videos for a channel |
 | GET | `/v1/videos/{id}/songs` | Songs for a video |
+| GET | `/v1/updater/status` | Process-local scraper/analyzer status; internal errors are redacted |
 | POST | `/v1/channels` | Trusted management mode only; add a validated YouTube channel |
 | POST | `/v1/channels/{id}/videos/refresh` | Trusted management mode only; safe metadata upsert |
 
@@ -144,10 +148,13 @@ docker compose -f docker-compose.dev.yml exec -T db \
 
 Then start the API from `data_updater/` with
 `BACKGROUND_UPDATER_ENABLED=true` (prefer `DATA_UPDATE_INTERVAL=1800`). One
-cycle refreshes every channel's recent metadata, analyzes up to
+cycle refreshes established channels' recent metadata, analyzes up to
 `UPDATE_MAX_COMMENT_SCRAPES` videos in total, and writes songs when a setlist
-comment is found. Logs show caps, jitter, and cooldown. After songs exist, try
-the UI or `GET /v1/songs/search?q=...`.
+comment is found. Newly added channels instead backfill their full Streams +
+Videos history in bounded pages. Failed or partially failed pages keep their
+cursor, retry automatically, and rotate fairly with other pending channels.
+Logs show caps, jitter, and cooldown. After songs exist, try the UI or
+`GET /v1/songs/search?q=...`.
 
 ### Tests
 

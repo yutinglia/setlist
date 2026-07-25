@@ -198,6 +198,14 @@ function StatusPage() {
                   }
                 />
                 <StatusField
+                  label={m.status_background_updater()}
+                  value={
+                    data.background_updater_enabled
+                      ? m.status_background_enabled()
+                      : m.status_background_disabled()
+                  }
+                />
+                <StatusField
                   label={m.status_cycle_started()}
                   value={formatWhen(data.cycle_started_at)}
                 />

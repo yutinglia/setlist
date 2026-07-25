@@ -8,16 +8,16 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Any, Optional
+from datetime import UTC, datetime
+from enum import StrEnum
+from typing import Any
 
 
 def _utc_now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
-class UpdaterPhase(str, Enum):
+class UpdaterPhase(StrEnum):
     IDLE = "idle"
     WAITING = "waiting"
     COOLDOWN = "cooldown"
@@ -38,17 +38,17 @@ class UpdaterPhase(str, Enum):
 @dataclass
 class _StatusState:
     phase: UpdaterPhase = UpdaterPhase.IDLE
-    detail: Optional[str] = None
-    channel_id: Optional[str] = None
-    channel_name: Optional[str] = None
-    video_id: Optional[str] = None
-    video_title: Optional[str] = None
-    cycle_started_at: Optional[datetime] = None
-    last_cycle_finished_at: Optional[datetime] = None
-    last_error: Optional[str] = None
+    detail: str | None = None
+    channel_id: str | None = None
+    channel_name: str | None = None
+    video_id: str | None = None
+    video_title: str | None = None
+    cycle_started_at: datetime | None = None
+    last_cycle_finished_at: datetime | None = None
+    last_error: str | None = None
     comment_scrapes_this_cycle: int = 0
     is_cycle_active: bool = False
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
 
 
 class UpdaterStatusTracker:
@@ -62,15 +62,15 @@ class UpdaterStatusTracker:
         self,
         phase: UpdaterPhase,
         *,
-        detail: Optional[str] = None,
-        channel_id: Optional[str] = None,
-        channel_name: Optional[str] = None,
-        video_id: Optional[str] = None,
-        video_title: Optional[str] = None,
-        comment_scrapes_this_cycle: Optional[int] = None,
+        detail: str | None = None,
+        channel_id: str | None = None,
+        channel_name: str | None = None,
+        video_id: str | None = None,
+        video_title: str | None = None,
+        comment_scrapes_this_cycle: int | None = None,
         clear_channel: bool = False,
         clear_video: bool = False,
-        last_error: Optional[str] = None,
+        last_error: str | None = None,
         clear_error: bool = False,
     ) -> None:
         with self._lock:
@@ -104,8 +104,9 @@ class UpdaterStatusTracker:
     def begin_cycle(self) -> None:
         with self._lock:
             s = self._state
+            now = _utc_now()
             s.is_cycle_active = True
-            s.cycle_started_at = _utc_now()
+            s.cycle_started_at = now
             s.comment_scrapes_this_cycle = 0
             s.phase = UpdaterPhase.STARTING
             s.detail = "Starting update cycle"
@@ -114,24 +115,26 @@ class UpdaterStatusTracker:
             s.video_id = None
             s.video_title = None
             s.last_error = None
-            s.updated_at = _utc_now()
+            s.updated_at = now
 
     def end_cycle(
         self,
         *,
-        error: Optional[str] = None,
-        phase: Optional[UpdaterPhase] = None,
-        detail: Optional[str] = None,
+        error: str | None = None,
+        phase: UpdaterPhase | None = None,
+        detail: str | None = None,
     ) -> None:
         with self._lock:
             s = self._state
+            now = _utc_now()
+            if s.is_cycle_active:
+                s.last_cycle_finished_at = now
             s.is_cycle_active = False
-            s.last_cycle_finished_at = _utc_now()
             s.channel_id = None
             s.channel_name = None
             s.video_id = None
             s.video_title = None
-            s.updated_at = _utc_now()
+            s.updated_at = now
             if error:
                 s.phase = phase or UpdaterPhase.ERROR
                 s.detail = detail or error
@@ -142,6 +145,23 @@ class UpdaterStatusTracker:
             else:
                 s.phase = UpdaterPhase.WAITING
                 s.detail = detail or "Waiting for next update cycle"
+
+    def stop(self, *, detail: str = "Updater stopped") -> None:
+        """Mark the updater inactive and close an active cycle if necessary."""
+        with self._lock:
+            s = self._state
+            now = _utc_now()
+            if s.is_cycle_active:
+                s.last_cycle_finished_at = now
+            s.phase = UpdaterPhase.IDLE
+            s.detail = detail
+            s.channel_id = None
+            s.channel_name = None
+            s.video_id = None
+            s.video_title = None
+            s.last_error = None
+            s.is_cycle_active = False
+            s.updated_at = now
 
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
