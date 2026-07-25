@@ -132,7 +132,7 @@ Copy [`.env.example`](.env.example) to `.env` and adjust. Do not commit a real `
 
 ## Seed karaoke channels
 
-After Postgres + Flyway are up, insert the sample channels (Suisei + Marine):
+After Postgres + Flyway are up, insert the sample channels (@UTANOch, @QuonTama, @Leona_Shishigami):
 
 ```bash
 docker compose -f docker-compose.dev.yml exec -T db \

@@ -1,4 +1,4 @@
--- Seed 1–2 known karaoke-friendly VTuber channels for manual Phase 2 testing.
+-- Seed karaoke-friendly VTuber channels for manual Phase 2 testing.
 -- Not a Flyway migration: run manually after migrations (see README).
 --
 -- Usage (works whether the dev DB is reached through Compose or Dev Container):
@@ -8,16 +8,23 @@
 INSERT INTO channels (id, name, url, thumbnail_url, raw_data)
 VALUES
     (
-        'UC5CwaMl1eIgY8h02uZw7u8A',
-        'Suisei Channel',
-        'https://www.youtube.com/channel/UC5CwaMl1eIgY8h02uZw7u8A/videos',
+        'UCNskpCCH661BeRJkN8n8d-A',
+        'UTANO ch. 白玖ウタノ',
+        'https://www.youtube.com/channel/UCNskpCCH661BeRJkN8n8d-A/videos',
         NULL,
         NULL
     ),
     (
-        'UCCzUftOSwRqkmn4C2LQLZLg',
-        'Marine Ch. 宝鐘マリン',
-        'https://www.youtube.com/channel/UCCzUftOSwRqkmn4C2LQLZLg/videos',
+        'UCBC7vYFNQoGPupe5NxPG4Bw',
+        'QuonTama Ch. 久遠たま',
+        'https://www.youtube.com/channel/UCBC7vYFNQoGPupe5NxPG4Bw/videos',
+        NULL,
+        NULL
+    ),
+    (
+        'UCB1s_IdO-r0nUkY2mXeti-A',
+        '獅子神レオナ/レオナちゃんねる',
+        'https://www.youtube.com/channel/UCB1s_IdO-r0nUkY2mXeti-A/videos',
         NULL,
         NULL
     )
