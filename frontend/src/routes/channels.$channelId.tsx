@@ -4,14 +4,19 @@ import { useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, Check, RefreshCw } from "lucide-react"
 
 import { api } from "@/api/client"
-import { PAGE_SIZE, useChannelVideos } from "@/api/hooks"
+import { useChannelVideos } from "@/api/hooks"
 import type { ChannelVideoRefresh } from "@/api/types"
 import { PaginationControls } from "@/components/pagination-controls"
 import { QueryState } from "@/components/query-state"
 import { Button } from "@/components/ui/button"
 import { VideoListBadges } from "@/components/video-list-badges"
 import { useClampPage } from "@/hooks/use-clamp-page"
-import { channelVideosSearchSchema } from "@/lib/search-schemas"
+import { CHANNEL_PAGE_SIZES } from "@/lib/pagination"
+import {
+  channelVideosSearchSchema,
+  resolveChannelPageSize,
+  toChannelVideosSearch,
+} from "@/lib/search-schemas"
 import {
   formatUploadDate,
   sortVideosByUploadDateDesc,
@@ -53,36 +58,46 @@ function setlistFilterToQuery(
 
 function ChannelVideosPage() {
   const { channelId } = Route.useParams()
-  const { page = 0, tab: tabParam, has_song_list: hasSongListParam } =
-    Route.useSearch()
+  const {
+    page = 0,
+    tab: tabParam,
+    has_song_list: hasSongListParam,
+    limit: limitParam,
+  } = Route.useSearch()
   const tab: ChannelTab = tabParam ?? "karaoke"
+  const pageSize = resolveChannelPageSize(limitParam)
   const setlistFilter =
     tab === "karaoke" ? setlistParamToFilter(hasSongListParam) : "all"
   const hasSongList = setlistFilterToQuery(setlistFilter)
   const videoType = TAB_TO_TYPE[tab]
   const navigate = Route.useNavigate()
   const queryClient = useQueryClient()
-  const query = useChannelVideos(channelId, page, videoType, hasSongList)
+  const query = useChannelVideos(
+    channelId,
+    page,
+    videoType,
+    hasSongList,
+    pageSize,
+  )
   const [reloadStatus, setReloadStatus] = useState<ReloadStatus>("idle")
   const [reloadDetail, setReloadDetail] = useState<string>("")
+
   const changePage = useCallback(
     (next: number) => {
       void navigate({
-        search: (prev) => ({
-          ...prev,
-          tab: tab === "karaoke" ? undefined : tab,
-          page: next || undefined,
+        search: toChannelVideosSearch({
+          tab,
+          page: next,
           has_song_list:
-            tab === "karaoke" && hasSongListParam
-              ? hasSongListParam
-              : undefined,
+            tab === "karaoke" ? hasSongListParam : undefined,
+          limit: pageSize,
         }),
         replace: true,
       })
     },
-    [navigate, tab, hasSongListParam],
+    [navigate, tab, hasSongListParam, pageSize],
   )
-  useClampPage(page, query.data?.total, PAGE_SIZE, changePage)
+  useClampPage(page, query.data?.total, pageSize, changePage)
 
   useEffect(() => {
     if (reloadStatus !== "done" && reloadStatus !== "error") return
@@ -95,22 +110,31 @@ function ChannelVideosPage() {
 
   function setTab(next: ChannelTab) {
     void navigate({
-      search: () => ({
-        tab: next === "karaoke" ? undefined : next,
-        page: undefined,
-        has_song_list: undefined,
+      search: toChannelVideosSearch({
+        tab: next,
+        limit: pageSize,
       }),
     })
   }
 
   function setSetlistFilter(next: SetlistFilter) {
     void navigate({
-      search: (prev) => ({
-        ...prev,
-        tab: undefined,
-        page: undefined,
+      search: toChannelVideosSearch({
+        tab: "karaoke",
         has_song_list:
           next === "yes" ? "true" : next === "no" ? "false" : undefined,
+        limit: pageSize,
+      }),
+    })
+  }
+
+  function setLimit(next: number) {
+    void navigate({
+      search: toChannelVideosSearch({
+        tab,
+        has_song_list:
+          tab === "karaoke" ? hasSongListParam : undefined,
+        limit: next,
       }),
     })
   }
@@ -325,9 +349,11 @@ function ChannelVideosPage() {
             <PaginationControls
               page={page}
               total={query.data.total}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
               disabled={isReloading}
               onPageChange={changePage}
+              pageSizeOptions={CHANNEL_PAGE_SIZES}
+              onPageSizeChange={setLimit}
             />
           ) : null}
         </QueryState>

@@ -36,6 +36,7 @@
   "pagination_nav_label": "分頁",
   "pagination_page": "第 {page} / {pages} 頁",
   "pagination_select_label": "選擇頁數",
+  "pagination_page_size_label": "每頁筆數",
   "open_youtube": "在 YouTube 開啟",
   "song_detail": "歌曲",
   "song_timestamp": "時間戳",

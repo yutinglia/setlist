@@ -36,6 +36,7 @@
   "pagination_nav_label": "Pagination",
   "pagination_page": "Page {page} of {pages}",
   "pagination_select_label": "Select page",
+  "pagination_page_size_label": "Rows per page",
   "open_youtube": "Open on YouTube",
   "song_detail": "Song",
   "song_timestamp": "Timestamp",

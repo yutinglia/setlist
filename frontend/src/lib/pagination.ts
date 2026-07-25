@@ -1,3 +1,9 @@
+export {
+  CHANNEL_PAGE_SIZES,
+  DEFAULT_CHANNEL_PAGE_SIZE,
+  type ChannelPageSize,
+} from "@/lib/search-schemas"
+
 /** Page index items for numbered pagination (0-based current page). */
 export type PageItem = number | "ellipsis"
 

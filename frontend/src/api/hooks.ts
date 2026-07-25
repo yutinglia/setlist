@@ -114,13 +114,22 @@ export function useChannelVideos(
   channelId: string,
   page: number,
   type: "karaoke" | "song",
-  hasSongList?: boolean,
+  hasSongList: boolean | undefined,
+  limit: number,
 ) {
-  const offset = page * PAGE_SIZE
+  const offset = page * limit
   return useQuery({
-    queryKey: ["channels", channelId, "videos", type, hasSongList ?? null, page],
+    queryKey: [
+      "channels",
+      channelId,
+      "videos",
+      type,
+      hasSongList ?? null,
+      page,
+      limit,
+    ],
     queryFn: () =>
-      api.listChannelVideos(channelId, PAGE_SIZE, offset, type, hasSongList),
+      api.listChannelVideos(channelId, limit, offset, type, hasSongList),
     enabled: channelId.length > 0,
     placeholderData: (prev) => prev,
   })
