@@ -16,21 +16,14 @@ Scrape VTuber karaoke streams, detect setlist comments (timestamp lists), store 
 
 1. Open this repo in Cursor or VS Code.
 2. **Dev Containers: Reopen in Container**.
-3. Compose starts Postgres, runs Flyway, and prepares the Python/Node toolchain.
-4. Run the API:
+3. Compose starts Postgres, runs Flyway, prepares the Python/Node toolchain,
+   and automatically starts the API and UI with hot reload.
+4. The editor forwards ports 8000 and 5173 to the host. Open
+   http://localhost:5173.
 
-```bash
-cd data_updater
-APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-5. Run the UI (Node 20+):
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
+Service logs are available inside the Dev Container at
+`/tmp/vtuber-karaoke-search-dev/backend.log` and
+`/tmp/vtuber-karaoke-search-dev/frontend.log`.
 
 | URL | Purpose |
 |-----|---------|

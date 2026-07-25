@@ -15,20 +15,19 @@ Python packages are baked into the development image. On first create,
 `node_modules` outside the Windows bind mount prevents host/container package
 and symlink conflicts.
 
-The container does not start application processes in lifecycle hooks. This
-keeps container startup deterministic and makes server output visible in the
-terminal that owns each process.
+The Dev Container automatically starts the API and UI after the container
+starts. Both processes use file watching, so backend and frontend edits reload
+without restarting the container. Ports 8000 and 5173 are forwarded to the
+host by `devcontainer.json`.
 
-## After attach
+## Services and logs
 
-Start the API and UI in separate terminals:
+The services run in the background. Their logs are available inside the
+container:
 
 ```bash
-# API (auto-reloads on Python changes)
-cd data_updater && APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-
-# UI
-cd frontend && npm run dev
+tail -f /tmp/vtuber-karaoke-search-dev/backend.log
+tail -f /tmp/vtuber-karaoke-search-dev/frontend.log
 ```
 
 | URL | Purpose |
