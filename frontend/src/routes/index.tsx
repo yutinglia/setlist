@@ -24,6 +24,7 @@ import {
 import { SearchForm } from "@/components/search-form"
 import { SongResultRow } from "@/components/song-result-row"
 import { useClampPage } from "@/hooks/use-clamp-page"
+import { formatInteger } from "@/lib/locale-format"
 import { songSearchSchema } from "@/lib/search-schemas"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
@@ -33,8 +34,6 @@ export const Route = createFileRoute("/")({
   validateSearch: songSearchSchema,
   component: SearchPage,
 })
-
-const integer = new Intl.NumberFormat()
 
 function SearchPage() {
   const {
@@ -111,7 +110,7 @@ function SearchPage() {
     <section className="flex flex-1 flex-col">
       <PageMetadata
         path="/"
-        title="Setlist — VTuber Karaoke Search"
+        title={m.meta_default_title()}
         description={m.home_intro()}
         noIndex={hasSearchState}
       />
@@ -221,7 +220,7 @@ function SearchPage() {
               </div>
               {query.data ? (
                 <p className="font-mono text-xs text-muted-foreground">
-                  {m.results_count({ total: integer.format(query.data.total) })}
+                  {m.results_count({ total: formatInteger(query.data.total) })}
                 </p>
               ) : null}
             </div>
@@ -311,7 +310,7 @@ function LibraryPanel({
                 {label}
               </dt>
               <dd className="font-display text-2xl font-bold tabular-nums">
-                {loading || value === undefined ? "—" : integer.format(value)}
+                {loading || value === undefined ? "—" : formatInteger(value)}
               </dd>
             </div>
           ))}

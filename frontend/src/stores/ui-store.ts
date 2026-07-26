@@ -24,7 +24,7 @@ type UiState = {
 }
 
 function isLocale(value: string): value is Locale {
-  return value === "en" || value === "zh-hant"
+  return value === "en" || value === "zh-hant" || value === "ja"
 }
 
 export const useUiStore = create<UiState>()(

@@ -14,7 +14,7 @@ setlist/
 │   ├── src/routes/        # TanStack Router pages (search, song, browse)
 │   ├── src/api/           # Typed fetch client + Query hooks
 │   ├── src/stores/        # Zustand UI prefs (locale, theme, recent searches)
-│   ├── messages/          # Paraglide en + zh-hant
+│   ├── messages/          # Paraglide en + zh-hant + ja
 │   └── README.md          # Frontend run / proxy notes
 ├── backend/               # FastAPI service (run cwd = this dir)
 │   ├── main.py            # App + background periodic updater
@@ -121,7 +121,7 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
 2. Per video → fetch top comments → `CommentAnalyzer` finds timestamp-heavy “song list” comments — **wired**
 3. Extract songs → persist; optional LLM cleaning of setlist text is gated by `LLM_CLEANING_ENABLED` and writes `cleaning_*` / `cleaned_song_list_comment` / `analyzed_by_llm`
 4. Search API — **wired** (`/v1/songs/search`, song/channel/video list endpoints)
-5. Search UI — **wired** (`frontend/` — search, song detail, channel/video browse, en/zh-hant)
+5. Search UI — **wired** (`frontend/` — search, song detail, channel/video browse, en/zh-hant/ja)
 6. Public-service controls — **wired** (single-admin auth, CSRF, guest/login
    limits, private status/admin mutations, legal/privacy pages)
 

@@ -197,8 +197,8 @@ function ChannelVideosPage() {
     <section className="animate-fade py-10 sm:py-14">
       <PageMetadata
         path={`/channels/${encodeURIComponent(channelId)}`}
-        title={`${channelId} karaoke archive | Setlist`}
-        description={`Browse indexed VTuber karaoke streams, song videos, and setlists from ${channelId}.`}
+        title={m.meta_channel_title({ channel: channelId })}
+        description={m.meta_channel_description({ channel: channelId })}
         noIndex={hasFilteredView || query.isError}
       />
       <Link

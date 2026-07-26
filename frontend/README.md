@@ -12,7 +12,7 @@ single-administrator operations.
 - TanStack Router + TanStack Query
 - Zod (route search-param schemas)
 - Zustand (locale, theme, and recent searches only)
-- Paraglide (`en` / `zh-hant`)
+- Paraglide (`en` / `zh-hant` / `ja`)
 - Tailwind CSS v4 + shadcn/ui
 
 TypeScript stays on the latest compatible 6.x release. Dependabot intentionally
@@ -74,6 +74,7 @@ status in the background.
 | `npm run build` | Typecheck + production build |
 | `npm run lint` | Oxlint static checks |
 | `npm run preview` | Preview production build |
+| `npm run check:i18n` | Verify locale keys and message placeholders stay in sync |
 | `npm run generate:i18n` | Recompile Paraglide from `messages/*.json` into `src/paraglide/` |
 | `npx @tanstack/router-cli generate` | Regenerate `src/routeTree.gen.ts` if needed |
 
@@ -118,9 +119,9 @@ Mutation requests use the CSRF token returned by the authenticated session.
 
 ## Localization
 
-Source messages live in `messages/en.json` and `messages/zh-hant.json`.
-`npm run generate:i18n` compiles them into `src/paraglide/`. Update both source
-files whenever user-visible copy changes.
+Source messages live in `messages/en.json`, `messages/zh-hant.json`, and
+`messages/ja.json`. `npm run generate:i18n` compiles them into
+`src/paraglide/`. Update all source files whenever user-visible copy changes.
 
 ## Public metadata
 

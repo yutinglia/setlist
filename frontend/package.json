@@ -1,15 +1,16 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "predev": "npm run generate:i18n",
+    "predev": "npm run check:i18n && npm run generate:i18n",
     "dev": "vite",
-    "build": "npm run generate:i18n && npm run generate:routes && tsc -b && vite build",
+    "build": "npm run check:i18n && npm run generate:i18n && npm run generate:routes && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "check:i18n": "node ./scripts/check-i18n-messages.mjs",
     "generate:notices": "node ../scripts/generate-frontend-third-party-notices.mjs",
     "generate:i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --strategy localStorage cookie preferredLanguage baseLocale --emit-ts-declarations --silent",
     "generate:routes": "tsr generate"

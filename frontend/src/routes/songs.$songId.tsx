@@ -25,11 +25,17 @@ function SongDetailPage() {
   const invalidId = !Number.isSafeInteger(id) || id <= 0
   const query = useSong(id)
   const metadataTitle = query.data
-    ? `${query.data.title} by ${query.data.channel_name} | Setlist`
-    : "Song performance | Setlist"
+    ? m.meta_song_title({
+        title: query.data.title,
+        channel: query.data.channel_name,
+      })
+    : m.meta_song_title_fallback()
   const metadataDescription = query.data
-    ? `Jump to ${query.data.title} in ${query.data.video_title ?? query.data.video_id} on YouTube.`
-    : "Open a song from a VTuber karaoke setlist at its exact YouTube timestamp."
+    ? m.meta_song_description({
+        title: query.data.title,
+        video: query.data.video_title ?? query.data.video_id,
+      })
+    : m.meta_song_description_fallback()
 
   return (
     <section className="animate-fade mx-auto w-full max-w-5xl py-10 sm:py-14">

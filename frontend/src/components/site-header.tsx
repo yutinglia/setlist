@@ -161,6 +161,7 @@ export function SiteHeader() {
               size="xs"
               variant={current === "en" ? "secondary" : "ghost"}
               onClick={() => setLocalePref("en")}
+              aria-pressed={current === "en"}
             >
               {m.locale_en()}
             </Button>
@@ -169,8 +170,18 @@ export function SiteHeader() {
               size="xs"
               variant={current === "zh-hant" ? "secondary" : "ghost"}
               onClick={() => setLocalePref("zh-hant")}
+              aria-pressed={current === "zh-hant"}
             >
               {m.locale_zh()}
+            </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant={current === "ja" ? "secondary" : "ghost"}
+              onClick={() => setLocalePref("ja")}
+              aria-pressed={current === "ja"}
+            >
+              {m.locale_ja()}
             </Button>
           </div>
         </div>

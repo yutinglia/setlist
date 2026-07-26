@@ -111,10 +111,10 @@ function VideoDetailPage() {
       : formattedUploadDate
   const metadataTitle = videoQuery.data
     ? `${videoQuery.data.title} | Setlist`
-    : "VTuber karaoke video | Setlist"
+    : m.meta_video_title_fallback()
   const metadataDescription = videoQuery.data
-    ? `Browse the indexed songs and timestamps for ${videoQuery.data.title}.`
-    : "Browse a VTuber karaoke video and jump to songs at exact YouTube timestamps."
+    ? m.meta_video_description({ title: videoQuery.data.title })
+    : m.meta_video_description_fallback()
 
   return (
     <section className="animate-fade py-10 sm:py-14">
@@ -311,7 +311,7 @@ function VideoDetailPage() {
                     />
                     <MetaRow
                       icon={Hash}
-                      label="YouTube ID"
+                      label={m.youtube_id_label()}
                       value={
                         <span className="break-all font-mono text-xs">
                           {videoId}
