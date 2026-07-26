@@ -1,10 +1,8 @@
 import { useEffect } from "react"
 
+import { currentIntlLocale } from "@/lib/locale-format"
 import { PUBLIC_SITE_URL } from "@/lib/public-config"
-
-const DEFAULT_TITLE = "Setlist — VTuber Karaoke Search"
-const DEFAULT_DESCRIPTION =
-  "Search VTuber karaoke setlists and jump straight to the exact performance on YouTube."
+import { m } from "@/paraglide/messages"
 
 type PageMetadataProps = {
   title?: string
@@ -19,50 +17,57 @@ function setMetaContent(selector: string, content: string) {
 }
 
 export function PageMetadata({
-  title = DEFAULT_TITLE,
-  description = DEFAULT_DESCRIPTION,
+  title,
+  description,
   path,
   noIndex = false,
 }: PageMetadataProps) {
+  const resolvedTitle = title ?? m.meta_default_title()
+  const resolvedDescription = description ?? m.meta_default_description()
+
   useEffect(() => {
     const canonicalUrl = new URL(path, `${PUBLIC_SITE_URL}/`).toString()
     const canonical = document.querySelector<HTMLLinkElement>(
       'link[rel="canonical"]',
     )
+    const ogLocale = currentIntlLocale().replace("-", "_")
 
-    document.title = title
+    document.title = resolvedTitle
     canonical?.setAttribute("href", canonicalUrl)
-    setMetaContent('meta[name="description"]', description)
+    setMetaContent('meta[name="description"]', resolvedDescription)
     setMetaContent(
       'meta[name="robots"]',
       noIndex
         ? "noindex,follow"
         : "index,follow,max-image-preview:large",
     )
-    setMetaContent('meta[property="og:title"]', title)
-    setMetaContent('meta[property="og:description"]', description)
+    setMetaContent('meta[property="og:locale"]', ogLocale)
+    setMetaContent('meta[property="og:title"]', resolvedTitle)
+    setMetaContent('meta[property="og:description"]', resolvedDescription)
     setMetaContent('meta[property="og:url"]', canonicalUrl)
-    setMetaContent('meta[name="twitter:title"]', title)
-    setMetaContent('meta[name="twitter:description"]', description)
+    setMetaContent('meta[name="twitter:title"]', resolvedTitle)
+    setMetaContent('meta[name="twitter:description"]', resolvedDescription)
 
     return () => {
-      document.title = DEFAULT_TITLE
+      const defaultTitle = m.meta_default_title()
+      const defaultDescription = m.meta_default_description()
+      document.title = defaultTitle
       canonical?.setAttribute("href", `${PUBLIC_SITE_URL}/`)
-      setMetaContent('meta[name="description"]', DEFAULT_DESCRIPTION)
+      setMetaContent('meta[name="description"]', defaultDescription)
       setMetaContent(
         'meta[name="robots"]',
         "index,follow,max-image-preview:large",
       )
-      setMetaContent('meta[property="og:title"]', DEFAULT_TITLE)
-      setMetaContent('meta[property="og:description"]', DEFAULT_DESCRIPTION)
+      setMetaContent('meta[property="og:title"]', defaultTitle)
+      setMetaContent('meta[property="og:description"]', defaultDescription)
       setMetaContent('meta[property="og:url"]', `${PUBLIC_SITE_URL}/`)
-      setMetaContent('meta[name="twitter:title"]', DEFAULT_TITLE)
+      setMetaContent('meta[name="twitter:title"]', defaultTitle)
       setMetaContent(
         'meta[name="twitter:description"]',
-        DEFAULT_DESCRIPTION,
+        defaultDescription,
       )
     }
-  }, [description, noIndex, path, title])
+  }, [noIndex, path, resolvedDescription, resolvedTitle])
 
   return null
 }

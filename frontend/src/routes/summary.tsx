@@ -17,6 +17,7 @@ import {
 import { useSummaryReport } from "@/api/hooks"
 import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
+import { formatDateTime, formatInteger } from "@/lib/locale-format"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
 
@@ -24,14 +25,12 @@ export const Route = createFileRoute("/summary")({
   component: SummaryPage,
 })
 
-const integer = new Intl.NumberFormat()
-
 function formatWhen(iso: string | null): string {
   if (!iso) return m.summary_never()
   const date = new Date(
     iso.endsWith("Z") || iso.includes("+") ? iso : `${iso}Z`,
   )
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString()
+  return Number.isNaN(date.getTime()) ? iso : formatDateTime(date)
 }
 
 function percentage(value: number, total: number): number {
@@ -189,32 +188,32 @@ function SummaryPage() {
                   <dl className="mt-5 space-y-3 border-t border-border/60 pt-4">
                     <DetailRow
                       label={m.summary_comment_snapshots()}
-                      value={integer.format(data.analysis.videos_with_comments)}
+                      value={formatInteger(data.analysis.videos_with_comments)}
                     />
                     <DetailRow
                       label={m.summary_list_snapshots()}
-                      value={integer.format(data.videos.with_list_snapshot)}
+                      value={formatInteger(data.videos.with_list_snapshot)}
                     />
                     <DetailRow
                       label={m.summary_metadata_snapshots()}
-                      value={integer.format(data.videos.with_metadata_snapshot)}
+                      value={formatInteger(data.videos.with_metadata_snapshot)}
                     />
                     <DetailRow
                       label={m.summary_date_exact()}
-                      value={integer.format(data.videos.date_exact)}
+                      value={formatInteger(data.videos.date_exact)}
                     />
                     <DetailRow
                       label={m.summary_date_approximate()}
-                      value={integer.format(data.videos.date_approximate)}
+                      value={formatInteger(data.videos.date_approximate)}
                     />
                     <DetailRow
                       label={m.summary_date_unknown()}
-                      value={integer.format(data.videos.date_unknown)}
+                      value={formatInteger(data.videos.date_unknown)}
                       warning={data.videos.date_unknown > 0}
                     />
                     <DetailRow
                       label={m.summary_llm_songs()}
-                      value={integer.format(data.songs.analyzed_by_llm)}
+                      value={formatInteger(data.songs.analyzed_by_llm)}
                     />
                   </dl>
                 </ReportSection>
@@ -268,7 +267,7 @@ function MetricCard({
         aria-hidden
       />
       <p className="mt-5 font-display text-3xl font-bold tabular-nums">
-        {integer.format(value)}
+        {formatInteger(value)}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">{label}</p>
     </div>
@@ -315,7 +314,7 @@ function ProgressRow({
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span>{label}</span>
         <span className="font-mono text-xs tabular-nums text-muted-foreground">
-          {integer.format(value)} / {integer.format(total)} · {percent}%
+          {formatInteger(value)} / {formatInteger(total)} · {percent}%
         </span>
       </div>
       <div
@@ -348,7 +347,7 @@ function CountRows({
         <DetailRow
           key={label}
           label={label}
-          value={integer.format(value)}
+          value={formatInteger(value)}
           warning={warnLast && index === rows.length - 1}
         />
       ))}

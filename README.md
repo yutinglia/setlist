@@ -9,10 +9,10 @@ streams. It discovers public YouTube archives, finds timestamped setlist
 comments, extracts song titles, and turns them into searchable links that jump
 to the right moment in the original video.
 
-The project is under rapid development and is designed for a small public
-homelab deployment. Guests can search and browse. A single administrator can
-sign in to manage channels, refresh metadata, reload a video's song list, and
-view live updater status.
+Setlist is maintained as a personal homelab project and is designed for a small
+public deployment. Focused contributions are welcome. Guests can search and
+browse. A single administrator can sign in to manage channels, refresh
+metadata, reload a video's song list, and view live updater status.
 
 > Automated metadata can be incomplete or wrong. Setlist is an independent
 > index, does not host video or audio, and is not affiliated with YouTube,
@@ -23,7 +23,7 @@ view live updater status.
 - Fast, paginated song search with channel, content type, and date filters
 - YouTube deep links that open directly at each song's timestamp
 - Channel, video, song-detail, and database-summary browsing
-- English and Traditional Chinese UI
+- English, Traditional Chinese, and Japanese UI
 - Pinned/uploader-aware setlist extraction with parsed-song scoring, mixed
   setlist/chapter boundaries, and several timestamp formats
 - Durable full-channel backfill and conservative ongoing discovery
@@ -233,6 +233,9 @@ Ordinary source builds display the tracked version (and add a short commit SHA
 when Git metadata is available). Release images display the clean semantic
 version. Branch pushes and pull requests run CI but cannot publish a release or
 deploy production.
+
+See [Release verification](docs/RELEASE_VERIFICATION.md) for the repeatable
+pre-tag, image attestation, and post-release verification checklist.
 
 ### Deployment security checklist
 
@@ -487,9 +490,8 @@ setlist/
 
 Phases 0–9 are implemented: pipeline, extraction, search API/UI, scheduler
 hardening, authentication, guest limits, public-service pages, deployment
-hardening, public documentation, and updater crash safety/observability. Rapid
-development continues, so database and API compatibility are not guaranteed
-yet.
+hardening, public documentation, and updater crash safety/observability. Until
+version 1.0.0, database and API compatibility may change between releases.
 
 Before opening a pull request, read [CONTRIBUTING.md](CONTRIBUTING.md),
 [AGENTS.md](AGENTS.md), and [PLAN.md](PLAN.md).

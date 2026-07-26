@@ -219,7 +219,7 @@ Defer LLM until regex path is useful.
 ## Phase 6 — Search UI (MVP)
 
 - [x] React (Vite + TypeScript) app under `frontend/`
-- [x] TanStack Router + TanStack Query + Zustand (UI prefs) + Paraglide (`en` / `zh-hant`) + Tailwind + shadcn/ui
+- [x] TanStack Router + TanStack Query + Zustand (UI prefs) + Paraglide (`en` / `zh-hant` / `ja`) + Tailwind + shadcn/ui
 - [x] Search page → `GET /v1/songs/search` with debounce, pagination, deep links, advanced filters (channel / type / date)
 - [x] Song detail + channel → videos → video songs browse
 - [x] Administrator-only live updater status page →

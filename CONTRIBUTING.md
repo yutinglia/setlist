@@ -1,7 +1,8 @@
 # Contributing
 
-Thank you for helping improve Setlist. The project is under rapid development,
-so focused changes with clear tests are easier to review than broad rewrites.
+Thank you for helping improve Setlist. It is maintained as a personal homelab
+project, and focused changes with clear tests are easier to review than broad
+rewrites.
 
 Start with [README.md](README.md) (or
 [README.zh-Hant.md](README.zh-Hant.md)), then read [AGENTS.md](AGENTS.md) for
@@ -73,7 +74,7 @@ A useful pull request:
 - explains the user-visible outcome and why it is needed;
 - stays focused on one concern;
 - includes tests for behavior changes;
-- updates English and Traditional Chinese UI copy together;
+- updates English, Traditional Chinese, and Japanese UI copy together;
 - updates relevant Markdown and environment samples;
 - calls out schema, configuration, or deployment changes;
 - contains no generated caches, local databases, `.env`, or credentials.

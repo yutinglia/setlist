@@ -8,6 +8,7 @@ import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
 import { buttonVariants } from "@/components/ui/button"
 import { useClampPage } from "@/hooks/use-clamp-page"
+import { formatInteger } from "@/lib/locale-format"
 import { pageSearchSchema } from "@/lib/search-schemas"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
@@ -16,8 +17,6 @@ export const Route = createFileRoute("/channels/")({
   validateSearch: pageSearchSchema,
   component: ChannelsPage,
 })
-
-const integer = new Intl.NumberFormat()
 
 function ChannelsPage() {
   const { page = 0 } = Route.useSearch()
@@ -60,7 +59,7 @@ function ChannelsPage() {
         <div className="flex items-center gap-3">
           {query.data ? (
             <span className="font-mono text-xs text-muted-foreground">
-              {m.channels_count({ total: integer.format(query.data.total) })}
+              {m.channels_count({ total: formatInteger(query.data.total) })}
             </span>
           ) : null}
           {canManage ? (

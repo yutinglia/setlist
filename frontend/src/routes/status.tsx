@@ -7,6 +7,7 @@ import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
 import { cn } from "@/lib/utils"
 import { requireAdminRoute } from "@/lib/auth-guard"
+import { formatDateTime } from "@/lib/locale-format"
 import { m } from "@/paraglide/messages"
 
 export const Route = createFileRoute("/status")({
@@ -69,7 +70,7 @@ function formatWhen(iso: string | null): string {
   if (!iso) return "—"
   const d = new Date(iso.endsWith("Z") || iso.includes("+") ? iso : `${iso}Z`)
   if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleString()
+  return formatDateTime(d)
 }
 
 function formatSeconds(seconds: number): string {

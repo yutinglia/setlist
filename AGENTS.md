@@ -14,7 +14,7 @@ setlist/
 │   ├── src/routes/        # TanStack Router pages (search, song, browse)
 │   ├── src/api/           # Typed fetch client + Query hooks
 │   ├── src/stores/        # Zustand UI prefs (locale, theme, recent searches)
-│   ├── messages/          # Paraglide en + zh-hant
+│   ├── messages/          # Paraglide en + zh-hant + ja
 │   └── README.md          # Frontend run / proxy notes
 ├── backend/               # FastAPI service (run cwd = this dir)
 │   ├── main.py            # App + background periodic updater
@@ -121,7 +121,7 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
 2. Per video → fetch top comments → `CommentAnalyzer` finds timestamp-heavy “song list” comments — **wired**
 3. Extract songs → persist; optional LLM cleaning of setlist text is gated by `LLM_CLEANING_ENABLED` and writes `cleaning_*` / `cleaned_song_list_comment` / `analyzed_by_llm`
 4. Search API — **wired** (`/v1/songs/search`, song/channel/video list endpoints)
-5. Search UI — **wired** (`frontend/` — search, song detail, channel/video browse, en/zh-hant)
+5. Search UI — **wired** (`frontend/` — search, song detail, channel/video browse, en/zh-hant/ja)
 6. Public-service controls — **wired** (single-admin auth, CSRF, guest/login
    limits, private status/admin mutations, legal/privacy pages)
 
@@ -139,6 +139,17 @@ Seed channels: `db/devscript/seed_channels.sql` (see README).
   ignores the TypeScript 7 semver-major update until Vite, TanStack, and the
   generated-code toolchain have been explicitly compatibility-tested.
 - Mixed ZH/EN comments exist; match the file you edit. Prefer English for new public docs/API strings.
+- Record reusable design, release, debugging, and operational findings in the
+  closest public project document. Use `docs/<topic>.md` when a topic needs a
+  standalone checklist, and keep significant English and Traditional Chinese
+  public guidance synchronized.
+- Keep public project documentation free of secrets, private hostnames and IP
+  addresses, credentials, user-specific filesystem paths, and private
+  deployment topology. Those details belong only in ignored local context.
+- Frontend build-time scripts invoked by `frontend/package.json` must be inside
+  `frontend/` unless `frontend/Dockerfile` explicitly copies them. Validate
+  frontend changes both directly and through the production Docker build
+  context.
 
 ## Do not
 

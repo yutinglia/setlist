@@ -1,7 +1,7 @@
 # Security Policy
 
-Setlist is intended for a small public homelab deployment and is still under
-rapid development. Security fixes are welcome.
+Setlist is a personally maintained project intended for a small public homelab
+deployment. Security fixes are welcome.
 
 ## Supported version
 
