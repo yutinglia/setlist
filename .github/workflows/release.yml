@@ -157,32 +157,36 @@ jobs:
           sbom: true
 
       - name: Attest frontend image
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
         with:
           subject-name: ${{ env.FRONTEND_IMAGE }}
           subject-digest: ${{ steps.frontend.outputs.digest }}
           push-to-registry: true
+          create-storage-record: ${{ github.event.repository.visibility == 'public' }}
 
       - name: Attest backend image
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
         with:
           subject-name: ${{ env.BACKEND_IMAGE }}
           subject-digest: ${{ steps.backend.outputs.digest }}
           push-to-registry: true
+          create-storage-record: ${{ github.event.repository.visibility == 'public' }}
 
       - name: Attest migrations image
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
         with:
           subject-name: ${{ env.MIGRATIONS_IMAGE }}
           subject-digest: ${{ steps.migrations.outputs.digest }}
           push-to-registry: true
+          create-storage-record: ${{ github.event.repository.visibility == 'public' }}
 
       - name: Attest PostgreSQL image
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
         with:
           subject-name: ${{ env.POSTGRES_IMAGE }}
           subject-digest: ${{ steps.postgres.outputs.digest }}
           push-to-registry: true
+          create-storage-record: ${{ github.event.repository.visibility == 'public' }}
 
       - name: Publish GitHub Release
         env:
