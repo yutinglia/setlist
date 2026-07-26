@@ -154,22 +154,16 @@ curl http://127.0.0.1:8080/v1/health
 
 ### 自動化 homelab 部署
 
-部署 workflow 參考 homelab 入口網站 repo 的本機 image 模式：帶有
-`vtuber-karaoke-search` label 的專用 Linux x64 self-hosted runner 會建置
-兩個應用程式 image、重新執行 Flyway、啟動正式環境 Compose stack，最後
-驗證經前端代理的健康檢查端點。
+此公開 repo 不包含正式主機路徑、密鑰或 self-hosted 部署 job。
+`v0.1.0` 這類語意版本 tag 只會在 GitHub-hosted runner 上執行
+[`Build release images`](.github/workflows/release.yml) workflow。流程會先確認
+tag 與 [`VERSION`](VERSION) 相符，且指向受保護 `main` 的目前 commit，再把
+frontend、backend、Flyway 與 PostgreSQL 的版本化 image 發佈至 GHCR、附上
+SBOM／provenance 資料，最後才建立 GitHub Release。
 
-請在 runner 上把正式環境設定存放於：
-
-```text
-~/services/vtuber-karaoke-search/.env
-```
-
-只有 `v0.1.0` 這類語意版本 release tag 才會觸發 production workflow；
-branch push、pull request 與手動 workflow dispatch 均無法部署。Job 也會拒絕在
-`yutinglia/setlist` 以外的 repo 執行。將服務對外開放前，請先
-設定 branch protection、release tag 保護，以及 `production` GitHub
-Environment 的保護規則。
+正式部署刻意由另一個私有 repo 控制。其 self-hosted runner 只會取用已發佈的
+release image，不會 checkout 或執行此公開 repo 的 pull-request 程式碼。
+Fork 使用者不需要私有控制面，也能使用上方的本機 Compose 說明或自選部署系統。
 
 Production Compose 也有明確的資源上限：nginx 為 128 MiB／0.25 CPU、
 API 與 scraper 為 768 MiB／1 CPU、PostgreSQL 為 512 MiB／0.75 CPU，
@@ -203,8 +197,7 @@ node scripts/bump-version.mjs patch
 lockfile，再於 `release/vX.Y.Z` branch 建立 release commit，但不會自行
 push。
 
-受保護的 pull request 通過審核並合併後，再替合併完成的 `main` commit
-建立 tag：
+受保護的 pull request 通過審核並合併後，再替目前 `main` commit 建立 tag：
 
 ```bash
 git switch main
@@ -214,8 +207,9 @@ node scripts/bump-version.mjs tag
 git push origin v0.0.1
 ```
 
-Main build 會顯示基準版本加上短 commit SHA；release tag build 則顯示乾淨的
-release 版本。
+一般 source build 會顯示 repo 內的版本；若有 Git metadata，還會加上短 commit
+SHA。Release image 則顯示乾淨的語意版本。Branch push 與 pull request 只會執行
+CI，不能發佈 release 或部署正式環境。
 
 ### 部署安全檢查表
 
@@ -420,15 +414,16 @@ python scripts/check_secrets.py
 ```
 
 GitHub Actions CI 會執行憑證掃描、Ruff、在 PostgreSQL 18 與完整 Flyway
-migration 後的後端測試、兩個正式環境映像建置、前端 lint，以及正式前端建置。
-另一個部署 workflow 只接受 canonical repo 的 `main` 與版本 tag push。
+migration 後的後端測試、正式環境映像建置、第三方授權清單驗證、前端 lint，
+以及正式前端建置。Release workflow 只接受與目前受保護 `main` commit 相符的
+語意版本 tag；正式部署則隔離在私有 repo。
 
 ## 專案結構
 
 ```text
 setlist/
 ├── .devcontainer/          # Python 3.12 + Node 22 編輯器環境
-├── .github/workflows/      # CI 與受控的 homelab 部署
+├── .github/workflows/      # CI 與 release image 發佈
 ├── backend/                # FastAPI API、驗證、更新器、爬蟲與測試
 ├── db/migrations/          # Flyway V1–V9 schema 歷史（唯一依據）
 ├── frontend/               # React UI 與正式環境 nginx 代理
@@ -436,6 +431,7 @@ setlist/
 ├── CONTRIBUTING.md         # 貢獻流程
 ├── SECURITY.md             # 非公開漏洞通報方式
 ├── LICENSE                 # 專案原創程式碼的 MIT 授權
+├── THIRD_PARTY_NOTICES.md  # 自動產生的前端相依套件授權聲明
 ├── docker-compose.dev.yml  # 開發資料庫與 Dev Container
 └── docker-compose.yml      # 正式 homelab 服務
 ```
@@ -464,4 +460,5 @@ Setlist 採用 [MIT License](LICENSE)。只要保留著作權與授權聲明，�
 修改、再散布、再授權或銷售本專案的副本。
 
 第三方套件、字型、服務 API、連結媒體與抽取的中繼資料仍受各自的授權及條款
-規範。
+規範。編譯網站所重新散布的 production frontend 套件聲明收錄於
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

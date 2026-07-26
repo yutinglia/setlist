@@ -1,6 +1,6 @@
 """Live status of the background scraper / analyzer."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from config import (
     BACKGROUND_UPDATER_ENABLED,
@@ -12,6 +12,7 @@ from deps import require_admin_session
 from models.updater import UpdaterStatusResponse
 from services.data_updater import DataUpdater
 from services.updater_status import UpdaterPhase, updater_status
+from utils.http_cache import prevent_private_response_caching
 
 router = APIRouter(prefix="/updater", tags=["Updater"])
 PUBLIC_ERROR_MESSAGE = "An updater operation failed; check server logs"
@@ -22,8 +23,9 @@ PUBLIC_ERROR_MESSAGE = "An updater operation failed; check server logs"
     response_model=UpdaterStatusResponse,
     dependencies=[Depends(require_admin_session)],
 )
-async def get_updater_status() -> UpdaterStatusResponse:
+async def get_updater_status(response: Response) -> UpdaterStatusResponse:
     """Return what the scraper/analyzer is doing (process-local, in-memory)."""
+    prevent_private_response_caching(response)
     snap = updater_status.snapshot()
     if snap["last_error"] is not None:
         snap["last_error"] = PUBLIC_ERROR_MESSAGE

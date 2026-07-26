@@ -13,6 +13,7 @@ from services.auth import (
     is_auth_configured,
     verify_admin_credentials,
 )
+from utils.http_cache import prevent_private_response_caching, private_response_headers
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -22,23 +23,24 @@ async def get_auth_session(
     response: Response,
     admin: AdminSession | None = Depends(optional_admin_session),
 ) -> AuthSessionResponse:
-    _prevent_caching(response)
+    prevent_private_response_caching(response)
     return _session_response(admin)
 
 
 @router.post("/login", response_model=AuthSessionResponse)
 async def login(body: LoginRequest, response: Response) -> AuthSessionResponse:
-    _prevent_caching(response)
+    prevent_private_response_caching(response)
     if not is_auth_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Administrator authentication is not configured",
+            headers=private_response_headers(),
         )
     if not verify_admin_credentials(body.username, body.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
-            headers={"WWW-Authenticate": "Session"},
+            headers=private_response_headers({"WWW-Authenticate": "Session"}),
         )
 
     token, admin = create_admin_session()
@@ -59,7 +61,7 @@ async def logout(
     response: Response,
     _: AdminSession = Depends(require_admin_csrf),
 ) -> AuthSessionResponse:
-    _prevent_caching(response)
+    prevent_private_response_caching(response)
     response.delete_cookie(
         key=SESSION_COOKIE_NAME,
         httponly=True,
@@ -80,8 +82,3 @@ def _session_response(admin: AdminSession | None) -> AuthSessionResponse:
         csrf_token=admin.csrf_token,
         management_enabled=config.MANAGEMENT_API_ENABLED,
     )
-
-
-def _prevent_caching(response: Response) -> None:
-    response.headers["Cache-Control"] = "no-store"
-    response.headers["Pragma"] = "no-cache"

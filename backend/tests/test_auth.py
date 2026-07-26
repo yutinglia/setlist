@@ -52,6 +52,8 @@ def test_login_csrf_and_logout_flow(monkeypatch):
         )
         assert wrong.status_code == 401
         assert "vks_session" not in wrong.cookies
+        assert wrong.headers["cache-control"] == "no-store"
+        assert wrong.headers["vary"] == "Cookie"
 
         login = client.post(
             "/v1/auth/login",
@@ -66,16 +68,20 @@ def test_login_csrf_and_logout_flow(monkeypatch):
         assert session["role"] == "admin"
         assert session["csrf_token"]
         assert login.headers["cache-control"] == "no-store"
+        assert login.headers["vary"] == "Cookie"
         assert "HttpOnly" in login.headers["set-cookie"]
 
         missing_csrf = client.post("/v1/protected")
         assert missing_csrf.status_code == 403
+        assert missing_csrf.headers["cache-control"] == "no-store"
 
         allowed = client.post(
             "/v1/protected",
             headers={"X-CSRF-Token": session["csrf_token"]},
         )
         assert allowed.status_code == 200
+        assert allowed.headers["cache-control"] == "no-store"
+        assert allowed.headers["vary"] == "Cookie"
 
         logout = client.post(
             "/v1/auth/logout",
@@ -89,6 +95,7 @@ def test_login_csrf_and_logout_flow(monkeypatch):
             headers={"X-CSRF-Token": session["csrf_token"]},
         )
         assert denied.status_code == 401
+        assert denied.headers["cache-control"] == "no-store"
 
 
 def test_auth_is_fail_closed_when_not_configured(monkeypatch):
@@ -104,3 +111,4 @@ def test_auth_is_fail_closed_when_not_configured(monkeypatch):
         )
         assert response.status_code == 503
         assert "vks_session" not in response.cookies
+        assert response.headers["cache-control"] == "no-store"

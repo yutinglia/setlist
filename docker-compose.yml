@@ -19,6 +19,14 @@ services:
         condition: service_healthy
     networks:
       - vks
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     cpus: 0.25
     mem_limit: 128m
@@ -84,6 +92,7 @@ services:
       YTDLP_LIST_MAX_SLEEP_INTERVAL: ${YTDLP_LIST_MAX_SLEEP_INTERVAL:-2}
       YTDLP_COMMENT_SLEEP_INTERVAL: ${YTDLP_COMMENT_SLEEP_INTERVAL:-2}
       YTDLP_COMMENT_MAX_SLEEP_INTERVAL: ${YTDLP_COMMENT_MAX_SLEEP_INTERVAL:-10}
+      XDG_CACHE_HOME: /tmp/.cache
       # Comma-separated browser origins; leave empty if no frontend yet
       CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
@@ -93,6 +102,14 @@ services:
         condition: service_completed_successfully
     networks:
       - vks
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     cpus: 1.0
     mem_limit: 768m
@@ -111,7 +128,12 @@ services:
       start_period: 40s
 
   db:
-    image: postgres:18-bookworm
+    image: homelab/vtuber-karaoke-search-postgres:latest
+    build:
+      context: .
+      dockerfile: db/Postgres.Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:-vks_db}
@@ -119,6 +141,15 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     volumes:
       - vks-pgdata:/var/lib/postgresql
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+      - /var/run/postgresql:size=16m,uid=999,gid=999,mode=3777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     cpus: 0.75
     mem_limit: 512m
     pids_limit: 128
@@ -136,7 +167,12 @@ services:
       - vks
 
   flyway:
-    image: flyway/flyway:11-alpine
+    image: homelab/vtuber-karaoke-search-migrations:latest
+    build:
+      context: .
+      dockerfile: db/Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-}
     restart: "no"
     depends_on:
       db:
@@ -150,6 +186,14 @@ services:
       - -locations=filesystem:/flyway/sql
       - -connectRetries=5
       - migrate
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     cpus: 0.5
     mem_limit: 256m
     pids_limit: 128

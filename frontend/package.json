@@ -10,6 +10,7 @@
     "build": "npm run generate:i18n && npm run generate:routes && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "generate:notices": "node ../scripts/generate-frontend-third-party-notices.mjs",
     "generate:i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --strategy localStorage cookie preferredLanguage baseLocale --emit-ts-declarations --silent",
     "generate:routes": "tsr generate"
   },

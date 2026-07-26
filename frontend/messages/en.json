@@ -268,6 +268,7 @@
   "copyright_source_heading": "Application source",
   "copyright_source_body": "The application source is available under the MIT License. Third-party packages, fonts, linked media, service APIs, and extracted metadata remain subject to their own licenses and terms.",
   "copyright_source_link": "Read the MIT License",
+  "copyright_notices_link": "Read third-party notices",
   "copyright_request_heading": "Correction or removal",
   "copyright_request_body": "Rights holders and channel operators may request a correction, channel exclusion, or removal. Include the affected URL, what should change, and enough information to verify the request. Do not post private documents in a public issue.",
   "copyright_request_link": "Start a removal or correction request"
