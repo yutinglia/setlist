@@ -17,6 +17,10 @@ from models.channel import (
 )
 from models.video import YouTubeVideo
 from services.data_updater import DataUpdater, RetryableVideoAnalysisError
+from services.updater_runtime_state import (
+    UPDATER_PROCESS_OWNER_ID,
+    UpdaterOutcome,
+)
 from services.updater_status import UpdaterPhase, updater_status
 from services.yt_scraper.channel_video_scraper import ChannelVideoPageResult
 from services.yt_scraper.errors import YouTubeAccessBlocked
@@ -39,6 +43,59 @@ def _video() -> YouTubeVideo:
         channel_id="channel-1",
         type="karaoke",
         raw_data={"duration": 3600, "live_status": "was_live"},
+    )
+
+
+@pytest.mark.asyncio
+async def test_cycle_persists_successful_runtime_lifecycle():
+    runtime_store = SimpleNamespace(
+        mark_started=AsyncMock(),
+        heartbeat=AsyncMock(return_value=True),
+        mark_finished=AsyncMock(return_value=True),
+    )
+    updater = DataUpdater(
+        SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock()),
+        SimpleNamespace(get_all=AsyncMock(return_value=[])),
+        SimpleNamespace(get_analysis_queue=AsyncMock(return_value=[])),
+        SimpleNamespace(),
+        runtime_state_store=runtime_store,
+    )
+
+    await updater.update()
+
+    runtime_store.mark_started.assert_awaited_once_with(UPDATER_PROCESS_OWNER_ID)
+    runtime_store.mark_finished.assert_awaited_once_with(
+        UPDATER_PROCESS_OWNER_ID,
+        UpdaterOutcome.SUCCESS,
+    )
+
+
+@pytest.mark.asyncio
+async def test_cancelled_cycle_persists_cancelled_runtime_outcome(monkeypatch):
+    runtime_store = SimpleNamespace(
+        mark_started=AsyncMock(),
+        heartbeat=AsyncMock(return_value=True),
+        mark_finished=AsyncMock(return_value=True),
+    )
+    updater = DataUpdater(
+        SimpleNamespace(),
+        SimpleNamespace(),
+        SimpleNamespace(),
+        SimpleNamespace(),
+        runtime_state_store=runtime_store,
+    )
+
+    async def cancel_cycle(**_kwargs):
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(updater, "_update_without_lock", cancel_cycle)
+
+    with pytest.raises(asyncio.CancelledError):
+        await updater.update()
+
+    runtime_store.mark_finished.assert_awaited_once_with(
+        UPDATER_PROCESS_OWNER_ID,
+        UpdaterOutcome.CANCELLED,
     )
 
 

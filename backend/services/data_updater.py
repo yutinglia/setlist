@@ -13,6 +13,7 @@ from functools import partial
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio.engine import AsyncEngine
 
 from config import (
     BACKGROUND_UPDATER_ENABLED,
@@ -21,6 +22,7 @@ from config import (
     LLM_MAX_CLEANING_ATTEMPTS,
     LLM_MODEL,
     SCRAPE_POLICY,
+    UPDATER_HEARTBEAT_INTERVAL_SECONDS,
 )
 from models.channel import (
     VIDEO_BACKFILL_ACTIVE,
@@ -44,6 +46,11 @@ from repositories.video_repository import VideoRepository
 from services.analyzer.llm_cleaner import maybe_clean_song_list_comment
 from services.analyzer.yt_comment_analyzer import CommentAnalyzer
 from services.scrape_policy import ScrapePolicy
+from services.updater_runtime_state import (
+    UPDATER_PROCESS_OWNER_ID,
+    UpdaterOutcome,
+    UpdaterRuntimeStateStore,
+)
 from services.updater_status import UpdaterPhase, updater_status
 from services.youtube_operation_lock import (
     YouTubeUpdaterBusyError,
@@ -131,12 +138,17 @@ class DataUpdater:
         video_repo: VideoRepository,
         song_repo: SongRepository,
         policy: ScrapePolicy | None = None,
+        runtime_state_store: UpdaterRuntimeStateStore | None = None,
     ):
         self.session = session
         self.channel_repo = channel_repo
         self.video_repo = video_repo
         self.song_repo = song_repo
         self.policy = policy or SCRAPE_POLICY
+        bind = getattr(session, "bind", None)
+        self.runtime_state_store = runtime_state_store
+        if self.runtime_state_store is None and isinstance(bind, AsyncEngine):
+            self.runtime_state_store = UpdaterRuntimeStateStore(bind)
         self._comment_scrapes_this_cycle = 0
         self._backfill_channels_this_cycle = 0
         self._steady_channels_this_cycle = 0
@@ -175,9 +187,65 @@ class DataUpdater:
                     clear_video=True,
                 )
                 return
-            await self._update_without_lock(
-                priority_channel_id=priority_channel_id,
-            )
+            outcome = UpdaterOutcome.ERROR
+            runtime_started = False
+            heartbeat_stop = asyncio.Event()
+            heartbeat_task: asyncio.Task[None] | None = None
+            try:
+                if self.runtime_state_store is not None:
+                    await self.runtime_state_store.mark_started(
+                        UPDATER_PROCESS_OWNER_ID
+                    )
+                    runtime_started = True
+                    heartbeat_task = asyncio.create_task(
+                        self._heartbeat_runtime_state(heartbeat_stop)
+                    )
+                outcome = await self._update_without_lock(
+                    priority_channel_id=priority_channel_id,
+                )
+            except asyncio.CancelledError:
+                outcome = UpdaterOutcome.CANCELLED
+                raise
+            except BaseException:
+                outcome = UpdaterOutcome.ERROR
+                raise
+            finally:
+                heartbeat_stop.set()
+                if heartbeat_task is not None:
+                    await heartbeat_task
+                if runtime_started and self.runtime_state_store is not None:
+                    try:
+                        await self.runtime_state_store.mark_finished(
+                            UPDATER_PROCESS_OWNER_ID,
+                            outcome,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Could not persist the updater cycle terminal state"
+                        )
+
+    async def _heartbeat_runtime_state(self, stop: asyncio.Event) -> None:
+        if self.runtime_state_store is None:
+            return
+        while True:
+            try:
+                await asyncio.wait_for(
+                    stop.wait(),
+                    timeout=UPDATER_HEARTBEAT_INTERVAL_SECONDS,
+                )
+                return
+            except TimeoutError:
+                try:
+                    owned = await self.runtime_state_store.heartbeat(
+                        UPDATER_PROCESS_OWNER_ID
+                    )
+                    if not owned:
+                        logger.error(
+                            "Updater heartbeat lost ownership; stopping heartbeat"
+                        )
+                        return
+                except Exception:
+                    logger.exception("Could not persist updater heartbeat")
 
     async def _run_blocking_scrape(self, operation: Callable[[], Any]) -> Any:
         """Use a killable subprocess in production and threads for test doubles."""
@@ -193,7 +261,7 @@ class DataUpdater:
         self,
         *,
         priority_channel_id: str | None = None,
-    ) -> None:
+    ) -> UpdaterOutcome:
         await self._sync_persisted_cooldown()
         remaining = self.youtube_cooldown_remaining()
         if remaining > 0:
@@ -207,7 +275,7 @@ class DataUpdater:
                 clear_channel=True,
                 clear_video=True,
             )
-            return
+            return UpdaterOutcome.COOLDOWN
 
         self._comment_scrapes_this_cycle = 0
         self._backfill_channels_this_cycle = 0
@@ -313,8 +381,10 @@ class DataUpdater:
                     phase=UpdaterPhase.COOLDOWN,
                     detail=f"YouTube cooldown ({remaining:.0f}s remaining)",
                 )
+                return UpdaterOutcome.COOLDOWN
             else:
                 updater_status.end_cycle()
+                return UpdaterOutcome.SUCCESS
         except asyncio.CancelledError:
             await self.session.rollback()
             raise

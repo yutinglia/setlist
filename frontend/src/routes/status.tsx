@@ -87,9 +87,15 @@ function StatusPage() {
   const query = useUpdaterStatus()
   const data = query.data
   const phase = data?.phase ?? "idle"
-  const isBusy = Boolean(data?.is_cycle_active) || ACTIVE_PHASES.has(phase)
+  const isBusy =
+    Boolean(data?.is_cycle_active) ||
+    data?.persistent_outcome === "running" ||
+    ACTIVE_PHASES.has(phase)
   const isCooldown = phase === "cooldown" || (data?.youtube_cooldown_remaining_seconds ?? 0) > 0
-  const isError = phase === "error"
+  const isError =
+    phase === "error" ||
+    data?.persistent_outcome === "error" ||
+    Boolean(data?.is_stalled)
 
   return (
     <section className="animate-fade py-10 sm:py-14">
@@ -234,7 +240,33 @@ function StatusPage() {
                   label={m.status_cycle_finished()}
                   value={formatWhen(data.last_cycle_finished_at)}
                 />
+                <StatusField
+                  label={m.status_persistent_outcome()}
+                  value={data.persistent_outcome}
+                />
+                <StatusField
+                  label={m.status_persistent_heartbeat()}
+                  value={formatWhen(data.persistent_heartbeat_at)}
+                />
+                <StatusField
+                  label={m.status_last_success()}
+                  value={formatWhen(data.persistent_last_success_at)}
+                />
               </dl>
+
+              {data.is_stalled ? (
+                <div
+                  role="alert"
+                  className="surface border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive"
+                >
+                  <p className="font-medium">{m.status_stalled()}</p>
+                  <p className="mt-1 break-words opacity-90">
+                    {m.status_stalled_hint({
+                      seconds: data.heartbeat_stale_seconds,
+                    })}
+                  </p>
+                </div>
+              ) : null}
 
               {data.last_error ? (
                 <div
