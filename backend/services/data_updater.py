@@ -42,6 +42,10 @@ from services.analyzer.llm_cleaner import maybe_clean_song_list_comment
 from services.analyzer.yt_comment_analyzer import CommentAnalyzer
 from services.scrape_policy import ScrapePolicy
 from services.updater_status import UpdaterPhase, updater_status
+from services.youtube_operation_lock import (
+    YouTubeUpdaterBusyError,
+    youtube_operation_guard,
+)
 from services.yt_scraper.channel_scraper import YouTubeChannelScraper
 from services.yt_scraper.channel_video_scraper import YouTubeChannelVideoScraper
 from services.yt_scraper.errors import (
@@ -106,12 +110,6 @@ class RetryableVideoAnalysisError(Exception):
     """
 
 
-# One process must not run the periodic updater and manual scraper operations at
-# the same time. Deployments should still use one Uvicorn worker because the
-# lock is process-local; the cooldown itself is also persisted in PostgreSQL.
-youtube_operation_lock = asyncio.Lock()
-
-
 class DataUpdater:
     """負責資料更新的業務邏輯.
 
@@ -161,7 +159,18 @@ class DataUpdater:
         )
 
     async def update(self, *, priority_channel_id: str | None = None) -> None:
-        async with youtube_operation_lock:
+        async with youtube_operation_guard(self.session) as acquired:
+            if not acquired:
+                logger.info(
+                    "Skipping update cycle: another process owns the YouTube lock"
+                )
+                updater_status.set(
+                    UpdaterPhase.WAITING,
+                    detail="Another updater process is currently running",
+                    clear_channel=True,
+                    clear_video=True,
+                )
+                return
             await self._update_without_lock(
                 priority_channel_id=priority_channel_id,
             )
@@ -345,7 +354,11 @@ class DataUpdater:
     async def refresh_channel_video_list(
         self, channel: YouTubeChannel
     ) -> ChannelVideoRefreshResult:
-        async with youtube_operation_lock:
+        async with youtube_operation_guard(self.session) as acquired:
+            if not acquired:
+                raise YouTubeUpdaterBusyError(
+                    "Another updater process is currently using YouTube"
+                )
             try:
                 result = await self._refresh_channel_video_list_without_lock(channel)
                 # Keep the process-local YouTube lock until the transaction is
@@ -384,7 +397,11 @@ class DataUpdater:
         video: YouTubeVideo,
     ) -> VideoSongReloadResult:
         """Run the normal comment analyzer once for an administrator request."""
-        async with youtube_operation_lock:
+        async with youtube_operation_guard(self.session) as acquired:
+            if not acquired:
+                raise YouTubeUpdaterBusyError(
+                    "Another updater process is currently using YouTube"
+                )
             try:
                 await self._sync_persisted_cooldown()
                 remaining = self.youtube_cooldown_remaining()

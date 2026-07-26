@@ -13,8 +13,12 @@ from models.channel import VIDEO_BACKFILL_PENDING, ChannelCreate, YouTubeChannel
 from models.search import ChannelRead, Paginated, SongSearchResult, VideoRead
 from models.song import Song
 from repositories import ChannelRepository, SongRepository, VideoRepository
-from services.data_updater import DataUpdater, youtube_operation_lock
+from services.data_updater import DataUpdater
 from services.update_cycle_trigger import update_cycle_trigger
+from services.youtube_operation_lock import (
+    YouTubeUpdaterBusyError,
+    youtube_operation_guard,
+)
 from services.yt_scraper.channel_scraper import YouTubeChannelScraper
 from services.yt_scraper.errors import YouTubeAccessBlocked, raise_if_block_error
 
@@ -175,7 +179,11 @@ async def create_channel(
         DataUpdater.set_youtube_cooldown(seconds)
 
     try:
-        async with youtube_operation_lock:
+        async with youtube_operation_guard(session) as acquired:
+            if not acquired:
+                raise YouTubeUpdaterBusyError(
+                    "Another updater process is currently using YouTube"
+                )
             cooldown = DataUpdater.youtube_cooldown_remaining()
             if cooldown > 0:
                 raise HTTPException(
@@ -185,6 +193,11 @@ async def create_channel(
                     ),
                 )
             scraped = await asyncio.to_thread(_scrape)
+    except YouTubeUpdaterBusyError as busy_exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Another updater operation is running; try again shortly",
+        ) from busy_exc
     except HTTPException:
         raise
     except Exception as scrape_exc:
@@ -328,6 +341,11 @@ async def refresh_channel_videos(
     )
     try:
         result = await updater.refresh_channel_video_list(channel)
+    except YouTubeUpdaterBusyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Another updater operation is running; try again shortly",
+        ) from exc
     except YouTubeAccessBlocked as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -371,6 +389,11 @@ async def reload_video_song_list(
     updater = DataUpdater(session, channel_repo, video_repo, song_repo)
     try:
         result = await updater.reload_video_song_list(video)
+    except YouTubeUpdaterBusyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Another updater operation is running; try again shortly",
+        ) from exc
     except YouTubeAccessBlocked as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
