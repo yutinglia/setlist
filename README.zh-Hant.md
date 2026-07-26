@@ -171,6 +171,11 @@ branch push、pull request 與手動 workflow dispatch 均無法部署。Job 也
 設定 branch protection、release tag 保護，以及 `production` GitHub
 Environment 的保護規則。
 
+Production Compose 也有明確的資源上限：nginx 為 128 MiB／0.25 CPU、
+API 與 scraper 為 768 MiB／1 CPU、PostgreSQL 為 512 MiB／0.75 CPU，
+一次性 Flyway migration 則為 256 MiB／0.5 CPU。只有在觀察正式機一段
+時間的持續用量後，才建議調整這些值。
+
 ### 版本與 release
 
 網站 footer 顯示的版本會依以下順序解析：

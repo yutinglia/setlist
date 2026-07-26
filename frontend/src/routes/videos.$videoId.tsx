@@ -20,6 +20,7 @@ import {
   useVideoSongs,
 } from "@/api/hooks"
 import { PaginationControls } from "@/components/pagination-controls"
+import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { VideoListBadges } from "@/components/video-list-badges"
@@ -108,9 +109,21 @@ function VideoDetailPage() {
     videoQuery.data?.upload_date_precision === "approximate"
       ? m.video_date_approximate({ date: formattedUploadDate })
       : formattedUploadDate
+  const metadataTitle = videoQuery.data
+    ? `${videoQuery.data.title} | Setlist`
+    : "VTuber karaoke video | Setlist"
+  const metadataDescription = videoQuery.data
+    ? `Browse the indexed songs and timestamps for ${videoQuery.data.title}.`
+    : "Browse a VTuber karaoke video and jump to songs at exact YouTube timestamps."
 
   return (
     <section className="animate-fade py-10 sm:py-14">
+      <PageMetadata
+        path={`/videos/${encodeURIComponent(videoId)}`}
+        title={metadataTitle}
+        description={metadataDescription}
+        noIndex={videoQuery.isError}
+      />
       {videoQuery.data?.channel_id ? (
         <Link
           to="/channels/$channelId"

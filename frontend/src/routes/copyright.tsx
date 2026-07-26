@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 import { InfoPage, InfoSection } from "@/components/info-page"
+import { PageMetadata } from "@/components/page-metadata"
 import { ISSUES_URL, LICENSE_URL } from "@/lib/public-config"
 import { m } from "@/paraglide/messages"
 
@@ -15,6 +16,11 @@ function CopyrightPage() {
       title={m.copyright_heading()}
       intro={m.copyright_intro()}
     >
+      <PageMetadata
+        path="/copyright"
+        title={`${m.copyright_heading()} | Setlist`}
+        description={m.copyright_intro()}
+      />
       <InfoSection title={m.copyright_media_heading()}>
         <p>{m.copyright_media_body()}</p>
       </InfoSection>

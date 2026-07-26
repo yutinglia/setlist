@@ -122,5 +122,9 @@ files whenever user-visible copy changes.
 - `public/og.png` is the social preview image.
 
 Production Compose maps its required `PUBLIC_SITE_URL` to the frontend build.
+The production build derives canonical URLs, structured data, `robots.txt`,
+`sitemap.xml`, and the web app manifest from that origin. Public routes update
+their title, description, and social metadata in the browser; search/filter
+views and administrator-only routes are marked `noindex`.
 Do not put secrets in any `VITE_*` variable; Vite embeds them in public browser
 assets.

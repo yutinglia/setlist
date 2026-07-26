@@ -15,6 +15,7 @@ import {
   useSummaryReport,
 } from "@/api/hooks"
 import { PaginationControls } from "@/components/pagination-controls"
+import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
 import {
   SearchFilters,
@@ -102,9 +103,18 @@ function SearchPage() {
   }, [q, query.isSuccess, addRecent])
 
   const channelPreview = channels.data?.items.slice(0, 4) ?? []
+  const hasSearchState = Boolean(
+    q || page || channel_id || type || date_from || date_to,
+  )
 
   return (
     <section className="flex flex-1 flex-col">
+      <PageMetadata
+        path="/"
+        title="Setlist — VTuber Karaoke Search"
+        description={m.home_intro()}
+        noIndex={hasSearchState}
+      />
       <div
         className={cn(
           "relative grid items-center gap-10 py-12 lg:grid-cols-[minmax(0,1.25fr)_minmax(19rem,0.75fr)] lg:gap-16",

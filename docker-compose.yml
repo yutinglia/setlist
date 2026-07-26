@@ -20,6 +20,9 @@ services:
     networks:
       - vks
     restart: unless-stopped
+    cpus: 0.25
+    mem_limit: 128m
+    pids_limit: 64
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
       interval: 30s
@@ -91,6 +94,9 @@ services:
     networks:
       - vks
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 768m
+    pids_limit: 256
     healthcheck:
       test:
         [
@@ -113,6 +119,9 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     volumes:
       - vks-pgdata:/var/lib/postgresql
+    cpus: 0.75
+    mem_limit: 512m
+    pids_limit: 128
     healthcheck:
       test:
         [
@@ -141,6 +150,9 @@ services:
       - -locations=filesystem:/flyway/sql
       - -connectRetries=5
       - migrate
+    cpus: 0.5
+    mem_limit: 256m
+    pids_limit: 128
     networks:
       - vks
 

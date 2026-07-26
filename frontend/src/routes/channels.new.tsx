@@ -10,6 +10,7 @@ import { ApiError } from "@/api/client"
 import { useCreateChannel } from "@/api/hooks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PageMetadata } from "@/components/page-metadata"
 import { requireManagementRoute } from "@/lib/auth-guard"
 import { m } from "@/paraglide/messages"
 
@@ -51,6 +52,12 @@ function AddChannelPage() {
 
   return (
     <section className="animate-fade mx-auto w-full max-w-3xl py-10 sm:py-14">
+      <PageMetadata
+        path="/channels/new"
+        title={`${m.channel_add_heading()} | Setlist`}
+        description={m.channel_add_hint()}
+        noIndex
+      />
       <Link
         to="/channels"
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"

@@ -179,6 +179,11 @@ job also refuses to run outside `yutinglia/setlist`. Configure branch
 protection, protected release tags, and protection rules on the `production`
 GitHub Environment before relying on it for an internet-facing service.
 
+Production Compose also applies explicit resource ceilings: 128 MiB / 0.25 CPU
+for nginx, 768 MiB / 1 CPU for the API and scraper, 512 MiB / 0.75 CPU for
+PostgreSQL, and 256 MiB / 0.5 CPU for the one-shot Flyway migration. Adjust
+these values only after observing sustained usage on the target host.
+
 ### Versions and releases
 
 The version shown in the site footer is resolved in this order:

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 import { InfoPage, InfoSection } from "@/components/info-page"
+import { PageMetadata } from "@/components/page-metadata"
 import { ISSUES_URL } from "@/lib/public-config"
 import { m } from "@/paraglide/messages"
 
@@ -15,6 +16,11 @@ function PrivacyPage() {
       title={m.privacy_heading()}
       intro={m.privacy_intro()}
     >
+      <PageMetadata
+        path="/privacy"
+        title={`${m.privacy_heading()} | Setlist`}
+        description={m.privacy_intro()}
+      />
       <InfoSection title={m.privacy_collected_heading()}>
         <p>{m.privacy_collected_body()}</p>
       </InfoSection>

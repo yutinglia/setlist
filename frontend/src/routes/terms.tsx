@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 import { InfoPage, InfoSection } from "@/components/info-page"
+import { PageMetadata } from "@/components/page-metadata"
 import { ISSUES_URL } from "@/lib/public-config"
 import { m } from "@/paraglide/messages"
 
@@ -15,6 +16,11 @@ function TermsPage() {
       title={m.terms_heading()}
       intro={m.terms_intro()}
     >
+      <PageMetadata
+        path="/terms"
+        title={`${m.terms_heading()} | Setlist`}
+        description={m.terms_intro()}
+      />
       <InfoSection title={m.terms_use_heading()}>
         <p>{m.terms_use_body()}</p>
       </InfoSection>
