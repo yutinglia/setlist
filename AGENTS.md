@@ -2,7 +2,7 @@
 
 ## What this project is
 
-Public-ready homelab service that scrapes VTuber karaoke streams, detects setlist comments (timestamp lists), extracts songs, and exposes them through a minimal HTTP API + search UI. **Phases 0–8 landed** (pipeline, Tier B pacing, search API, extraction quality, React UI, administrator auth, guest limits, public-service pages, deployment hardening, and bilingual public documentation).
+Public-ready homelab service that scrapes VTuber karaoke streams, detects setlist comments (timestamp lists), extracts songs, and exposes them through a minimal HTTP API + search UI. **Phases 0–9 landed** (pipeline, Tier B pacing, search API, extraction quality, React UI, administrator auth, guest limits, public-service pages, deployment hardening, bilingual public documentation, and updater crash safety/observability).
 
 Stack: **FastAPI + SQLAlchemy 2 (async) + PostgreSQL + yt-dlp + Flyway** (backend); **React (Vite + TypeScript 6) + TanStack Router/Query + Zustand + Paraglide + Tailwind + shadcn/ui** (frontend).
 
@@ -33,7 +33,7 @@ setlist/
 │   │   └── yt_scraper/    # yt-dlp wrappers + ad-hoc test.py
 │   └── tests/             # pytest unit + PostgreSQL integration coverage
 ├── db/
-│   ├── migrations/        # Flyway SQL (V1–V9; schema source of truth)
+│   ├── migrations/        # Flyway SQL (V1–V10; schema source of truth)
 │   └── devscript/         # PowerShell one-shot Postgres + sqlacodegen
 ├── .devcontainer/         # Dev Container image/config (Python 3.14 + Node 26)
 ├── scripts/               # Repository checks, including credential scanning
@@ -87,7 +87,7 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
 - **Pydantic models** (`backend/models/`) are the API/domain DTOs; repositories map ORM → Pydantic with `model_validate` / `from_attributes`.
 - **Imports assume cwd = `backend/`** (e.g. `from config import ...`). Do not introduce package-relative imports without making it a proper installable package.
 - **Frontend** lives under `frontend/` with its own cwd; do not mix Python package imports into the UI tree.
-- **yt-dlp scrapers are synchronous and blocking.** If calling them from async FastAPI code, wrap with `asyncio.to_thread` (or similar). Do not block the event loop.
+- **yt-dlp scrapers are synchronous and blocking.** Production application paths use the killable subprocess runner with bounded network retries and a whole-operation timeout; test doubles may use `asyncio.to_thread`. Do not block the event loop or bypass the shared YouTube operation lock.
 - **Background updater** lives in `main.py` lifespan and calls `DataUpdater.update()` every `DATA_UPDATE_INTERVAL` (default 5m in every environment). Scraping is opt-in in config; production Compose explicitly enables it. Persisted per-channel due times enforce the 6h steady scan interval. Use `python run_updater_once.py` to test the identical path locally.
 - **Repositories do not commit.** `DataUpdater` owns transactions: each backfill page/cursor and each analysis result is durable, with a final channel commit. Read-only search routes open a session via `deps.get_session` and do not commit.
 - **Song setlist writes** use `SongRepository.replace_for_video` (delete all songs for that video, then insert) so successful re-analysis can shrink the list cleanly. **Conflict policy:** last successful analysis wins (no merge); a later negative observation preserves the previous successful setlist/songs. Within one extract, duplicates keyed by `(timestamp, casefold(title))` are dropped (first kept).
@@ -96,7 +96,8 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
 - **yt-dlp source snapshots** separate flat-list `raw_data` from full-video `metadata_raw_data`, with source/capture/schema metadata. Use `utils.ytdlp_snapshot`; its bounded stable-field policy excludes volatile playback formats, signed URLs, headers, captions/subtitles, and comments (stored separately). Do not shallow-merge sparse and rich source payloads.
 - **New-channel video backfill** is cursor-based and paced (100 entries/tab/page, up to 3 durable pages/cycle by default). Failed/partial tab pages keep the same offset and retry; active channels rotate by oldest attempt time so one channel cannot starve the rest. Comment analysis is a separate global queue.
 - **Search deep links** use `utils.youtube_timestamp.youtube_url_with_timestamp` (`mm:ss` / `hh:mm:ss` → `&t=Ns`).
-- **Updater status** is process-local at `GET /v1/updater/status`; YouTube cooldown itself is persisted in `scraper_state` so restarts cannot bypass it. Keep public error text redacted and detailed exceptions in server logs.
+- **Updater status** combines process-local detail with the persisted cycle outcome, owner, last success, and heartbeat at `GET /v1/updater/status`. YouTube cooldown and runtime state live in the singleton `scraper_state` row. Heartbeat writes use independent transactions and must never commit scraper work. Keep public error text redacted and detailed exceptions in server logs.
+- **YouTube work is a cross-process singleton.** Keep the process-local lock plus the dedicated-connection PostgreSQL advisory lock around background and administrator-triggered scraping. Owner-guard persistent state updates so a stale process cannot overwrite the current worker.
 - **Authorization** uses one environment-configured administrator (`ADMIN_PASSWORD_HASH` is Argon2id; never store plaintext credentials). Signed HttpOnly sessions protect private reads, and all mutations require both admin auth and the per-session CSRF token. `MANAGEMENT_API_ENABLED` is only a kill switch, never an auth substitute.
 - **Guest API traffic** is rate-limited per resolved client IP in-process. Only honor `X-Forwarded-For` from `TRUSTED_PROXY_CIDRS`. Updater status is admin-only; guests may search and browse public records.
 - **Authentication responses** and authenticated API responses must remain
@@ -157,9 +158,9 @@ Seed channels: `db/devscript/seed_channels.sql` (see README).
 
 ## Known gaps (as of last review)
 
-- Phases 0–8 are done (pipeline, Tier B pacing, search API/UI, extraction
+- Phases 0–9 are done (pipeline, Tier B pacing, search API/UI, extraction
   quality, single-admin auth, guest limits, public pages, production hardening,
-  and bilingual public documentation).
+  bilingual public documentation, and updater crash safety/observability).
 - Auth intentionally supports one environment-configured administrator only;
   there is no registration, password recovery, OAuth, or multi-user model.
 - Rate limits and sessions are self-contained for a single API process. A

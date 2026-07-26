@@ -11,9 +11,11 @@ yt-dlp wrappers collect channel metadata, bounded video-list pages, full video
 metadata, and top comments for the Setlist pipeline. Prefer the **Dev
 Container** (Python 3.14) over an ad-hoc conda environment.
 
-All yt-dlp wrappers are synchronous. Call them from async application code with
-`asyncio.to_thread` while holding the shared YouTube operation lock. Do not
-bypass updater caps, jitter, block detection, or the persisted cooldown.
+All yt-dlp wrappers are synchronous. Production application paths run each
+operation in a killable child process with bounded yt-dlp network retries and a
+whole-operation deadline while holding the shared PostgreSQL advisory lock.
+Unit-test doubles may use `asyncio.to_thread`. Do not bypass updater caps,
+jitter, block detection, deadlines, or the persisted cooldown.
 
 ## Environment
 
