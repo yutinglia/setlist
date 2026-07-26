@@ -39,6 +39,8 @@ jobs:
 
       - name: Validate release revision
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -59,10 +61,15 @@ jobs:
             exit 1
           fi
 
-          git fetch --no-tags origin \
-            +refs/heads/main:refs/remotes/origin/main
           tagged_commit="$(git rev-parse "${GITHUB_SHA}^{commit}")"
-          main_commit="$(git rev-parse "refs/remotes/origin/main^{commit}")"
+          main_commit="$(
+            curl --fail-with-body --silent --show-error --retry 3 \
+              --header "Accept: application/vnd.github+json" \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header "X-GitHub-Api-Version: 2026-03-10" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/main" |
+              python3 -c 'import json, sys; print(json.load(sys.stdin)["sha"])'
+          )"
           if [[ "$tagged_commit" != "$main_commit" ]]; then
             echo "::error::Release tag must point to the current protected main commit."
             exit 1
