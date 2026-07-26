@@ -28,6 +28,9 @@ Manual setup instructions are in [README.md](README.md#local-development-without
 - Treat `db/migrations/` as the schema source of truth. Add a new Flyway
   migration instead of rewriting applied migrations.
 - Run backend commands with `backend/` as the working directory.
+- Keep TypeScript on the latest compatible 6.x version. TypeScript 7 is
+  intentionally deferred until the Vite, TanStack, and generated-code toolchain
+  has a dedicated compatibility change and full validation.
 - Keep blocking yt-dlp calls off the async event loop.
 - Preserve updater-owned transactions and the existing pacing/cooldown rules.
 - Do not weaken administrator authorization, CSRF, trusted-proxy handling,

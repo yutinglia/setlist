@@ -22,7 +22,8 @@ Setlist 是可自行託管的 VTuber 歌回曲目搜尋索引。它會發現公�
 - 可直接跳到歌曲時間戳的 YouTube 深層連結
 - 頻道、影片、歌曲詳情與資料庫摘要瀏覽
 - 英文與繁體中文介面
-- 優先採用置頂／上傳者留言，並支援多種時間戳格式
+- 優先採用置頂／上傳者留言、依已解析歌曲數評分、辨識混合歌單／章節邊界，並
+  支援多種時間戳格式
 - 可持續復原的全頻道回填，以及保守的日常資料發現
 - Tier B YouTube 節流：工作量上限、隨機延遲、重試限制、封鎖偵測與持久化冷卻
 - 可選用 OpenAI 相容 API，在正規表示式抽取後進一步清理歌單
@@ -144,6 +145,9 @@ docker compose ps
 curl http://127.0.0.1:8080/v1/health
 ```
 
+此範例使用預設 loopback bind。若 `FRONTEND_BIND_ADDRESS` 設為 private LAN
+address，請改為驗證該位址。
+
 將 HTTPS 反向代理指向
 `http://${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}`，並維持
 `AUTH_COOKIE_SECURE=true`。內建前端會提供 SPA、套用瀏覽器安全標頭，並把
@@ -154,7 +158,7 @@ curl http://127.0.0.1:8080/v1/health
 
 ### 自動化 homelab 部署
 
-此公開 repo 不包含正式主機路徑、密鑰或 self-hosted 部署 job。
+原始碼 repo 不包含正式主機路徑、密鑰或 self-hosted 部署 job。
 `v0.1.0` 這類語意版本 tag 只會在 GitHub-hosted runner 上執行
 [`Build release images`](.github/workflows/release.yml) workflow。流程會先確認
 tag 與 [`VERSION`](VERSION) 相符，且指向受保護 `main` 的目前 commit，再把
@@ -164,8 +168,10 @@ SBOM／provenance 資料，最後才建立 GitHub Release。BuildKit SBOM 與 pr
 attestation。
 
 正式部署刻意由另一個私有 repo 控制。其 self-hosted runner 只會取用已發佈的
-release image，不會 checkout 或執行此公開 repo 的 pull-request 程式碼。
-Fork 使用者不需要私有控制面，也能使用上方的本機 Compose 說明或自選部署系統。
+release image，不會 checkout 或執行原始碼 repo 的 pull-request 程式碼。它每
+10 分鐘檢查四個私有 GHCR image label，只有完整且語意版本一致時才會部署；也可
+手動指定精確 tag。Fork 使用者不需要私有控制面，也能使用上方的本機 Compose
+說明或自選部署系統。
 
 Production Compose 也有明確的資源上限：nginx 為 128 MiB／0.25 CPU、
 API 與 scraper 為 768 MiB／1 CPU、PostgreSQL 為 512 MiB／0.75 CPU，
@@ -191,7 +197,7 @@ API 與 scraper 為 768 MiB／1 CPU、PostgreSQL 為 512 MiB／0.75 CPU，
 git switch main
 git pull --ff-only
 node scripts/bump-version.mjs patch
-# 依 script 顯示的指令推送 release/v0.0.1 並建立 pull request。
+# 依 script 顯示的指令推送 release/vX.Y.Z 並建立 pull request。
 ```
 
 參數可以是 `major`、`minor`、`patch`，或更高的明確
@@ -206,7 +212,7 @@ git switch main
 git pull --ff-only
 node scripts/bump-version.mjs tag
 # 檢查 annotated tag，再使用 script 顯示的實際 tag：
-git push origin v0.0.1
+git push origin vX.Y.Z
 ```
 
 一般 source build 會顯示 repo 內的版本；若有 Git metadata，還會加上短 commit
@@ -378,7 +384,8 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
 1. 透過有工作量上限的 Streams 與 Videos 播放清單頁面發現追蹤頻道內容。
 2. 清單快照會保留穩定中繼資料與約略日期，不會對每支影片額外發出請求。
 3. 可能是歌回的影片會進入獨立且受節流控制的留言分析佇列。
-4. 分析器優先採用置頂與上傳者留言、抽取時間戳／標題配對，且只在成功分析後
+4. 分析器依序優先採用置頂、上傳者、已解析歌曲數及按讚數；它會隔離明確歌單
+   區段，在無關章節或時間戳大幅倒退前停止、保留安可區段，並只在成功分析後
    取代影片歌單。
 5. 精確中繼資料可以升級約略值；之後的稀疏觀察不會抹除較完整的快照或先前
    成功的歌單。
