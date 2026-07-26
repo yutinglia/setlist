@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
+from functools import partial
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -9,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import BACKGROUND_UPDATER_ENABLED, SCRAPE_POLICY
 from deps import get_session, pagination_params, require_management_admin
-from models.channel import VIDEO_BACKFILL_PENDING, ChannelCreate, YouTubeChannel
+from models.channel import VIDEO_BACKFILL_PENDING, ChannelCreate
 from models.search import ChannelRead, Paginated, SongSearchResult, VideoRead
 from models.song import Song
 from repositories import ChannelRepository, SongRepository, VideoRepository
@@ -21,6 +22,7 @@ from services.youtube_operation_lock import (
 )
 from services.yt_scraper.channel_scraper import YouTubeChannelScraper
 from services.yt_scraper.errors import YouTubeAccessBlocked, raise_if_block_error
+from services.yt_scraper.subprocess_runner import run_scrape_in_subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -151,11 +153,14 @@ async def create_channel(
     Returns 409 if the channel id is already tracked.
     """
 
-    def _scrape() -> YouTubeChannel:
-        return YouTubeChannelScraper(
-            sleep_interval=SCRAPE_POLICY.ytdlp_list_sleep_interval,
-            max_sleep_interval=SCRAPE_POLICY.ytdlp_list_max_sleep_interval,
-        ).get_channel_info(body.url)
+    scraper = YouTubeChannelScraper(
+        sleep_interval=SCRAPE_POLICY.ytdlp_list_sleep_interval,
+        max_sleep_interval=SCRAPE_POLICY.ytdlp_list_max_sleep_interval,
+        socket_timeout=SCRAPE_POLICY.ytdlp_socket_timeout_seconds,
+        retries=SCRAPE_POLICY.ytdlp_retries,
+        extractor_retries=SCRAPE_POLICY.ytdlp_extractor_retries,
+    )
+    scrape = partial(scraper.get_channel_info, body.url)
 
     repo = ChannelRepository(session)
     persisted_cooldown = await repo.get_youtube_cooldown_until()
@@ -192,7 +197,16 @@ async def create_channel(
                         f"YouTube cooldown active; try again in {cooldown:.0f} seconds"
                     ),
                 )
-            scraped = await asyncio.to_thread(_scrape)
+            if isinstance(session, AsyncSession):
+                scraped = await run_scrape_in_subprocess(
+                    scrape,
+                    timeout_seconds=SCRAPE_POLICY.ytdlp_operation_timeout_seconds,
+                    terminate_grace_seconds=(
+                        SCRAPE_POLICY.ytdlp_terminate_grace_seconds
+                    ),
+                )
+            else:
+                scraped = await asyncio.to_thread(scrape)
     except YouTubeUpdaterBusyError as busy_exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

@@ -10,6 +10,7 @@ from config import (
     CORS_ORIGINS,
     DATA_UPDATE_INTERVAL,
     IS_DEV,
+    UPDATER_SHUTDOWN_GRACE_SECONDS,
 )
 from db import async_session_factory, engine
 from repositories import ChannelRepository, SongRepository, VideoRepository
@@ -102,10 +103,23 @@ async def lifespan(app: FastAPI):
         if updater_task is not None:
             logger.info("Shutting down background data updater task...")
             updater_task.cancel()
-            try:
-                await updater_task
-            except asyncio.CancelledError:
-                logger.info("Background data updater task cancelled successfully.")
+            done, _pending = await asyncio.wait(
+                {updater_task},
+                timeout=UPDATER_SHUTDOWN_GRACE_SECONDS,
+            )
+            if updater_task not in done:
+                logger.error(
+                    "Background updater did not stop within %.1fs",
+                    UPDATER_SHUTDOWN_GRACE_SECONDS,
+                )
+                updater_status.stop(detail="Updater shutdown deadline exceeded")
+            else:
+                try:
+                    updater_task.result()
+                except asyncio.CancelledError:
+                    logger.info("Background data updater task cancelled successfully.")
+                except Exception:
+                    logger.exception("Background updater failed during shutdown")
         update_cycle_trigger.clear()
         await engine.dispose()
 

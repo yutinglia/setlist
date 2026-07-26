@@ -123,6 +123,9 @@ def test_flat_list_enables_approximate_date_without_per_video_extract(monkeypatc
     assert captured_options["extractor_args"] == {
         "youtubetab": {"approximate_date": [""]}
     }
+    assert captured_options["socket_timeout"] == 30.0
+    assert captured_options["retries"] == 2
+    assert captured_options["extractor_retries"] == 2
 
 
 def test_flat_timestamp_is_exposed_as_approximate_date():

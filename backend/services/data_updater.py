@@ -6,8 +6,11 @@ import asyncio
 import logging
 import random
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from functools import partial
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,6 +56,7 @@ from services.yt_scraper.errors import (
     is_youtube_block_error,
     raise_if_block_error,
 )
+from services.yt_scraper.subprocess_runner import run_scrape_in_subprocess
 from services.yt_scraper.video_comment_scraper import (
     VideoCommentScrapeResult,
     YouTubeVideoCommentScraper,
@@ -174,6 +178,16 @@ class DataUpdater:
             await self._update_without_lock(
                 priority_channel_id=priority_channel_id,
             )
+
+    async def _run_blocking_scrape(self, operation: Callable[[], Any]) -> Any:
+        """Use a killable subprocess in production and threads for test doubles."""
+        if isinstance(self.session, AsyncSession):
+            return await run_scrape_in_subprocess(
+                operation,
+                timeout_seconds=self.policy.ytdlp_operation_timeout_seconds,
+                terminate_grace_seconds=self.policy.ytdlp_terminate_grace_seconds,
+            )
+        return await asyncio.to_thread(operation)
 
     async def _update_without_lock(
         self,
@@ -814,18 +828,22 @@ class DataUpdater:
             clear_video=True,
         )
 
-        def _scrape_page():
-            return YouTubeChannelVideoScraper(
-                channel.url,
-                sleep_interval=self.policy.ytdlp_list_sleep_interval,
-                max_sleep_interval=self.policy.ytdlp_list_max_sleep_interval,
-            ).get_channel_videos_page(
-                playlist_start=offset,
-                page_size=page_size,
-            )
+        scraper = YouTubeChannelVideoScraper(
+            channel.url,
+            sleep_interval=self.policy.ytdlp_list_sleep_interval,
+            max_sleep_interval=self.policy.ytdlp_list_max_sleep_interval,
+            socket_timeout=self.policy.ytdlp_socket_timeout_seconds,
+            retries=self.policy.ytdlp_retries,
+            extractor_retries=self.policy.ytdlp_extractor_retries,
+        )
+        scrape_page = partial(
+            scraper.get_channel_videos_page,
+            playlist_start=offset,
+            page_size=page_size,
+        )
 
         try:
-            page = await asyncio.to_thread(_scrape_page)
+            page = await self._run_blocking_scrape(scrape_page)
         except Exception as exc:
             raise_if_block_error(exc)
             logger.exception(
@@ -934,14 +952,17 @@ class DataUpdater:
     async def _refresh_channel(self, channel: YouTubeChannel) -> YouTubeChannel:
         logger.info("Refreshing channel metadata for %s", channel.url)
 
-        def _scrape() -> YouTubeChannel:
-            return YouTubeChannelScraper(
-                sleep_interval=self.policy.ytdlp_list_sleep_interval,
-                max_sleep_interval=self.policy.ytdlp_list_max_sleep_interval,
-            ).get_channel_info(channel.url)
+        scraper = YouTubeChannelScraper(
+            sleep_interval=self.policy.ytdlp_list_sleep_interval,
+            max_sleep_interval=self.policy.ytdlp_list_max_sleep_interval,
+            socket_timeout=self.policy.ytdlp_socket_timeout_seconds,
+            retries=self.policy.ytdlp_retries,
+            extractor_retries=self.policy.ytdlp_extractor_retries,
+        )
+        scrape = partial(scraper.get_channel_info, channel.url)
 
         try:
-            scraped = await asyncio.to_thread(_scrape)
+            scraped = await self._run_blocking_scrape(scrape)
         except Exception as exc:
             raise_if_block_error(exc)
             raise
@@ -967,18 +988,20 @@ class DataUpdater:
     ) -> list[YouTubeVideo]:
         """Scrape Streams+Videos tabs; retain all normal archived records."""
 
-        def _scrape() -> list[YouTubeVideo]:
-            return YouTubeChannelVideoScraper(
-                channel.url,
-                max_videos=self.policy.recent_videos_per_channel,
-                full_metadata=full_metadata,
-                metadata_limit=self.policy.metadata_scrapes_per_refresh,
-                sleep_interval=self.policy.ytdlp_list_sleep_interval,
-                max_sleep_interval=self.policy.ytdlp_list_max_sleep_interval,
-            ).get_channel_videos()
+        scraper = YouTubeChannelVideoScraper(
+            channel.url,
+            max_videos=self.policy.recent_videos_per_channel,
+            full_metadata=full_metadata,
+            metadata_limit=self.policy.metadata_scrapes_per_refresh,
+            sleep_interval=self.policy.ytdlp_list_sleep_interval,
+            max_sleep_interval=self.policy.ytdlp_list_max_sleep_interval,
+            socket_timeout=self.policy.ytdlp_socket_timeout_seconds,
+            retries=self.policy.ytdlp_retries,
+            extractor_retries=self.policy.ytdlp_extractor_retries,
+        )
 
         try:
-            scraped = await asyncio.to_thread(_scrape)
+            scraped = await self._run_blocking_scrape(scraper.get_channel_videos)
         except Exception as exc:
             raise_if_block_error(exc)
             raise
@@ -1061,37 +1084,40 @@ class DataUpdater:
             comment_scrapes_this_cycle=self._comment_scrapes_this_cycle,
         )
 
-        def _scrape_comments() -> VideoCommentScrapeResult:
-            scraper = YouTubeVideoCommentScraper(
-                video.url,
-                sleep_interval=self.policy.ytdlp_comment_sleep_interval,
-                max_sleep_interval=self.policy.ytdlp_comment_max_sleep_interval,
-            )
-            scrape = getattr(scraper, "scrape", None)
-            if callable(scrape):
-                return scrape(self.policy.max_comments_per_video)
-
+        scraper = YouTubeVideoCommentScraper(
+            video.url,
+            sleep_interval=self.policy.ytdlp_comment_sleep_interval,
+            max_sleep_interval=self.policy.ytdlp_comment_max_sleep_interval,
+            socket_timeout=self.policy.ytdlp_socket_timeout_seconds,
+            retries=self.policy.ytdlp_retries,
+            extractor_retries=self.policy.ytdlp_extractor_retries,
+        )
+        scrape = getattr(scraper, "scrape", None)
+        if callable(scrape):
+            scrape_comments = partial(scrape, self.policy.max_comments_per_video)
+        else:
             # Compatibility for small test/manual fakes that only implement
             # the original comments-only method.
-            comments = scraper.get_video_top_comments(
-                self.policy.max_comments_per_video
-            )
-            metadata = getattr(scraper, "video_metadata", {})
-            return VideoCommentScrapeResult(
-                comments=comments,
-                comments_available=True,
-                metadata_raw_data=snapshot_ytdlp_info(
-                    metadata,
-                    source="video_comments:test_compat",
-                ),
-                scraped_at=datetime.now(UTC).replace(tzinfo=None),
-            )
+            def scrape_comments() -> VideoCommentScrapeResult:
+                comments = scraper.get_video_top_comments(
+                    self.policy.max_comments_per_video
+                )
+                metadata = getattr(scraper, "video_metadata", {})
+                return VideoCommentScrapeResult(
+                    comments=comments,
+                    comments_available=True,
+                    metadata_raw_data=snapshot_ytdlp_info(
+                        metadata,
+                        source="video_comments:test_compat",
+                    ),
+                    scraped_at=datetime.now(UTC).replace(tzinfo=None),
+                )
 
         now = datetime.now(UTC).replace(tzinfo=None)
         attempts = (video.analyze_attempts or 0) + 1
 
         try:
-            scrape_result = await asyncio.to_thread(_scrape_comments)
+            scrape_result = await self._run_blocking_scrape(scrape_comments)
         except Exception as exc:
             video.last_analyzed_at = now
             blocked = isinstance(exc, YouTubeAccessBlocked) or is_youtube_block_error(

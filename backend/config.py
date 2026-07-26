@@ -187,6 +187,19 @@ if YTDLP_COMMENT_MAX_SLEEP_INTERVAL < YTDLP_COMMENT_SLEEP_INTERVAL:
         "YTDLP_COMMENT_MAX_SLEEP_INTERVAL must be >= YTDLP_COMMENT_SLEEP_INTERVAL"
     )
 
+YTDLP_SOCKET_TIMEOUT_SECONDS = _env_float("YTDLP_SOCKET_TIMEOUT_SECONDS", 30, minimum=1)
+YTDLP_RETRIES = _env_int("YTDLP_RETRIES", 2)
+YTDLP_EXTRACTOR_RETRIES = _env_int("YTDLP_EXTRACTOR_RETRIES", 2)
+YTDLP_OPERATION_TIMEOUT_SECONDS = _env_float(
+    "YTDLP_OPERATION_TIMEOUT_SECONDS", 300, minimum=10
+)
+YTDLP_TERMINATE_GRACE_SECONDS = _env_float(
+    "YTDLP_TERMINATE_GRACE_SECONDS", 5, minimum=0.1
+)
+UPDATER_SHUTDOWN_GRACE_SECONDS = _env_float(
+    "UPDATER_SHUTDOWN_GRACE_SECONDS", 20, minimum=1
+)
+
 # A real block is treated more conservatively than an ordinary transient error.
 UPDATE_YOUTUBE_COOLDOWN_SECONDS = _env_int(
     "UPDATE_YOUTUBE_COOLDOWN_SECONDS", 6 * 60 * 60, minimum=60
@@ -215,6 +228,11 @@ SCRAPE_POLICY = ScrapePolicy(
     ytdlp_list_max_sleep_interval=YTDLP_LIST_MAX_SLEEP_INTERVAL,
     ytdlp_comment_sleep_interval=YTDLP_COMMENT_SLEEP_INTERVAL,
     ytdlp_comment_max_sleep_interval=YTDLP_COMMENT_MAX_SLEEP_INTERVAL,
+    ytdlp_socket_timeout_seconds=YTDLP_SOCKET_TIMEOUT_SECONDS,
+    ytdlp_retries=YTDLP_RETRIES,
+    ytdlp_extractor_retries=YTDLP_EXTRACTOR_RETRIES,
+    ytdlp_operation_timeout_seconds=YTDLP_OPERATION_TIMEOUT_SECONDS,
+    ytdlp_terminate_grace_seconds=YTDLP_TERMINATE_GRACE_SECONDS,
     youtube_cooldown_seconds=UPDATE_YOUTUBE_COOLDOWN_SECONDS,
 )
 

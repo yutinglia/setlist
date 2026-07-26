@@ -1,5 +1,6 @@
 """Defensive yt-dlp comment response handling."""
 
+from typing import ClassVar
 from unittest.mock import patch
 
 import pytest
@@ -10,9 +11,11 @@ from services.yt_scraper.video_comment_scraper import YouTubeVideoCommentScraper
 
 class _FakeYdl:
     response = None
+    options: ClassVar[dict] = {}
 
-    def __init__(self, _options):
-        pass
+    def __init__(self, options):
+        self.options = options
+        type(self).options = options
 
     def __enter__(self):
         return self
@@ -68,6 +71,9 @@ def test_malformed_comment_items_are_dropped():
         comments = scraper.get_video_top_comments(10)
 
     assert comments == [{"text": "valid"}, {"text": "also valid"}]
+    assert _FakeYdl.options["socket_timeout"] == 30.0
+    assert _FakeYdl.options["retries"] == 2
+    assert _FakeYdl.options["extractor_retries"] == 2
 
 
 def test_comment_scrape_exposes_existing_full_video_metadata():

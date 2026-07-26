@@ -6,6 +6,7 @@ import yt_dlp
 
 from models.video import ANALYSIS_PENDING, ANALYSIS_SKIPPED, YouTubeVideo
 from services.yt_scraper.errors import raise_if_block_error
+from services.yt_scraper.options import bounded_network_options
 from utils.video_type import classify_video_type
 from utils.youtube_channel_url import channel_list_urls
 from utils.youtube_upload_date import (
@@ -74,6 +75,9 @@ class YouTubeChannelVideoScraper:
         playlist_end: int | None = None,
         sleep_interval: float = 1.0,
         max_sleep_interval: float = 2.0,
+        socket_timeout: float = 30.0,
+        retries: int = 2,
+        extractor_retries: int = 2,
     ) -> None:
         self.channel_url = channel_url
         self.max_videos = max_videos
@@ -85,6 +89,9 @@ class YouTubeChannelVideoScraper:
         self.playlist_end = playlist_end
         self.sleep_interval = sleep_interval
         self.max_sleep_interval = max_sleep_interval
+        self.socket_timeout = socket_timeout
+        self.retries = retries
+        self.extractor_retries = extractor_retries
         self.videos: list[YouTubeVideo] = []
 
     @staticmethod
@@ -271,6 +278,11 @@ class YouTubeChannelVideoScraper:
             "no_warnings": True,
             "sleep_interval": self.sleep_interval,
             "max_sleep_interval": self.max_sleep_interval,
+            **bounded_network_options(
+                socket_timeout=self.socket_timeout,
+                retries=self.retries,
+                extractor_retries=self.extractor_retries,
+            ),
         }
         if use_match_filter:
             ydl_opts["match_filter"] = should_exclude_channel_list_entry
@@ -418,6 +430,11 @@ class YouTubeChannelVideoScraper:
             "no_warnings": True,
             "sleep_interval": self.sleep_interval,
             "max_sleep_interval": self.max_sleep_interval,
+            **bounded_network_options(
+                socket_timeout=self.socket_timeout,
+                retries=self.retries,
+                extractor_retries=self.extractor_retries,
+            ),
         }
         enriched: list[dict] = []
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
