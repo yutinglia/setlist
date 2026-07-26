@@ -89,6 +89,10 @@ LOGIN_RATE_LIMIT_REQUESTS = _env_int("LOGIN_RATE_LIMIT_REQUESTS", 5, minimum=1)
 LOGIN_RATE_LIMIT_WINDOW_SECONDS = _env_int(
     "LOGIN_RATE_LIMIT_WINDOW_SECONDS", 5 * 60, minimum=1
 )
+# Every successful or failed YouTube channel-resolution attempt advances this
+# administrator-only deadline. Bulk add waits between items; separate requests
+# receive 429 until the same persisted deadline expires.
+CHANNEL_ADD_COOLDOWN_SECONDS = _env_int("CHANNEL_ADD_COOLDOWN_SECONDS", 10, minimum=0)
 
 _TRUSTED_PROXY_CIDRS_RAW = os.getenv("TRUSTED_PROXY_CIDRS", "")
 TRUSTED_PROXY_CIDRS = tuple(

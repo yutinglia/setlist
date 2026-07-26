@@ -67,6 +67,7 @@ class ScraperState(Base):
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
     updater_outcome: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'never'::character varying"))
     youtube_cooldown_until: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
+    channel_add_cooldown_until: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     updater_cycle_started_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     updater_cycle_finished_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     updater_last_success_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)

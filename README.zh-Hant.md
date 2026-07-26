@@ -361,11 +361,17 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
 | `POST` | `/v1/auth/logout` | 結束目前的管理員工作階段 |
 | `GET` | `/v1/updater/status` | 即時細節、持久化結果、心跳、上次成功時間與冷卻狀態 |
 | `POST` | `/v1/channels` | 驗證並新增 YouTube 頻道 |
+| `POST` | `/v1/channels/bulk` | 依序新增 1–10 個頻道並回傳逐筆結果 |
 | `POST` | `/v1/channels/{id}/videos/refresh` | 重新整理中繼資料而不刪除既有歌單 |
 | `POST` | `/v1/videos/{id}/songs/reload` | 重新抓取留言並執行歌單抽取 |
 
 瀏覽器中的異動請求同時需要已簽章的管理員 Cookie 與工作階段的
 `X-CSRF-Token`。
+
+批次新增會分別驗證每個網址、逐一解析有效頻道，並在每次 YouTube 查詢之間
+套用持久化的管理員新增冷卻。整批只會喚醒 updater 一次，而不是每個頻道各
+喚醒一次，因此待處理回填仍遵守正常的每輪上限與預設五分鐘 worker 節奏。
+在冷卻期間另外呼叫 `POST /v1/channels` 會收到含 `Retry-After` 的 `429`。
 
 ## 設定
 
@@ -387,6 +393,7 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
 | `AUTH_COOKIE_SECURE` | 正式環境為 true | 公開 HTTPS 必須維持 true |
 | `GUEST_RATE_LIMIT_REQUESTS/WINDOW_SECONDS` | `60/60` | 每個來源 IP／時間窗的訪客請求數 |
 | `LOGIN_RATE_LIMIT_REQUESTS/WINDOW_SECONDS` | `5/300` | 每個來源 IP／時間窗的登入次數 |
+| `CHANNEL_ADD_COOLDOWN_SECONDS` | `10` | 管理員頻道查詢與批次項目間的持久化暫停 |
 | `TRUSTED_PROXY_CIDRS` | 空白 | 可提供用戶端 IP 的代理網路 |
 | `CORS_ORIGINS` | 空白 | 可進行帶憑證跨來源存取的確切 UI 來源 |
 | `DATA_UPDATE_INTERVAL` | `300` | Worker 心跳；只有到期工作才會呼叫 YouTube |
@@ -403,19 +410,21 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
 
 ## 資料流程如何運作
 
-1. 透過有工作量上限的 Streams 與 Videos 播放清單頁面發現追蹤頻道內容。
-2. 清單快照會保留穩定中繼資料與約略日期，不會對每支影片額外發出請求。
-3. 可能是歌回的影片會進入獨立且受節流控制的留言分析佇列。
-4. 分析器依序優先採用置頂、上傳者、已解析歌曲數及按讚數；它會隔離明確歌單
+1. 管理員一次可用有節流的批次新增最多十個頻道。頻道中繼資料查詢會序列化並
+   套用持久化冷卻，而整批只會喚醒 updater 一次。
+2. 透過有工作量上限的 Streams 與 Videos 播放清單頁面發現追蹤頻道內容。
+3. 清單快照會保留穩定中繼資料與約略日期，不會對每支影片額外發出請求。
+4. 可能是歌回的影片會進入獨立且受節流控制的留言分析佇列。
+5. 分析器依序優先採用置頂、上傳者、已解析歌曲數及按讚數；它會隔離明確歌單
    區段，在無關章節或時間戳大幅倒退前停止、保留安可區段，並只在成功分析後
    取代影片歌單。
-5. 精確中繼資料可以升級約略值；之後的稀疏觀察不會抹除較完整的快照或先前
+6. 精確中繼資料可以升級約略值；之後的稀疏觀察不會抹除較完整的快照或先前
    成功的歌單。
-6. 若疑似受到 YouTube 封鎖，系統會中止剩餘呼叫並保存冷卻時間，避免重啟
+7. 若疑似受到 YouTube 封鎖，系統會中止剩餘呼叫並保存冷卻時間，避免重啟
    繞過限制。
-7. 程序內 lock 與 PostgreSQL advisory lock 會跨 worker 與重疊部署序列化所有
+8. 程序內 lock 與 PostgreSQL advisory lock 會跨 worker 與重疊部署序列化所有
    背景及管理員觸發的 YouTube 工作。
-8. 正式環境的 yt-dlp 會在可終止的子程序執行，並具有網路與整體操作期限。
+9. 正式環境的 yt-dlp 會在可終止的子程序執行，並具有網路與整體操作期限。
    生命週期心跳由獨立交易提交，因此不會提交爬取資料，卻能將崩潰或卡住的
    週期顯示為 stalled。
 

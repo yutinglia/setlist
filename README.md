@@ -383,11 +383,19 @@ submits the form or selects a suggestion.
 | `POST` | `/v1/auth/logout` | End the current administrator session |
 | `GET` | `/v1/updater/status` | Live detail plus durable outcome, heartbeat, last success, and cooldown |
 | `POST` | `/v1/channels` | Validate and add a YouTube channel |
+| `POST` | `/v1/channels/bulk` | Add 1–10 channels sequentially with per-item results |
 | `POST` | `/v1/channels/{id}/videos/refresh` | Refresh metadata without deleting setlists |
 | `POST` | `/v1/videos/{id}/songs/reload` | Re-fetch comments and rerun extraction |
 
 Browser mutations require both the signed administrator cookie and the
 session's `X-CSRF-Token`.
+
+Bulk channel add validates each URL independently, resolves valid channels one
+at a time, and applies the persisted administrator add cooldown between YouTube
+lookups. The whole batch queues one updater wake-up—not one wake-up per
+channel—so pending backfills continue under the normal per-cycle limits and
+configured worker interval (five minutes by default). A separate
+`POST /v1/channels` during the cooldown returns `429` with `Retry-After`.
 
 ## Configuration
 
@@ -409,6 +417,7 @@ Important settings:
 | `AUTH_COOKIE_SECURE` | true in prod | Must remain true on public HTTPS |
 | `GUEST_RATE_LIMIT_REQUESTS/WINDOW_SECONDS` | `60/60` | Guest requests per resolved IP/window |
 | `LOGIN_RATE_LIMIT_REQUESTS/WINDOW_SECONDS` | `5/300` | Login attempts per resolved IP/window |
+| `CHANNEL_ADD_COOLDOWN_SECONDS` | `10` | Persisted pause between administrator channel lookups and bulk items |
 | `TRUSTED_PROXY_CIDRS` | empty | Proxies allowed to provide client IPs |
 | `CORS_ORIGINS` | empty | Exact credentialed cross-origin UI origins |
 | `DATA_UPDATE_INTERVAL` | `300` | Worker heartbeat; only due work calls YouTube |
@@ -425,22 +434,25 @@ The complete list and explanatory comments live in [`.env.example`](.env.example
 
 ## How the pipeline behaves
 
-1. A tracked channel is discovered through bounded Streams and Videos playlist
+1. Administrators may add up to ten channels in one paced batch. Channel
+   metadata lookups are serialized with a durable cooldown, and the batch
+   produces one updater wake-up.
+2. A tracked channel is discovered through bounded Streams and Videos playlist
    pages.
-2. Flat-list snapshots preserve stable metadata and approximate dates without
+3. Flat-list snapshots preserve stable metadata and approximate dates without
    a per-video request fan-out.
-3. Karaoke candidates enter a separate, paced comment-analysis queue.
-4. The analyzer prefers pinned and uploader comments, then parsed-song count and
+4. Karaoke candidates enter a separate, paced comment-analysis queue.
+5. The analyzer prefers pinned and uploader comments, then parsed-song count and
    likes. It isolates explicit setlist sections, stops before unrelated chapters
    or large timestamp regressions, preserves encore sections, and replaces a
    video's song list only after a successful analysis.
-5. Exact metadata can upgrade approximate values; later sparse observations
+6. Exact metadata can upgrade approximate values; later sparse observations
    never erase richer snapshots or a previous successful setlist.
-6. Suspected YouTube blocking aborts remaining calls and persists a cooldown so
+7. Suspected YouTube blocking aborts remaining calls and persists a cooldown so
    a restart cannot bypass it.
-7. A process-local lock plus PostgreSQL advisory lock serializes background and
+8. A process-local lock plus PostgreSQL advisory lock serializes background and
    administrator-triggered YouTube work across workers and overlapping deploys.
-8. Production yt-dlp calls run in killable child processes with bounded
+9. Production yt-dlp calls run in killable child processes with bounded
    network retries and whole-operation deadlines. Independently committed
    lifecycle heartbeats expose a crashed or wedged cycle as stalled without
    committing scraper data.

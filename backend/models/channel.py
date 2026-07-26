@@ -16,6 +16,15 @@ VIDEO_BACKFILL_ACTIVE: frozenset[str] = frozenset(
     {VIDEO_BACKFILL_PENDING, VIDEO_BACKFILL_RUNNING, VIDEO_BACKFILL_FAILED}
 )
 
+MAX_CHANNELS_PER_BULK_ADD = 10
+ChannelBulkAddStatus = Literal[
+    "created",
+    "already_exists",
+    "invalid",
+    "failed",
+    "skipped",
+]
+
 
 class ChannelCreate(BaseModel):
     """Request body for adding a channel by YouTube URL."""
@@ -31,6 +40,35 @@ class ChannelCreate(BaseModel):
     @classmethod
     def validate_url(cls, value: str) -> str:
         return normalize_youtube_channel_url(value)
+
+
+class ChannelBulkCreate(BaseModel):
+    """Administrator bulk-add request with per-item validation outcomes."""
+
+    urls: list[str] = Field(
+        ...,
+        min_length=1,
+        max_length=MAX_CHANNELS_PER_BULK_ADD,
+        description="One to ten YouTube channel URLs",
+    )
+
+
+class ChannelBulkAddItemResult(BaseModel):
+    url: str
+    status: ChannelBulkAddStatus
+    channel_id: str | None = None
+    channel_name: str | None = None
+    message: str
+
+
+class ChannelBulkAddResponse(BaseModel):
+    items: list[ChannelBulkAddItemResult]
+    created: int = Field(ge=0)
+    already_exists: int = Field(ge=0)
+    failed: int = Field(ge=0)
+    skipped: int = Field(ge=0)
+    max_batch_size: int = MAX_CHANNELS_PER_BULK_ADD
+    cooldown_seconds: int = Field(ge=0)
 
 
 class YouTubeChannel(BaseModel):

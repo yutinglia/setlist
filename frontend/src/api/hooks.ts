@@ -196,6 +196,17 @@ export function useCreateChannel() {
   })
 }
 
+export function useCreateChannelsBulk() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (urls: string[]) => api.createChannelsBulk(urls),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["channels"] })
+      await queryClient.invalidateQueries({ queryKey: ["channels", "options"] })
+    },
+  })
+}
+
 export function useChannelVideos(
   channelId: string,
   page: number,
