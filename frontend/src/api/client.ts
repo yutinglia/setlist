@@ -5,6 +5,7 @@ import type {
   Paginated,
   Song,
   SongSearchResult,
+  SongSuggestion,
   SummaryReport,
   UpdaterStatus,
   VideoSongReload,
@@ -130,6 +131,35 @@ export const api = {
     }
     return request<Paginated<SongSearchResult>>(
       `/v1/songs/search?${params.toString()}`,
+    )
+  },
+
+  suggestSongs: (
+    q: string,
+    limit: number,
+    filters?: {
+      channelId?: string
+      type?: "karaoke" | "song"
+      uploadDateFrom?: string
+      uploadDateTo?: string
+    },
+    signal?: AbortSignal,
+  ) => {
+    const params = new URLSearchParams({
+      q,
+      limit: String(limit),
+    })
+    if (filters?.channelId) params.set("channel_id", filters.channelId)
+    if (filters?.type) params.set("type", filters.type)
+    if (filters?.uploadDateFrom) {
+      params.set("upload_date_from", filters.uploadDateFrom)
+    }
+    if (filters?.uploadDateTo) {
+      params.set("upload_date_to", filters.uploadDateTo)
+    }
+    return request<SongSuggestion[]>(
+      `/v1/songs/suggestions?${params.toString()}`,
+      { signal },
     )
   },
 

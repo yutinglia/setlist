@@ -8,6 +8,7 @@ import {
 import { api } from "@/api/client"
 
 export const PAGE_SIZE = 20
+export const SONG_SUGGESTION_LIMIT = 8
 
 export const authSessionQueryOptions = queryOptions({
   queryKey: ["auth", "session"],
@@ -116,6 +117,45 @@ export function useSongSearch(
       }),
     enabled: q.trim().length > 0,
     placeholderData: (prev) => prev,
+  })
+}
+
+export function useSongSuggestions(
+  q: string,
+  filters: SongSearchFilters = {},
+  options?: { enabled?: boolean },
+) {
+  const normalizedQuery = q.trim()
+  const channelId = filters.channelId
+  const type = filters.type
+  const uploadDateFrom = filters.uploadDateFrom
+  const uploadDateTo = filters.uploadDateTo
+  return useQuery({
+    queryKey: [
+      "songs",
+      "suggestions",
+      normalizedQuery,
+      channelId ?? null,
+      type ?? null,
+      uploadDateFrom ?? null,
+      uploadDateTo ?? null,
+    ],
+    queryFn: ({ signal }) =>
+      api.suggestSongs(
+        normalizedQuery,
+        SONG_SUGGESTION_LIMIT,
+        {
+          channelId,
+          type,
+          uploadDateFrom,
+          uploadDateTo,
+        },
+        signal,
+      ),
+    enabled:
+      normalizedQuery.length >= 2 && (options?.enabled ?? true),
+    staleTime: 60_000,
+    retry: false,
   })
 }
 
