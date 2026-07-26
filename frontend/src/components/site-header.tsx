@@ -3,6 +3,7 @@ import { useEffect } from "react"
 import {
   Activity,
   BarChart3,
+  BookOpen,
   Disc3,
   Languages,
   LogIn,
@@ -73,6 +74,11 @@ export function SiteHeader() {
           <NavLink to="/" label={m.nav_search()} icon={Search} exact />
           <NavLink to="/channels" label={m.nav_channels()} icon={Radio} />
           <NavLink to="/summary" label={m.nav_summary()} icon={BarChart3} />
+          <NavLink
+            to="/how-to-use"
+            label={m.nav_how_to_use()}
+            icon={BookOpen}
+          />
           {isAdmin ? (
             <NavLink to="/status" label={m.nav_status()} icon={Activity} />
           ) : null}
@@ -196,7 +202,7 @@ function NavLink({
   icon: Icon,
   exact = false,
 }: {
-  to: "/" | "/channels" | "/summary" | "/status"
+  to: "/" | "/channels" | "/summary" | "/how-to-use" | "/status"
   label: string
   icon: typeof Search
   exact?: boolean

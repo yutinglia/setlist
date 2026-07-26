@@ -32,7 +32,7 @@ metadata, reload a video's song list, and view live updater status.
 - Optional OpenAI-compatible cleanup after the regex extractor
 - Single-administrator authentication with signed HttpOnly sessions and CSRF
 - Per-IP guest API limits and stricter login limits
-- Public About, Terms, Privacy, and Copyright/removal pages
+- Public How to Use, About, Terms, Privacy, and Copyright/removal pages
 - Production containers for the React frontend, FastAPI service, PostgreSQL,
   and Flyway
 
@@ -48,6 +48,11 @@ metadata, reload a video's song list, and view live updater status.
 
 Authorization is enforced by the API. Hiding a frontend control is never
 treated as a security boundary.
+
+Guests who want another channel indexed should contact the deployment
+operator. On the official Setlist site, open a
+[GitHub issue](https://github.com/yutinglia/setlist/issues/new); on any other
+hosted instance, contact that site's owner or administrator.
 
 ## Quick start with a Dev Container
 
@@ -110,6 +115,10 @@ Copy-Item .env.production.example .env
 
 Set `PUBLIC_SITE_URL` to the final HTTPS origin and replace every required
 blank in `.env`.
+
+Self-hosters should also set `VITE_CHANNEL_REQUEST_URL` to their own support
+form, issue tracker, `mailto:` address, or same-origin contact page. When it is
+unset, the frontend falls back to `VITE_SOURCE_URL/issues/new`.
 
 ### 2. Generate the administrator password hash
 

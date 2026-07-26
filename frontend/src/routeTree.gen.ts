@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as CopyrightRouteImport } from './routes/copyright'
+import { Route as HowToUseRouteImport } from './routes/how-to-use'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as StatusRouteImport } from './routes/status'
 import { Route as SummaryRouteImport } from './routes/summary'
@@ -36,6 +37,11 @@ const AboutRoute = AboutRouteImport.update({
 const CopyrightRoute = CopyrightRouteImport.update({
   id: '/copyright',
   path: '/copyright',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowToUseRoute = HowToUseRouteImport.update({
+  id: '/how-to-use',
+  path: '/how-to-use',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/copyright': typeof CopyrightRoute
+  '/how-to-use': typeof HowToUseRoute
   '/privacy': typeof PrivacyRoute
   '/status': typeof StatusRoute
   '/summary': typeof SummaryRoute
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/copyright': typeof CopyrightRoute
+  '/how-to-use': typeof HowToUseRoute
   '/privacy': typeof PrivacyRoute
   '/status': typeof StatusRoute
   '/summary': typeof SummaryRoute
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/copyright': typeof CopyrightRoute
+  '/how-to-use': typeof HowToUseRoute
   '/privacy': typeof PrivacyRoute
   '/status': typeof StatusRoute
   '/summary': typeof SummaryRoute
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/copyright'
+    | '/how-to-use'
     | '/privacy'
     | '/status'
     | '/summary'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/copyright'
+    | '/how-to-use'
     | '/privacy'
     | '/status'
     | '/summary'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/copyright'
+    | '/how-to-use'
     | '/privacy'
     | '/status'
     | '/summary'
@@ -187,6 +199,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   CopyrightRoute: typeof CopyrightRoute
+  HowToUseRoute: typeof HowToUseRoute
   PrivacyRoute: typeof PrivacyRoute
   StatusRoute: typeof StatusRoute
   SummaryRoute: typeof SummaryRoute
@@ -220,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: '/copyright'
       fullPath: '/copyright'
       preLoaderRoute: typeof CopyrightRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to-use': {
+      id: '/how-to-use'
+      path: '/how-to-use'
+      fullPath: '/how-to-use'
+      preLoaderRoute: typeof HowToUseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -299,6 +319,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   CopyrightRoute: CopyrightRoute,
+  HowToUseRoute: HowToUseRoute,
   PrivacyRoute: PrivacyRoute,
   StatusRoute: StatusRoute,
   SummaryRoute: SummaryRoute,

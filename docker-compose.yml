@@ -8,6 +8,7 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         APP_VERSION: ${APP_VERSION:-}
+        VITE_CHANNEL_REQUEST_URL: ${VITE_CHANNEL_REQUEST_URL:-}
         VITE_SOURCE_URL: ${VITE_SOURCE_URL:-https://github.com/yutinglia/setlist}
         VITE_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL in .env}
     ports:

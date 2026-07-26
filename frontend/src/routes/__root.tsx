@@ -46,6 +46,9 @@ function RootLayout() {
             className="flex flex-wrap items-center gap-x-5 gap-y-2"
             aria-label={m.footer_info_nav()}
           >
+            <Link to="/how-to-use" className="hover:text-primary">
+              {m.nav_how_to_use()}
+            </Link>
             <Link to="/about" className="hover:text-primary">
               {m.nav_about()}
             </Link>

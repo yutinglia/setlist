@@ -29,7 +29,7 @@ Setlist 是個人維護的 homelab 專案，並以小型公開部署為設計目
 - 可選用 OpenAI 相容 API，在正規表示式抽取後進一步清理歌單
 - 使用簽章 HttpOnly 工作階段與 CSRF 防護的單一管理員驗證
 - 依 IP 限制訪客 API 流量，並對登入採用更嚴格的限制
-- 公開的關於、服務條款、隱私權與著作權／移除請求頁面
+- 公開的使用說明、關於、服務條款、隱私權與著作權／移除請求頁面
 - React 前端、FastAPI、PostgreSQL 與 Flyway 的正式環境容器
 
 ## 權限模型
@@ -43,6 +43,10 @@ Setlist 是個人維護的 homelab 專案，並以小型公開部署為設計目
 | 重新載入影片歌單 | 不可以 | 可以 |
 
 所有權限都由 API 強制執行；隱藏前端按鈕不會被當成安全邊界。
+
+訪客若想建議收錄其他頻道，應聯絡該部署的營運者。在 Setlist 官方網站請
+[建立 GitHub Issue](https://github.com/yutinglia/setlist/issues/new)；若使用
+其他人託管的站點，請聯絡該站擁有者或管理員。
 
 ## 使用 Dev Container 快速開始
 
@@ -104,6 +108,10 @@ Copy-Item .env.production.example .env
 
 將 `PUBLIC_SITE_URL` 設為最終的 HTTPS 來源網址，並填妥 `.env` 中所有必要的
 空白值。
+
+自行託管者也應將 `VITE_CHANNEL_REQUEST_URL` 設為自己的支援表單、Issue
+追蹤器、`mailto:` 信箱或同源聯絡頁面；未設定時，前端會回退至
+`VITE_SOURCE_URL/issues/new`。
 
 ### 2. 產生管理員密碼雜湊
 

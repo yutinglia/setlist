@@ -15,6 +15,7 @@ const sitemapPaths = [
   "/",
   "/channels",
   "/summary",
+  "/how-to-use",
   "/about",
   "/terms",
   "/privacy",

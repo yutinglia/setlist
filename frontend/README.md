@@ -103,6 +103,7 @@ proxy.
 | `/admin/login` | `GET /v1/auth/session`; `POST /v1/auth/login` |
 | `/status` | Administrator-only `GET /v1/updater/status` |
 | `/summary` | `GET /v1/report/summary` |
+| `/how-to-use` | Public search, browsing, timestamp, and channel-request guide |
 | `/about` | Project purpose and source link |
 | `/terms` | Terms of service |
 | `/privacy` | Privacy notice |
@@ -126,6 +127,9 @@ Source messages live in `messages/en.json`, `messages/zh-hant.json`, and
 ## Public metadata
 
 - `VITE_SOURCE_URL` sets the project source/contact base.
+- `VITE_CHANNEL_REQUEST_URL` sets the host-specific guest contact link for
+  channel requests. It accepts `http(s)`, `mailto:`, or a same-origin path and
+  falls back to `VITE_SOURCE_URL/issues/new`.
 - `VITE_PUBLIC_SITE_URL` sets the canonical Open Graph origin.
 - `VITE_APP_VERSION` optionally overrides the footer build version.
 - `public/og.png` is the social preview image.
