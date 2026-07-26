@@ -184,18 +184,33 @@ Environment 的保護規則。
 `docker compose up --build -d` 即使沒有 Git metadata 與 CI，仍會顯示目前
 版本。
 
-請從乾淨且已更新的 `main` branch 建立 release：
+請從乾淨且已更新的 `main` branch 準備 release pull request：
 
 ```bash
+git switch main
+git pull --ff-only
 node scripts/bump-version.mjs patch
-# 檢查產生的 commit 與 annotated tag，再使用 script 顯示的實際 tag：
-git push --atomic origin main v0.0.1
+# 依 script 顯示的指令推送 release/v0.0.1 並建立 pull request。
 ```
 
 參數可以是 `major`、`minor`、`patch`，或更高的明確
 `MAJOR.MINOR.PATCH`。Script 會同步 `VERSION`、前端 package metadata 與
-lockfile，再建立 release commit 與 tag，但不會自行 push。Main build 會顯示
-基準版本加上短 commit SHA；release tag build 則顯示乾淨的 release 版本。
+lockfile，再於 `release/vX.Y.Z` branch 建立 release commit，但不會自行
+push。
+
+受保護的 pull request 通過審核並合併後，再替合併完成的 `main` commit
+建立 tag：
+
+```bash
+git switch main
+git pull --ff-only
+node scripts/bump-version.mjs tag
+# 檢查 annotated tag，再使用 script 顯示的實際 tag：
+git push origin v0.0.1
+```
+
+Main build 會顯示基準版本加上短 commit SHA；release tag build 則顯示乾淨的
+release 版本。
 
 ### 部署安全檢查表
 
