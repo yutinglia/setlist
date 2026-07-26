@@ -249,9 +249,7 @@ class DataUpdater:
                         channel.id,
                         exc,
                     )
-                    await self.session.commit()
                     await self._activate_youtube_cooldown()
-                    await self.session.commit()
                     updater_status.set(
                         UpdaterPhase.COOLDOWN,
                         detail="YouTube temporarily blocked scraper requests",
@@ -278,9 +276,7 @@ class DataUpdater:
                 try:
                     await self._process_analysis_queue()
                 except YouTubeAccessBlocked as exc:
-                    await self.session.commit()
                     await self._activate_youtube_cooldown()
-                    await self.session.commit()
                     logger.warning("YouTube block in analysis queue: %s", exc)
                     updater_status.set(
                         UpdaterPhase.COOLDOWN,
@@ -366,9 +362,7 @@ class DataUpdater:
                 )
                 raise
             except YouTubeAccessBlocked:
-                await self.session.rollback()
                 await self._activate_youtube_cooldown()
-                await self.session.commit()
                 raise
             except Exception:
                 await self.session.rollback()
@@ -437,9 +431,7 @@ class DataUpdater:
                 )
                 raise
             except YouTubeAccessBlocked:
-                await self.session.rollback()
                 await self._activate_youtube_cooldown()
-                await self.session.commit()
                 raise
             except Exception:
                 await self.session.rollback()
@@ -472,11 +464,17 @@ class DataUpdater:
             self.set_youtube_cooldown(remaining)
 
     async def _activate_youtube_cooldown(self) -> None:
+        """Persist current work and cooldown atomically, then update local cache."""
         seconds = self.policy.youtube_cooldown_seconds
-        self.set_youtube_cooldown(seconds)
         setter = getattr(self.channel_repo, "set_youtube_cooldown_until", None)
-        if setter is not None:
-            await setter(self._utc_now() + timedelta(seconds=seconds))
+        try:
+            if setter is not None:
+                await setter(self._utc_now() + timedelta(seconds=seconds))
+            await self.session.commit()
+        except BaseException:
+            await self.session.rollback()
+            raise
+        self.set_youtube_cooldown(seconds)
 
     async def _refresh_channel_video_list_without_lock(
         self, channel: YouTubeChannel
@@ -514,7 +512,6 @@ class DataUpdater:
         try:
             scraped = await self._scrape_channel_videos(channel, full_metadata=True)
         except YouTubeAccessBlocked:
-            self.set_youtube_cooldown(self.policy.youtube_cooldown_seconds)
             updater_status.set(
                 UpdaterPhase.COOLDOWN,
                 detail=f"YouTube blocked while refreshing {channel.name}",
@@ -588,7 +585,6 @@ class DataUpdater:
             )
             channel = await self._refresh_channel(channel)
 
-        discovered = False
         backfill_active = channel.video_backfill_status in VIDEO_BACKFILL_ACTIVE
         if backfill_active:
             if (
@@ -607,15 +603,17 @@ class DataUpdater:
                     if page_index:
                         await self._list_jitter_sleep()
                     refreshed = await self._backfill_channel_video_page(channel)
-                    discovered = True
-                    # Each page/cursor is durable, so a later interruption
-                    # resumes at the next safe playlist window.
+                    # Each page, bounded cleanup, and cursor are durable as one
+                    # unit, so interruption resumes at the next safe window.
                     await self.session.commit()
                     if refreshed is None:
                         break
                     channel = refreshed
                     if channel.video_backfill_status != VIDEO_BACKFILL_RUNNING:
                         break
+            # Each backfill page already includes bounded reclassification,
+            # derived-song cleanup, and cursor movement in its durable commit.
+            return
         else:
             if not self._channel_scan_is_due(channel):
                 return
@@ -642,7 +640,6 @@ class DataUpdater:
                     next_scan_at=next_scan,
                     succeeded=True,
                 )
-                discovered = True
                 if not videos:
                     logger.info("No normal archive records found for %s", channel.id)
             except YouTubeAccessBlocked:
@@ -672,20 +669,28 @@ class DataUpdater:
                 )
                 return
 
-        if not discovered:
+        video_ids = [video.id for video in videos]
+        if not video_ids:
             return
+        await self._reclassify_and_clear_video_ids(channel, video_ids)
 
-        # Keep types aligned and clear derived songs for non-karaoke records.
-        # Raw archive/list/comment observations are retained for future rules.
+    async def _reclassify_and_clear_video_ids(
+        self,
+        channel: YouTubeChannel,
+        video_ids: list[str],
+    ) -> None:
+        """Reclassify and clean one scraped page in the caller's transaction."""
+        if not video_ids:
+            return
         updater_status.set(
             UpdaterPhase.RECLASSIFYING,
             detail=f"Reclassifying videos for {channel.name}",
             channel_id=channel.id,
             channel_name=channel.name,
         )
-        await self.video_repo.reclassify_for_channel(channel.id)
-        cleared_ids = await self.video_repo.clear_analysis_for_non_karaoke(
-            channel.id,
+        await self.video_repo.reclassify_by_ids(video_ids)
+        cleared_ids = await self.video_repo.clear_analysis_for_non_karaoke_by_ids(
+            video_ids,
             max_attempts=self.policy.max_analysis_attempts,
         )
         for video_id in cleared_ids:
@@ -737,8 +742,8 @@ class DataUpdater:
                 await self.session.rollback()
                 raise
             except YouTubeAccessBlocked:
-                # _analyze_video records the attempt/retry state before raising.
-                await self.session.commit()
+                # The caller adds the global cooldown and commits both states
+                # atomically before stopping the remaining YouTube work.
                 raise
             except RetryableVideoAnalysisError:
                 # The scraper failure path deliberately wrote only retry/backoff
@@ -840,6 +845,10 @@ class DataUpdater:
 
         upserted = (
             await self.video_repo.upsert_many(scraped_sorted) if scraped_sorted else []
+        )
+        await self._reclassify_and_clear_video_ids(
+            channel,
+            [video.id for video in upserted],
         )
         if not page.all_tabs_succeeded:
             # Saving the usable rows is safe, but advancing would permanently

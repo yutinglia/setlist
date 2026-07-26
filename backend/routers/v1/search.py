@@ -164,11 +164,15 @@ async def create_channel(
 
     async def _persist_cooldown() -> None:
         seconds = SCRAPE_POLICY.youtube_cooldown_seconds
+        try:
+            await repo.set_youtube_cooldown_until(
+                datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=seconds)
+            )
+            await session.commit()
+        except BaseException:
+            await session.rollback()
+            raise
         DataUpdater.set_youtube_cooldown(seconds)
-        await repo.set_youtube_cooldown_until(
-            datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=seconds)
-        )
-        await session.commit()
 
     try:
         async with youtube_operation_lock:
