@@ -89,8 +89,11 @@ admin setup, and lifecycle details.
 - Enough storage for PostgreSQL
 
 The production stack binds only the frontend proxy to
-`127.0.0.1:${FRONTEND_PORT:-8080}`. FastAPI and PostgreSQL stay on the private
-Compose network.
+`${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}`. Keep the loopback
+default when the TLS reverse proxy runs on the same host. If the proxy runs on
+another machine, set `FRONTEND_BIND_ADDRESS` to this server's private LAN
+address and firewall the port so only the proxy can reach it. FastAPI and
+PostgreSQL stay on the private Compose network.
 
 ### 1. Create local production configuration
 
@@ -149,7 +152,8 @@ Verify the local proxy before exposing it:
 curl http://127.0.0.1:8080/v1/health
 ```
 
-Point the HTTPS reverse proxy at `http://127.0.0.1:8080`. Keep
+Point the HTTPS reverse proxy at
+`http://${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}`. Keep
 `AUTH_COOKIE_SECURE=true`. The bundled frontend serves the SPA, applies browser
 security headers, and proxies `/v1` to FastAPI.
 
@@ -159,9 +163,9 @@ Compose refuses to start without `PUBLIC_SITE_URL`, `DB_PASSWORD`,
 ### Automated homelab deployment
 
 The deployment workflow follows the local-image pattern used by the homelab
-entry-site repository. A Linux x64 self-hosted runner builds the two application
-images, reruns Flyway, starts the production Compose stack, and verifies the
-proxied health endpoint.
+entry-site repository. A dedicated Linux x64 self-hosted runner carrying the
+`vtuber-karaoke-search` label builds the two application images, reruns Flyway,
+starts the production Compose stack, and verifies the proxied health endpoint.
 
 On the runner, keep the production configuration at:
 

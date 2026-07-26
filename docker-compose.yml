@@ -11,8 +11,9 @@ services:
         VITE_SOURCE_URL: ${VITE_SOURCE_URL:-https://github.com/yutinglia/vtuber-karaoke-search}
         VITE_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL in .env}
     ports:
-      # Bind locally; terminate public TLS in the homelab reverse proxy.
-      - "127.0.0.1:${FRONTEND_PORT:-8080}:8080"
+      # Keep the loopback default. Set FRONTEND_BIND_ADDRESS to the host's
+      # private LAN address only when the TLS reverse proxy runs elsewhere.
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}:8080"
     depends_on:
       data_updater:
         condition: service_healthy

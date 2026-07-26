@@ -83,7 +83,10 @@ API 與 UI 會自動以熱重載模式啟動。開發環境預設不啟用背景
 - 足夠存放 PostgreSQL 資料的空間
 
 正式環境只會將前端代理繫結至
-`127.0.0.1:${FRONTEND_PORT:-8080}`；FastAPI 與 PostgreSQL 會留在 Compose
+`${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}`。TLS reverse
+proxy 位於同一主機時請保留 loopback 預設值；若 proxy 位於另一台主機，請把
+`FRONTEND_BIND_ADDRESS` 設為此伺服器的 private LAN address，並以 firewall
+限制只有 proxy 能存取該 port。FastAPI 與 PostgreSQL 仍會留在 Compose
 私有網路內。
 
 ### 1. 建立本機正式環境設定
@@ -141,7 +144,8 @@ docker compose ps
 curl http://127.0.0.1:8080/v1/health
 ```
 
-將 HTTPS 反向代理指向 `http://127.0.0.1:8080`，並維持
+將 HTTPS 反向代理指向
+`http://${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}`，並維持
 `AUTH_COOKIE_SECURE=true`。內建前端會提供 SPA、套用瀏覽器安全標頭，並把
 `/v1` 代理至 FastAPI。
 
@@ -150,9 +154,10 @@ curl http://127.0.0.1:8080/v1/health
 
 ### 自動化 homelab 部署
 
-部署 workflow 參考 homelab 入口網站 repo 的本機 image 模式：Linux x64
-self-hosted runner 會建置兩個應用程式 image、重新執行 Flyway、啟動正式環境
-Compose stack，最後驗證經前端代理的健康檢查端點。
+部署 workflow 參考 homelab 入口網站 repo 的本機 image 模式：帶有
+`vtuber-karaoke-search` label 的專用 Linux x64 self-hosted runner 會建置
+兩個應用程式 image、重新執行 Flyway、啟動正式環境 Compose stack，最後
+驗證經前端代理的健康檢查端點。
 
 請在 runner 上把正式環境設定存放於：
 
