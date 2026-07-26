@@ -1,5 +1,6 @@
 """DataUpdater orchestration regressions that do not require PostgreSQL."""
 
+import asyncio
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
@@ -15,7 +16,7 @@ from models.channel import (
     YouTubeChannel,
 )
 from models.video import YouTubeVideo
-from services.data_updater import DataUpdater
+from services.data_updater import DataUpdater, RetryableVideoAnalysisError
 from services.updater_status import UpdaterPhase, updater_status
 from services.yt_scraper.channel_video_scraper import ChannelVideoPageResult
 from services.yt_scraper.errors import YouTubeAccessBlocked
@@ -312,6 +313,107 @@ async def test_youtube_block_does_not_exhaust_video_attempt(monkeypatch):
     assert video.analysis_status == "retry"
     assert video.next_analysis_at is not None
     video_repo.update_analysis.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_scraper_failure_records_retry_state_with_explicit_exception(monkeypatch):
+    class FailingCommentScraper:
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        def get_video_top_comments(self, _max_comments: int) -> list[dict]:
+            raise RuntimeError("temporary upstream failure")
+
+    monkeypatch.setattr(
+        "services.data_updater.YouTubeVideoCommentScraper",
+        FailingCommentScraper,
+    )
+    video_repo = SimpleNamespace(update_analysis=AsyncMock())
+    updater = DataUpdater(
+        SimpleNamespace(),
+        SimpleNamespace(),
+        video_repo,
+        SimpleNamespace(),
+    )
+    video = _video()
+
+    with pytest.raises(
+        RetryableVideoAnalysisError,
+        match="temporary upstream failure",
+    ):
+        await updater._analyze_video(video)
+
+    assert video.analyze_attempts == 1
+    assert video.analysis_status == "retry"
+    assert video.next_analysis_at is not None
+    video_repo.update_analysis.assert_awaited_once_with(video)
+
+
+@pytest.mark.asyncio
+async def test_analysis_queue_commits_only_explicit_retryable_failure(monkeypatch):
+    video = _video()
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    updater = DataUpdater(
+        session,
+        SimpleNamespace(),
+        SimpleNamespace(get_analysis_queue=AsyncMock(return_value=[video])),
+        SimpleNamespace(),
+    )
+    monkeypatch.setattr(
+        updater,
+        "_analyze_video",
+        AsyncMock(side_effect=RetryableVideoAnalysisError("retry")),
+    )
+
+    await updater._process_analysis_queue()
+
+    session.commit.assert_awaited_once()
+    session.rollback.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_analysis_queue_rolls_back_unexpected_failure(monkeypatch):
+    video = _video()
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    updater = DataUpdater(
+        session,
+        SimpleNamespace(),
+        SimpleNamespace(get_analysis_queue=AsyncMock(return_value=[video])),
+        SimpleNamespace(),
+    )
+    monkeypatch.setattr(
+        updater,
+        "_analyze_video",
+        AsyncMock(side_effect=RuntimeError("analyzer bug")),
+    )
+
+    await updater._process_analysis_queue()
+
+    session.rollback.assert_awaited_once()
+    session.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_analysis_queue_cancellation_rolls_back_and_propagates(monkeypatch):
+    video = _video()
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    updater = DataUpdater(
+        session,
+        SimpleNamespace(),
+        SimpleNamespace(get_analysis_queue=AsyncMock(return_value=[video])),
+        SimpleNamespace(),
+    )
+    monkeypatch.setattr(
+        updater,
+        "_analyze_video",
+        AsyncMock(side_effect=asyncio.CancelledError),
+    )
+
+    with pytest.raises(asyncio.CancelledError):
+        await updater._process_analysis_queue()
+
+    session.rollback.assert_awaited_once()
+    session.commit.assert_not_awaited()
 
 
 @pytest.mark.asyncio

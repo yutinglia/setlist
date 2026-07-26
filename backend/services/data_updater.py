@@ -96,6 +96,16 @@ class VideoSongReloadResult:
 
 logger = logging.getLogger(__name__)
 
+
+class RetryableVideoAnalysisError(Exception):
+    """A scraper failure whose retry state is safe to commit.
+
+    This separates expected upstream failures from analyzer/programming errors.
+    The analysis queue commits the retry schedule for this exception only;
+    unexpected failures roll the entire per-video transaction back.
+    """
+
+
 # One process must not run the periodic updater and manual scraper operations at
 # the same time. Deployments should still use one Uvicorn worker because the
 # lock is process-local; the cooldown itself is also persisted in PostgreSQL.
@@ -286,9 +296,15 @@ class DataUpdater:
                 )
             else:
                 updater_status.end_cycle()
+        except asyncio.CancelledError:
+            await self.session.rollback()
+            raise
         except Exception:
             await self.session.rollback()
             updater_status.end_cycle(error="The update cycle failed")
+            raise
+        except BaseException:
+            await self.session.rollback()
             raise
 
     @staticmethod
@@ -717,12 +733,33 @@ class DataUpdater:
             try:
                 await self._analyze_video(video)
                 await self.session.commit()
+            except asyncio.CancelledError:
+                await self.session.rollback()
+                raise
             except YouTubeAccessBlocked:
                 # _analyze_video records the attempt/retry state before raising.
                 await self.session.commit()
                 raise
-            except Exception:
+            except RetryableVideoAnalysisError:
+                # The scraper failure path deliberately wrote only retry/backoff
+                # state. Keep it durable, then continue with the next video.
                 await self.session.commit()
+                logger.warning(
+                    "Retryable scraper failure analyzing video %s; continuing",
+                    video.id,
+                )
+                updater_status.set(
+                    UpdaterPhase.ERROR,
+                    detail="Video comments could not be fetched and were rescheduled",
+                    clear_channel=True,
+                    video_id=video.id,
+                    video_title=video.title,
+                    last_error="A video comment request failed",
+                )
+            except Exception:
+                # Analyzer/programming/database failures must not make partial
+                # metadata, song replacement, or scheduling changes durable.
+                await self.session.rollback()
                 logger.exception(
                     "Non-block failure analyzing video %s; continuing", video.id
                 )
@@ -734,6 +771,9 @@ class DataUpdater:
                     video_title=video.title,
                     last_error="A video analysis failed",
                 )
+            except BaseException:
+                await self.session.rollback()
+                raise
 
     async def _backfill_channel_video_page(
         self, channel: YouTubeChannel
@@ -1052,7 +1092,7 @@ class DataUpdater:
                 video.analysis_status = ANALYSIS_RETRY
                 video.next_analysis_at = now + timedelta(seconds=retry_seconds)
             await self.video_repo.update_analysis(video)
-            raise
+            raise RetryableVideoAnalysisError(str(exc)) from exc
 
         comments = scrape_result.comments
         scraped_metadata = snapshot_payload(scrape_result.metadata_raw_data)
