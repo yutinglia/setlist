@@ -5,6 +5,7 @@ declare const __APP_VERSION__: string
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string
   readonly VITE_APP_VERSION?: string
+  readonly VITE_CHANNEL_REQUEST_URL?: string
   readonly VITE_PUBLIC_SITE_URL?: string
   readonly VITE_SOURCE_URL?: string
 }

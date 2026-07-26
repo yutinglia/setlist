@@ -3,6 +3,7 @@ import { ArrowRight, Plus, Radio } from "lucide-react"
 import { useCallback } from "react"
 
 import { PAGE_SIZE, useAuthSession, useChannels } from "@/api/hooks"
+import { ChannelRequestNotice } from "@/components/channel-request-notice"
 import { PaginationControls } from "@/components/pagination-controls"
 import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
@@ -23,10 +24,9 @@ function ChannelsPage() {
   const navigate = Route.useNavigate()
   const query = useChannels(page)
   const auth = useAuthSession()
-  const canManage =
-    auth.data?.authenticated === true &&
-    auth.data.role === "admin" &&
-    auth.data.management_enabled
+  const isAdmin =
+    auth.data?.authenticated === true && auth.data.role === "admin"
+  const canManage = isAdmin && auth.data?.management_enabled === true
   const changePage = useCallback(
     (next: number) => {
       void navigate({
@@ -73,6 +73,10 @@ function ChannelsPage() {
           ) : null}
         </div>
       </header>
+
+      {!auth.isLoading && !isAdmin ? (
+        <ChannelRequestNotice className="mt-8" />
+      ) : null}
 
       <div className="mt-8">
         <QueryState

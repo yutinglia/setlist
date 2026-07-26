@@ -238,7 +238,8 @@ Defer LLM until regex path is useful.
 - [x] Server-side authorization for updater status and every scraper mutation.
 - [x] Per-IP guest API limits and stricter login limits, with explicit trusted proxies.
 - [x] Administrator-only channel controls and per-video song-list reload.
-- [x] Public About, Terms, Privacy, and Copyright/removal pages.
+- [x] Public How to Use, About, Terms, Privacy, and Copyright/removal pages,
+  including guest guidance for requesting a channel from the relevant host.
 - [x] Production secret requirements, deployment documentation, and CI credential scan.
 
 **Still out of scope:** public account registration, multiple roles/accounts,
