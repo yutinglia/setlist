@@ -2,8 +2,6 @@ name: Deploy to homelab
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*.*.*"
 
@@ -17,7 +15,7 @@ concurrency:
 jobs:
   deploy:
     name: Build and deploy
-    if: github.repository == 'yutinglia/vtuber-karaoke-search'
+    if: github.repository == 'yutinglia/setlist'
     runs-on:
       - self-hosted
       - linux
@@ -45,32 +43,21 @@ jobs:
             exit 1
           fi
 
-          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            expected_tag="v${source_version}"
-            if [[ "$GITHUB_REF_NAME" != "$expected_tag" ]]; then
-              echo "::error::Tag ${GITHUB_REF_NAME} does not match VERSION (${expected_tag})."
-              exit 1
-            fi
-            app_version="$source_version"
-            image_tag="$GITHUB_REF_NAME"
-          else
-            if [[ "$(git tag --points-at HEAD --list "v${source_version}")" == "v${source_version}" ]]; then
-              echo "A matching release tag points at this commit; its tag event will deploy it."
-              echo "should_deploy=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            short_sha="${GITHUB_SHA:0:7}"
-            app_version="${source_version}+${short_sha}"
-            image_tag="main-${short_sha}"
+          if [[ "$GITHUB_REF_TYPE" != "tag" ]]; then
+            echo "::error::Production deploys require a semantic version tag."
+            exit 1
           fi
 
-          echo "APP_VERSION=$app_version" >> "$GITHUB_ENV"
-          echo "IMAGE_TAG=$image_tag" >> "$GITHUB_ENV"
-          echo "app_version=$app_version" >> "$GITHUB_OUTPUT"
-          echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          expected_tag="v${source_version}"
+          if [[ "$GITHUB_REF_NAME" != "$expected_tag" ]]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match VERSION (${expected_tag})."
+            exit 1
+          fi
+
+          echo "APP_VERSION=$source_version" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=$GITHUB_REF_NAME" >> "$GITHUB_ENV"
 
       - name: Validate host deployment configuration
-        if: steps.version.outputs.should_deploy == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -85,7 +72,6 @@ jobs:
           docker compose --env-file "$deploy_env" config --quiet
 
       - name: Build production images
-        if: steps.version.outputs.should_deploy == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -97,7 +83,6 @@ jobs:
             "homelab/vtuber-karaoke-search-api:${IMAGE_TAG}"
 
       - name: Deploy production stack
-        if: steps.version.outputs.should_deploy == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -107,7 +92,6 @@ jobs:
           docker compose --env-file "$DEPLOY_ENV_FILE" up --detach --remove-orphans
 
       - name: Verify deployment
-        if: steps.version.outputs.should_deploy == 'true'
         shell: bash
         run: |
           set -euo pipefail

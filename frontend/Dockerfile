@@ -7,7 +7,7 @@ RUN npm ci
 COPY frontend/. .
 COPY VERSION /VERSION
 ARG APP_VERSION=
-ARG VITE_SOURCE_URL=https://github.com/yutinglia/vtuber-karaoke-search
+ARG VITE_SOURCE_URL=https://github.com/yutinglia/setlist
 ARG VITE_PUBLIC_SITE_URL=http://localhost:8080
 ENV VITE_APP_VERSION=${APP_VERSION}
 ENV VITE_SOURCE_URL=${VITE_SOURCE_URL}
@@ -17,7 +17,7 @@ RUN npm run build
 FROM nginxinc/nginx-unprivileged:1.29-alpine
 
 ARG APP_VERSION=0.0.0
-LABEL org.opencontainers.image.source="https://github.com/yutinglia/vtuber-karaoke-search" \
+LABEL org.opencontainers.image.source="https://github.com/yutinglia/setlist" \
       org.opencontainers.image.version="${APP_VERSION}" \
       org.opencontainers.image.licenses="MIT"
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf

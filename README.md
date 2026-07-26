@@ -173,9 +173,9 @@ On the runner, keep the production configuration at:
 ~/services/vtuber-karaoke-search/.env
 ```
 
-Only pushes to `main` and semantic release tags such as `v0.1.0` trigger the
-workflow. Pull requests and manual workflow dispatches cannot deploy. The job
-also refuses to run outside `yutinglia/vtuber-karaoke-search`. Configure branch
+Only semantic release tags such as `v0.1.0` trigger the production workflow.
+Branch pushes, pull requests, and manual workflow dispatches cannot deploy. The
+job also refuses to run outside `yutinglia/setlist`. Configure branch
 protection, protected release tags, and protection rules on the `production`
 GitHub Environment before relying on it for an internet-facing service.
 
@@ -439,7 +439,7 @@ workflow is limited to canonical-repository `main` and version-tag pushes.
 ## Project layout
 
 ```text
-vtuber-karaoke-search/
+setlist/
 ├── .devcontainer/          # Python 3.12 + Node 22 editor environment
 ├── .github/workflows/      # CI and gated homelab deployment
 ├── data_updater/           # FastAPI API, auth, updater, scrapers, tests
@@ -471,7 +471,7 @@ other creative material remain with their respective owners.
 
 Rights holders and channel operators can request a correction, channel
 exclusion, or removal through
-[GitHub Issues](https://github.com/yutinglia/vtuber-karaoke-search/issues).
+[GitHub Issues](https://github.com/yutinglia/setlist/issues).
 Do not post private identity documents in a public issue.
 
 ## License

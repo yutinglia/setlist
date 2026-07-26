@@ -95,7 +95,7 @@ if (!requested) {
 }
 
 if (path.resolve(git("rev-parse", "--show-toplevel")) !== repositoryRoot) {
-  fail("Run this script from the vtuber-karaoke-search repository.")
+  fail("Run this script from the Setlist repository.")
 }
 
 if (git("status", "--porcelain")) {
