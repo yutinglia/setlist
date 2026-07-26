@@ -11,7 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import BACKGROUND_UPDATER_ENABLED, SCRAPE_POLICY
 from deps import get_session, pagination_params, require_management_admin
 from models.channel import VIDEO_BACKFILL_PENDING, ChannelCreate
-from models.search import ChannelRead, Paginated, SongSearchResult, VideoRead
+from models.search import (
+    ChannelRead,
+    Paginated,
+    SongSearchResult,
+    SongSuggestion,
+    VideoRead,
+)
 from models.song import Song
 from repositories import ChannelRepository, SongRepository, VideoRepository
 from services.data_updater import DataUpdater
@@ -109,6 +115,55 @@ async def search_songs(
         upload_date_to=upload_date_to,
     )
     return Paginated(items=items, total=total, limit=limit, offset=offset)
+
+
+@router.get("/songs/suggestions", response_model=list[SongSuggestion])
+async def suggest_songs(
+    q: str = Query(
+        ...,
+        min_length=2,
+        max_length=200,
+        description="Literal substring match used for title suggestions",
+    ),
+    channel_id: str | None = Query(
+        None,
+        description="Limit suggestions to songs from this channel id",
+    ),
+    type: Literal["karaoke", "song"] | None = Query(
+        None,
+        description="Filter suggestions by video type",
+    ),
+    upload_date_from: str | None = Query(
+        None,
+        pattern=_UPLOAD_DATE_PATTERN,
+        description="Inclusive lower bound on video upload_date (YYYYMMDD)",
+    ),
+    upload_date_to: str | None = Query(
+        None,
+        pattern=_UPLOAD_DATE_PATTERN,
+        description="Inclusive upper bound on video upload_date (YYYYMMDD)",
+    ),
+    limit: int = Query(8, ge=1, le=10),
+    session: AsyncSession = Depends(get_session),
+):
+    """Suggest distinct indexed song titles without running a full search."""
+    if (
+        upload_date_from is not None
+        and upload_date_to is not None
+        and upload_date_from > upload_date_to
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="upload_date_from must be less than or equal to upload_date_to",
+        )
+    return await SongRepository(session).suggest_titles(
+        q,
+        limit=limit,
+        channel_id=channel_id,
+        video_type=type,
+        upload_date_from=upload_date_from,
+        upload_date_to=upload_date_to,
+    )
 
 
 @router.get("/songs/{song_id}", response_model=SongSearchResult)

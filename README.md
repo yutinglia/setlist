@@ -344,6 +344,7 @@ List endpoints accept `limit` (1–100, default 20) and `offset`
 |--------|------|---------|
 | `GET` | `/v1/health` | API and database health |
 | `GET` | `/v1/songs/search?q=` | Search songs; optional channel/type/date filters |
+| `GET` | `/v1/songs/suggestions?q=` | Up to 10 distinct title suggestions; optional channel/type/date filters |
 | `GET` | `/v1/songs/{id}` | Song detail and timestamped YouTube link |
 | `GET` | `/v1/channels` | Tracked channels |
 | `GET` | `/v1/channels/{id}/videos` | Videos for one channel |
@@ -361,6 +362,10 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
 
 Search results include a `video_url` such as
 `https://www.youtube.com/watch?v=...&t=300s`.
+
+The search UI waits 500 ms after at least two characters before requesting up
+to eight lightweight suggestions. Full search runs only after the visitor
+submits the form or selects a suggestion.
 
 ### Administrator-only endpoints
 

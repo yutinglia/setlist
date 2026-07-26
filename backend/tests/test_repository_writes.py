@@ -563,3 +563,112 @@ async def test_search_by_title_filters_channel_type_and_date(session: AsyncSessi
     assert percent_hits[0].title == f"100%_{suffix}"
 
     await session.rollback()
+
+
+@pytest.mark.asyncio
+async def test_suggest_titles_deduplicates_ranks_and_filters(session: AsyncSession):
+    suffix = uuid.uuid4().hex[:8]
+    channel_a = f"ch_suggest_a_{suffix}"
+    channel_b = f"ch_suggest_b_{suffix}"
+    channel_repo = ChannelRepository(session)
+    video_repo = VideoRepository(session)
+    song_repo = SongRepository(session)
+
+    for channel_id in (channel_a, channel_b):
+        await channel_repo.create(
+            YouTubeChannel(
+                id=channel_id,
+                name=f"Suggestion {channel_id}",
+                url=f"https://www.youtube.com/channel/{channel_id}",
+            )
+        )
+
+    videos = []
+    for video_id, channel_id, video_type in (
+        (f"vid_suggest_a1_{suffix}", channel_a, "karaoke"),
+        (f"vid_suggest_a2_{suffix}", channel_a, "song"),
+        (f"vid_suggest_b1_{suffix}", channel_b, "karaoke"),
+    ):
+        videos.append(
+            await video_repo.upsert(
+                YouTubeVideo(
+                    id=video_id,
+                    title=f"Suggestion video {video_id}",
+                    url=f"https://www.youtube.com/watch?v={video_id}",
+                    channel_id=channel_id,
+                    upload_date="20240615",
+                    upload_date_precision="exact",
+                    type=video_type,
+                    raw_data={},
+                )
+            )
+        )
+
+    needle = f"Glow{suffix}"
+    await song_repo.replace_for_video(
+        videos[0].id,
+        [
+            Song(title=needle, video_id=videos[0].id, timestamp="0:10"),
+            Song(
+                title=f"{needle} Acoustic",
+                video_id=videos[0].id,
+                timestamp="0:20",
+            ),
+            Song(
+                title=f"After {needle}",
+                video_id=videos[0].id,
+                timestamp="0:30",
+            ),
+            Song(
+                title=f"100% {needle}",
+                video_id=videos[0].id,
+                timestamp="0:40",
+            ),
+        ],
+    )
+    await song_repo.replace_for_video(
+        videos[1].id,
+        [Song(title=needle.lower(), video_id=videos[1].id, timestamp="0:10")],
+    )
+    await song_repo.replace_for_video(
+        videos[2].id,
+        [
+            Song(
+                title=f"{needle} Acoustic",
+                video_id=videos[2].id,
+                timestamp="0:10",
+            ),
+            Song(
+                title=f"After {needle}",
+                video_id=videos[2].id,
+                timestamp="0:20",
+            ),
+        ],
+    )
+
+    suggestions = await song_repo.suggest_titles(needle, limit=8)
+    normalized = [item.title.lower() for item in suggestions]
+    assert len(normalized) == len(set(normalized))
+    assert normalized[0] == needle.lower()
+    assert normalized.index(f"{needle} Acoustic".lower()) < normalized.index(
+        f"After {needle}".lower()
+    )
+    assert suggestions[0].occurrences == 2
+
+    filtered = await song_repo.suggest_titles(
+        needle,
+        limit=8,
+        channel_id=channel_b,
+        video_type="karaoke",
+        upload_date_from="20240101",
+        upload_date_to="20241231",
+    )
+    assert {item.title.lower() for item in filtered} == {
+        f"{needle} Acoustic".lower(),
+        f"After {needle}".lower(),
+    }
+
+    literal_percent = await song_repo.suggest_titles("%", limit=8)
+    assert any(item.title == f"100% {needle}" for item in literal_percent)
+
+    await session.rollback()

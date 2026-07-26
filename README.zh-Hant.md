@@ -324,6 +324,7 @@ BACKGROUND_UPDATER_ENABLED=true
 |------|------|------|
 | `GET` | `/v1/health` | API 與資料庫健康狀態 |
 | `GET` | `/v1/songs/search?q=` | 搜尋歌曲，可選用頻道／類型／日期篩選 |
+| `GET` | `/v1/songs/suggestions?q=` | 最多 10 個不重複的歌名建議，可選用頻道／類型／日期篩選 |
 | `GET` | `/v1/songs/{id}` | 歌曲詳情與帶時間戳的 YouTube 連結 |
 | `GET` | `/v1/channels` | 已追蹤頻道 |
 | `GET` | `/v1/channels/{id}/videos` | 指定頻道的影片 |
@@ -341,6 +342,9 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
 
 搜尋結果會包含類似
 `https://www.youtube.com/watch?v=...&t=300s` 的 `video_url`。
+
+搜尋 UI 會在輸入至少兩個字並停止 500 毫秒後，取得最多八個輕量建議。
+完整搜尋只會在訪客送出表單或選取建議時執行。
 
 ### 僅限管理員的端點
 

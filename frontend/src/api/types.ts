@@ -19,6 +19,11 @@ export type SongSearchResult = {
   analyzed_by_llm: boolean
 }
 
+export type SongSuggestion = {
+  title: string
+  occurrences: number
+}
+
 export type YouTubeChannel = {
   id: string
   name: string

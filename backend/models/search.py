@@ -84,3 +84,10 @@ class SongSearchResult(BaseModel):
             channel_name=channel_name,
             analyzed_by_llm=song.analyzed_by_llm,
         )
+
+
+class SongSuggestion(BaseModel):
+    """A distinct song title suggested from the indexed setlists."""
+
+    title: str
+    occurrences: int = Field(..., ge=1)

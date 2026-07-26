@@ -1,11 +1,11 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import case, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import Channels, Songs, Videos
-from models.search import SongSearchResult
+from models.search import SongSearchResult, SongSuggestion
 from models.song import Song
 from utils.youtube_timestamp import youtube_url_with_timestamp
 
@@ -126,6 +126,75 @@ class SongRepository:
             for song, video, channel in rows
         ]
         return items, total
+
+    async def suggest_titles(
+        self,
+        query: str,
+        *,
+        limit: int = 8,
+        channel_id: str | None = None,
+        video_type: str | None = None,
+        upload_date_from: str | None = None,
+        upload_date_to: str | None = None,
+    ) -> list[SongSuggestion]:
+        """Return lightweight, case-insensitively deduplicated title suggestions."""
+        q = query.strip()
+        if not q:
+            return []
+
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        contains_pattern = f"%{escaped}%"
+        prefix_pattern = f"{escaped.lower()}%"
+        normalized_title = func.lower(Songs.title)
+        occurrences = func.count(Songs.id).label("occurrences")
+
+        stmt = (
+            select(
+                func.min(Songs.title).label("title"),
+                occurrences,
+            )
+            .select_from(Songs)
+            .where(Songs.title.ilike(contains_pattern, escape="\\"))
+        )
+        if (
+            channel_id is not None
+            or video_type is not None
+            or upload_date_from is not None
+            or upload_date_to is not None
+        ):
+            stmt = stmt.join(Videos, Songs.video_id == Videos.id)
+            if channel_id is not None:
+                stmt = stmt.where(Videos.channel_id == channel_id)
+            if video_type is not None:
+                stmt = stmt.where(Videos.type == video_type)
+            if upload_date_from is not None or upload_date_to is not None:
+                stmt = stmt.where(Videos.upload_date.is_not(None))
+                if upload_date_from is not None:
+                    stmt = stmt.where(Videos.upload_date >= upload_date_from)
+                if upload_date_to is not None:
+                    stmt = stmt.where(Videos.upload_date <= upload_date_to)
+
+        stmt = (
+            stmt.group_by(normalized_title)
+            .order_by(
+                case((normalized_title == q.lower(), 0), else_=1),
+                case(
+                    (
+                        normalized_title.like(prefix_pattern, escape="\\"),
+                        0,
+                    ),
+                    else_=1,
+                ),
+                occurrences.desc(),
+                normalized_title,
+            )
+            .limit(limit)
+        )
+        rows = (await self.session.execute(stmt)).all()
+        return [
+            SongSuggestion(title=row.title, occurrences=int(row.occurrences))
+            for row in rows
+        ]
 
     async def get_detail(self, song_id: int) -> SongSearchResult | None:
         """Song detail with video deep link and channel info."""

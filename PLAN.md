@@ -173,6 +173,7 @@ work does not block health checks.
 | Method | Path | Purpose |
 |--------|------|---------|
 | GET | `/v1/songs/search?q=` | ILIKE on `songs.title`; optional `channel_id`, `type`, `upload_date_from` / `upload_date_to` |
+| GET | `/v1/songs/suggestions?q=` | Lightweight distinct title suggestions with exact/prefix/frequency ranking and the same optional filters |
 | GET | `/v1/songs/{id}` | Song detail + video URL + timestamp |
 | GET | `/v1/channels` | List tracked channels |
 | GET | `/v1/channels/{id}/videos` | Videos for a channel |
@@ -220,7 +221,7 @@ Defer LLM until regex path is useful.
 
 - [x] React (Vite + TypeScript) app under `frontend/`
 - [x] TanStack Router + TanStack Query + Zustand (UI prefs) + Paraglide (`en` / `zh-hant` / `ja`) + Tailwind + shadcn/ui
-- [x] Search page → `GET /v1/songs/search` with debounce, pagination, deep links, advanced filters (channel / type / date)
+- [x] Search page → submit-only `GET /v1/songs/search` with pagination and deep links; 500 ms debounced `GET /v1/songs/suggestions` after two characters; advanced filters apply to both
 - [x] Song detail + channel → videos → video songs browse
 - [x] Administrator-only live updater status page →
   `GET /v1/updater/status`; guests do not poll it

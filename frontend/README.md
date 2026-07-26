@@ -94,7 +94,7 @@ proxy.
 
 | Path | API |
 |------|-----|
-| `/` | `GET /v1/songs/search` (`q` + optional `channel_id` / `type` / `date_from` / `date_to`) |
+| `/` | Submit-only `GET /v1/songs/search`; 500 ms debounced `GET /v1/songs/suggestions` while typing (both support optional channel/type/date filters) |
 | `/songs/$songId` | `GET /v1/songs/{id}` |
 | `/channels` | `GET /v1/channels` |
 | `/channels/new` | Administrator-only `POST /v1/channels` |

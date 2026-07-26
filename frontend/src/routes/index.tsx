@@ -6,7 +6,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react"
-import { useCallback, useEffect } from "react"
+import { useCallback } from "react"
 
 import {
   PAGE_SIZE,
@@ -28,7 +28,6 @@ import { formatInteger } from "@/lib/locale-format"
 import { songSearchSchema } from "@/lib/search-schemas"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
-import { useUiStore } from "@/stores/ui-store"
 
 export const Route = createFileRoute("/")({
   validateSearch: songSearchSchema,
@@ -45,7 +44,6 @@ function SearchPage() {
     date_to,
   } = Route.useSearch()
   const navigate = Route.useNavigate()
-  const addRecent = useUiStore((state) => state.addRecentSearch)
   const query = useSongSearch(q, page, {
     channelId: channel_id,
     type,
@@ -97,10 +95,6 @@ function SearchPage() {
     [navigate],
   )
 
-  useEffect(() => {
-    if (q && query.isSuccess) addRecent(q)
-  }, [q, query.isSuccess, addRecent])
-
   const channelPreview = channels.data?.items.slice(0, 4) ?? []
   const hasSearchState = Boolean(
     q || page || channel_id || type || date_from || date_to,
@@ -132,7 +126,13 @@ function SearchPage() {
           <div className="animate-rise stagger-3 mt-8 max-w-3xl">
             <SearchForm
               initialQuery={q}
-              onQueryChange={setQuery}
+              onQuerySubmit={setQuery}
+              suggestionFilters={{
+                channelId: channel_id,
+                type,
+                uploadDateFrom: date_from,
+                uploadDateTo: date_to,
+              }}
               autoFocus
             />
             <SearchFilters
