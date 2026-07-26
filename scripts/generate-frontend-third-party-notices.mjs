@@ -79,7 +79,8 @@ for (const [packagePath, lockMetadata] of Object.entries(lock.packages ?? {})) {
   if (
     !packagePath.startsWith("node_modules/") ||
     lockMetadata.dev === true ||
-    lockMetadata.link === true
+    lockMetadata.link === true ||
+    lockMetadata.optional === true
   ) {
     continue
   }
