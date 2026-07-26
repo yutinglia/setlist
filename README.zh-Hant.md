@@ -221,6 +221,9 @@ git push origin vX.Y.Z
 SHA。Release image 則顯示乾淨的語意版本。Branch push 與 pull request 只會執行
 CI，不能發佈 release 或部署正式環境。
 
+可依照[版本發布驗證](docs/RELEASE_VERIFICATION.zh-Hant.md)重複執行 tag 前檢查、
+image attestation 與 release 後驗證。
+
 ### 部署安全檢查表
 
 - 將 `.env` 排除於 Git，並限制可讀取它的人員。

@@ -139,6 +139,17 @@ Seed channels: `db/devscript/seed_channels.sql` (see README).
   ignores the TypeScript 7 semver-major update until Vite, TanStack, and the
   generated-code toolchain have been explicitly compatibility-tested.
 - Mixed ZH/EN comments exist; match the file you edit. Prefer English for new public docs/API strings.
+- Record reusable design, release, debugging, and operational findings in the
+  closest public project document. Use `docs/<topic>.md` when a topic needs a
+  standalone checklist, and keep significant English and Traditional Chinese
+  public guidance synchronized.
+- Keep public project documentation free of secrets, private hostnames and IP
+  addresses, credentials, user-specific filesystem paths, and private
+  deployment topology. Those details belong only in ignored local context.
+- Frontend build-time scripts invoked by `frontend/package.json` must be inside
+  `frontend/` unless `frontend/Dockerfile` explicitly copies them. Validate
+  frontend changes both directly and through the production Docker build
+  context.
 
 ## Do not
 

@@ -234,6 +234,9 @@ when Git metadata is available). Release images display the clean semantic
 version. Branch pushes and pull requests run CI but cannot publish a release or
 deploy production.
 
+See [Release verification](docs/RELEASE_VERIFICATION.md) for the repeatable
+pre-tag, image attestation, and post-release verification checklist.
+
 ### Deployment security checklist
 
 - Keep `.env` outside Git and restrict who can read it.
