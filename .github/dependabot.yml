@@ -47,14 +47,6 @@ updates:
       - containers
 
   - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: weekly
-    labels:
-      - dependencies
-      - containers
-
-  - package-ecosystem: docker
     directory: /frontend
     schedule:
       interval: weekly

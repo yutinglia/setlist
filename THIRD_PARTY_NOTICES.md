@@ -17,7 +17,7 @@ MIT License. The packages below remain subject to their respective terms.
 - `@floating-ui/utils@0.2.12` — MIT; full text L001 — atomiks — https://floating-ui.com
 - `@fontsource-variable/figtree@5.3.0` — OFL-1.1; full text L002 — Google Inc. — https://fontsource.org/fonts/figtree
 - `@fontsource-variable/syne@5.3.0` — OFL-1.1; full text L003 — Google Inc. — https://fontsource.org/fonts/syne
-- `@inlang/paraglide-js@2.22.0` — MIT; full text L004 — inlang <hello@inlang.com> (https://inlang.com/) — https://paraglidejs.com
+- `@inlang/paraglide-js@2.23.0` — MIT; full text L004 — inlang <hello@inlang.com> (https://inlang.com/) — https://paraglidejs.com
 - `@inlang/recommend-sherlock@0.2.1` — MIT; full text L004
 - `@inlang/sdk@2.10.2` — MIT; full text L005 — https://inlang.com/documentation/sdk
 - `@jridgewell/gen-mapping@0.3.13` — MIT; full text L006 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/gen-mapping
@@ -389,7 +389,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ### L004
 
-Applies to: `@inlang/paraglide-js@2.22.0`, `@inlang/recommend-sherlock@0.2.1`
+Applies to: `@inlang/paraglide-js@2.23.0`, `@inlang/recommend-sherlock@0.2.1`
 
 ```text
 MIT License
