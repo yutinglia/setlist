@@ -1,5 +1,6 @@
 """DataUpdater orchestration regressions that do not require PostgreSQL."""
 
+import asyncio
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
@@ -15,7 +16,11 @@ from models.channel import (
     YouTubeChannel,
 )
 from models.video import YouTubeVideo
-from services.data_updater import DataUpdater
+from services.data_updater import DataUpdater, RetryableVideoAnalysisError
+from services.updater_runtime_state import (
+    UPDATER_PROCESS_OWNER_ID,
+    UpdaterOutcome,
+)
 from services.updater_status import UpdaterPhase, updater_status
 from services.yt_scraper.channel_video_scraper import ChannelVideoPageResult
 from services.yt_scraper.errors import YouTubeAccessBlocked
@@ -38,6 +43,59 @@ def _video() -> YouTubeVideo:
         channel_id="channel-1",
         type="karaoke",
         raw_data={"duration": 3600, "live_status": "was_live"},
+    )
+
+
+@pytest.mark.asyncio
+async def test_cycle_persists_successful_runtime_lifecycle():
+    runtime_store = SimpleNamespace(
+        mark_started=AsyncMock(),
+        heartbeat=AsyncMock(return_value=True),
+        mark_finished=AsyncMock(return_value=True),
+    )
+    updater = DataUpdater(
+        SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock()),
+        SimpleNamespace(get_all=AsyncMock(return_value=[])),
+        SimpleNamespace(get_analysis_queue=AsyncMock(return_value=[])),
+        SimpleNamespace(),
+        runtime_state_store=runtime_store,
+    )
+
+    await updater.update()
+
+    runtime_store.mark_started.assert_awaited_once_with(UPDATER_PROCESS_OWNER_ID)
+    runtime_store.mark_finished.assert_awaited_once_with(
+        UPDATER_PROCESS_OWNER_ID,
+        UpdaterOutcome.SUCCESS,
+    )
+
+
+@pytest.mark.asyncio
+async def test_cancelled_cycle_persists_cancelled_runtime_outcome(monkeypatch):
+    runtime_store = SimpleNamespace(
+        mark_started=AsyncMock(),
+        heartbeat=AsyncMock(return_value=True),
+        mark_finished=AsyncMock(return_value=True),
+    )
+    updater = DataUpdater(
+        SimpleNamespace(),
+        SimpleNamespace(),
+        SimpleNamespace(),
+        SimpleNamespace(),
+        runtime_state_store=runtime_store,
+    )
+
+    async def cancel_cycle(**_kwargs):
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(updater, "_update_without_lock", cancel_cycle)
+
+    with pytest.raises(asyncio.CancelledError):
+        await updater.update()
+
+    runtime_store.mark_finished.assert_awaited_once_with(
+        UPDATER_PROCESS_OWNER_ID,
+        UpdaterOutcome.CANCELLED,
     )
 
 
@@ -315,6 +373,107 @@ async def test_youtube_block_does_not_exhaust_video_attempt(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_scraper_failure_records_retry_state_with_explicit_exception(monkeypatch):
+    class FailingCommentScraper:
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        def get_video_top_comments(self, _max_comments: int) -> list[dict]:
+            raise RuntimeError("temporary upstream failure")
+
+    monkeypatch.setattr(
+        "services.data_updater.YouTubeVideoCommentScraper",
+        FailingCommentScraper,
+    )
+    video_repo = SimpleNamespace(update_analysis=AsyncMock())
+    updater = DataUpdater(
+        SimpleNamespace(),
+        SimpleNamespace(),
+        video_repo,
+        SimpleNamespace(),
+    )
+    video = _video()
+
+    with pytest.raises(
+        RetryableVideoAnalysisError,
+        match="temporary upstream failure",
+    ):
+        await updater._analyze_video(video)
+
+    assert video.analyze_attempts == 1
+    assert video.analysis_status == "retry"
+    assert video.next_analysis_at is not None
+    video_repo.update_analysis.assert_awaited_once_with(video)
+
+
+@pytest.mark.asyncio
+async def test_analysis_queue_commits_only_explicit_retryable_failure(monkeypatch):
+    video = _video()
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    updater = DataUpdater(
+        session,
+        SimpleNamespace(),
+        SimpleNamespace(get_analysis_queue=AsyncMock(return_value=[video])),
+        SimpleNamespace(),
+    )
+    monkeypatch.setattr(
+        updater,
+        "_analyze_video",
+        AsyncMock(side_effect=RetryableVideoAnalysisError("retry")),
+    )
+
+    await updater._process_analysis_queue()
+
+    session.commit.assert_awaited_once()
+    session.rollback.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_analysis_queue_rolls_back_unexpected_failure(monkeypatch):
+    video = _video()
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    updater = DataUpdater(
+        session,
+        SimpleNamespace(),
+        SimpleNamespace(get_analysis_queue=AsyncMock(return_value=[video])),
+        SimpleNamespace(),
+    )
+    monkeypatch.setattr(
+        updater,
+        "_analyze_video",
+        AsyncMock(side_effect=RuntimeError("analyzer bug")),
+    )
+
+    await updater._process_analysis_queue()
+
+    session.rollback.assert_awaited_once()
+    session.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_analysis_queue_cancellation_rolls_back_and_propagates(monkeypatch):
+    video = _video()
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    updater = DataUpdater(
+        session,
+        SimpleNamespace(),
+        SimpleNamespace(get_analysis_queue=AsyncMock(return_value=[video])),
+        SimpleNamespace(),
+    )
+    monkeypatch.setattr(
+        updater,
+        "_analyze_video",
+        AsyncMock(side_effect=asyncio.CancelledError),
+    )
+
+    with pytest.raises(asyncio.CancelledError):
+        await updater._process_analysis_queue()
+
+    session.rollback.assert_awaited_once()
+    session.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_jitter_applies_across_channel_boundary(monkeypatch):
     class CommentScraper:
         def __init__(self, *_args, **_kwargs) -> None:
@@ -448,7 +607,11 @@ async def test_partial_backfill_page_keeps_cursor_and_schedules_retry(monkeypatc
         playlist_end=40,
     )
     channel_repo = SimpleNamespace(update_video_backfill=AsyncMock())
-    video_repo = SimpleNamespace(upsert_many=AsyncMock(return_value=page.videos))
+    video_repo = SimpleNamespace(
+        upsert_many=AsyncMock(return_value=page.videos),
+        reclassify_by_ids=AsyncMock(return_value=0),
+        clear_analysis_for_non_karaoke_by_ids=AsyncMock(return_value=[]),
+    )
     updater = DataUpdater(
         SimpleNamespace(),
         channel_repo,
@@ -467,6 +630,93 @@ async def test_partial_backfill_page_keeps_cursor_and_schedules_retry(monkeypatc
         status=VIDEO_BACKFILL_FAILED,
         offset=21,
     )
+    video_repo.reclassify_by_ids.assert_awaited_once_with([page.videos[0].id])
+    video_repo.clear_analysis_for_non_karaoke_by_ids.assert_awaited_once_with(
+        [page.videos[0].id],
+        max_attempts=updater.policy.max_analysis_attempts,
+    )
+
+
+@pytest.mark.asyncio
+async def test_backfill_commits_cleanup_and_cursor_as_one_ordered_unit(monkeypatch):
+    channel = _channel("channel-1").model_copy(
+        update={
+            "video_backfill_status": VIDEO_BACKFILL_PENDING,
+            "video_backfill_offset": 1,
+        }
+    )
+    video = _video()
+    page = ChannelVideoPageResult(
+        videos=[video],
+        raw_entry_count=1,
+        exhausted=False,
+        all_tabs_succeeded=True,
+        failed_tabs=(),
+        page_size=20,
+        playlist_start=1,
+        playlist_end=20,
+    )
+    events: list[str] = []
+
+    async def record(name, result=None):
+        events.append(name)
+        return result
+
+    async def commit():
+        return await record("commit")
+
+    async def update_cursor(*_args, **_kwargs):
+        return await record("cursor", running)
+
+    async def upsert(_videos):
+        return await record("upsert", [video])
+
+    async def reclassify(_ids):
+        return await record("reclassify", 1)
+
+    async def clear(_ids, **_kwargs):
+        return await record("clear", [video.id])
+
+    async def replace_songs(*_args):
+        return await record("songs", [])
+
+    running = channel.model_copy(
+        update={
+            "video_backfill_status": VIDEO_BACKFILL_RUNNING,
+            "video_backfill_offset": 21,
+        }
+    )
+    session = SimpleNamespace(commit=AsyncMock(side_effect=commit))
+    channel_repo = SimpleNamespace(
+        update_video_backfill=AsyncMock(side_effect=update_cursor)
+    )
+    video_repo = SimpleNamespace(
+        upsert_many=AsyncMock(side_effect=upsert),
+        reclassify_by_ids=AsyncMock(side_effect=reclassify),
+        clear_analysis_for_non_karaoke_by_ids=AsyncMock(side_effect=clear),
+    )
+    song_repo = SimpleNamespace(replace_for_video=AsyncMock(side_effect=replace_songs))
+    policy = replace(
+        SCRAPE_POLICY,
+        backfill_pages_per_cycle=1,
+        inter_list_sleep_min=0,
+        inter_list_sleep_max=0,
+    )
+    updater = DataUpdater(
+        session,
+        channel_repo,
+        video_repo,
+        song_repo,
+        policy=policy,
+    )
+    monkeypatch.setattr(
+        "services.data_updater.asyncio.to_thread",
+        AsyncMock(return_value=page),
+    )
+
+    await updater._process_channel(channel)
+
+    assert events == ["upsert", "reclassify", "clear", "songs", "cursor", "commit"]
 
 
 @pytest.mark.asyncio
@@ -591,6 +841,30 @@ async def test_manual_refresh_preserves_cooldown_status(monkeypatch):
     snap = updater_status.snapshot()
     assert snap["phase"] == UpdaterPhase.COOLDOWN.value
     assert snap["last_error"] != "A manual video metadata refresh failed"
-    session.rollback.assert_awaited_once()
+    session.commit.assert_awaited_once()
+    session.rollback.assert_not_awaited()
     DataUpdater._youtube_cooldown_until = None
     updater_status.stop(detail="test cleanup")
+
+
+@pytest.mark.asyncio
+async def test_cooldown_commit_failure_rolls_back_without_local_cache():
+    session = SimpleNamespace(
+        commit=AsyncMock(side_effect=RuntimeError("database unavailable")),
+        rollback=AsyncMock(),
+    )
+    channel_repo = SimpleNamespace(set_youtube_cooldown_until=AsyncMock())
+    updater = DataUpdater(
+        session,
+        channel_repo,
+        SimpleNamespace(),
+        SimpleNamespace(),
+    )
+    DataUpdater._youtube_cooldown_until = None
+
+    with pytest.raises(RuntimeError, match="database unavailable"):
+        await updater._activate_youtube_cooldown()
+
+    channel_repo.set_youtube_cooldown_until.assert_awaited_once()
+    session.rollback.assert_awaited_once()
+    assert DataUpdater.youtube_cooldown_remaining() == 0

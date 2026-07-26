@@ -59,12 +59,19 @@ class ScraperState(Base):
     __tablename__ = 'scraper_state'
     __table_args__ = (
         CheckConstraint('id = 1', name='scraper_state_id_check'),
+        CheckConstraint("updater_outcome::text = ANY (ARRAY['never'::character varying, 'running'::character varying, 'success'::character varying, 'cooldown'::character varying, 'error'::character varying, 'cancelled'::character varying]::text[])", name='chk_scraper_state_updater_outcome'),
         PrimaryKeyConstraint('id', name='scraper_state_pkey')
     )
 
     id: Mapped[int] = mapped_column(SmallInteger, primary_key=True, server_default=text('1'))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
+    updater_outcome: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'never'::character varying"))
     youtube_cooldown_until: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
+    updater_cycle_started_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
+    updater_cycle_finished_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
+    updater_last_success_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
+    updater_heartbeat_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
+    updater_owner_id: Mapped[Optional[str]] = mapped_column(String(255))
 
 
 class Videos(Base):

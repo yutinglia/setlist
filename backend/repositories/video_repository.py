@@ -240,9 +240,20 @@ class VideoRepository:
         Full-video metadata overrides the flat-list observation. Does not
         commit. Returns how many rows changed.
         """
-        result = await self.session.execute(
+        return await self._reclassify_rows(
             select(Videos).where(Videos.channel_id == channel_id)
         )
+
+    async def reclassify_by_ids(self, video_ids: list[str]) -> int:
+        """Recompute ``type`` for a bounded, newly scraped video page."""
+        if not video_ids:
+            return 0
+        return await self._reclassify_rows(
+            select(Videos).where(Videos.id.in_(video_ids))
+        )
+
+    async def _reclassify_rows(self, stmt) -> int:
+        result = await self.session.execute(stmt)
         rows = result.scalars().all()
         now = datetime.now(UTC).replace(tzinfo=None)
         changed = 0
@@ -286,9 +297,32 @@ class VideoRepository:
         are preserved for future reclassification/parser improvements. Does
         not commit. Returns cleared video ids.
         """
-        result = await self.session.execute(
-            select(Videos).where(Videos.channel_id == channel_id)
+        return await self._clear_analysis_for_non_karaoke_rows(
+            select(Videos).where(Videos.channel_id == channel_id),
+            max_attempts=max_attempts,
         )
+
+    async def clear_analysis_for_non_karaoke_by_ids(
+        self,
+        video_ids: list[str],
+        *,
+        max_attempts: int,
+    ) -> list[str]:
+        """Clear derived state only for a bounded, newly scraped video page."""
+        if not video_ids:
+            return []
+        return await self._clear_analysis_for_non_karaoke_rows(
+            select(Videos).where(Videos.id.in_(video_ids)),
+            max_attempts=max_attempts,
+        )
+
+    async def _clear_analysis_for_non_karaoke_rows(
+        self,
+        stmt,
+        *,
+        max_attempts: int,
+    ) -> list[str]:
+        result = await self.session.execute(stmt)
         rows = result.scalars().all()
         now = datetime.now(UTC).replace(tzinfo=None)
         cleared_ids: list[str] = []

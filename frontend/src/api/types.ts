@@ -145,6 +145,21 @@ export type UpdaterStatus = {
   cycle_started_at: string | null
   last_cycle_finished_at: string | null
   last_error: string | null
+  persistent_cycle_started_at: string | null
+  persistent_cycle_finished_at: string | null
+  persistent_last_success_at: string | null
+  persistent_heartbeat_at: string | null
+  persistent_outcome:
+    | "never"
+    | "running"
+    | "success"
+    | "cooldown"
+    | "error"
+    | "cancelled"
+    | string
+  persistent_owner_id: string | null
+  is_stalled: boolean
+  heartbeat_stale_seconds: number
   comment_scrapes_this_cycle: number
   comment_scrape_cap: number
   is_cycle_active: boolean

@@ -25,6 +25,26 @@ class UpdaterStatusResponse(BaseModel):
     cycle_started_at: datetime | None = None
     last_cycle_finished_at: datetime | None = None
     last_error: str | None = None
+    persistent_cycle_started_at: datetime | None = None
+    persistent_cycle_finished_at: datetime | None = None
+    persistent_last_success_at: datetime | None = None
+    persistent_heartbeat_at: datetime | None = None
+    persistent_outcome: str = Field(
+        description=(
+            "Database-backed lifecycle outcome: never, running, success, "
+            "cooldown, error, or cancelled"
+        )
+    )
+    persistent_owner_id: str | None = Field(
+        default=None,
+        description="Process identity that most recently owned the updater lock",
+    )
+    is_stalled: bool = Field(
+        description="True when the enabled worker has exceeded the heartbeat deadline"
+    )
+    heartbeat_stale_seconds: float = Field(
+        gt=0, description="Heartbeat age that marks a running updater as stalled"
+    )
     comment_scrapes_this_cycle: int = Field(ge=0)
     comment_scrape_cap: int = Field(
         ge=0, description="UPDATE_MAX_COMMENT_SCRAPES for this process"

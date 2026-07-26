@@ -4,6 +4,7 @@ import yt_dlp
 
 from models.channel import YouTubeChannel
 from services.yt_scraper.errors import raise_if_block_error
+from services.yt_scraper.options import bounded_network_options
 from utils.youtube_channel_url import normalize_youtube_channel_url
 from utils.ytdlp_snapshot import snapshot_payload, snapshot_ytdlp_info
 
@@ -16,9 +17,15 @@ class YouTubeChannelScraper:
         *,
         sleep_interval: float = 1.0,
         max_sleep_interval: float = 2.0,
+        socket_timeout: float = 30.0,
+        retries: int = 2,
+        extractor_retries: int = 2,
     ) -> None:
         self.sleep_interval = sleep_interval
         self.max_sleep_interval = max_sleep_interval
+        self.socket_timeout = socket_timeout
+        self.retries = retries
+        self.extractor_retries = extractor_retries
         self.channel: YouTubeChannel | None = None
 
     def get_channel_info(self, channel_url: str) -> YouTubeChannel:
@@ -32,6 +39,11 @@ class YouTubeChannelScraper:
             # speed limit
             "sleep_interval": self.sleep_interval,
             "max_sleep_interval": self.max_sleep_interval,
+            **bounded_network_options(
+                socket_timeout=self.socket_timeout,
+                retries=self.retries,
+                extractor_retries=self.extractor_retries,
+            ),
         }
 
         logger.info("Scraping channel metadata: %s", channel_url)

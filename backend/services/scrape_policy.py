@@ -35,4 +35,9 @@ class ScrapePolicy:
     ytdlp_list_max_sleep_interval: float
     ytdlp_comment_sleep_interval: float
     ytdlp_comment_max_sleep_interval: float
+    ytdlp_socket_timeout_seconds: float
+    ytdlp_retries: int
+    ytdlp_extractor_retries: int
+    ytdlp_operation_timeout_seconds: float
+    ytdlp_terminate_grace_seconds: float
     youtube_cooldown_seconds: int

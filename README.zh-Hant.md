@@ -170,8 +170,10 @@ attestation。
 正式部署刻意由另一個私有 repo 控制。其 self-hosted runner 只會取用已發佈的
 release image，不會 checkout 或執行原始碼 repo 的 pull-request 程式碼。它每
 10 分鐘檢查四個私有 GHCR image label，只有完整且語意版本一致時才會部署；也可
-手動指定精確 tag。Fork 使用者不需要私有控制面，也能使用上方的本機 Compose
-說明或自選部署系統。
+手動指定精確 tag。替換服務前會建立 custom-format PostgreSQL 備份；啟動後則
+同時要求 same-origin health endpoint 正常，以及持久化 updater heartbeat 為
+最新狀態。Fork 使用者不需要私有控制面，也能使用上方的本機 Compose 說明或
+自選部署系統。
 
 Production Compose 也有明確的資源上限：nginx 為 128 MiB／0.25 CPU、
 API 與 scraper 為 768 MiB／1 CPU、PostgreSQL 為 512 MiB／0.75 CPU，
@@ -227,7 +229,8 @@ CI，不能發佈 release 或部署正式環境。
 - 只允許 `TRUSTED_PROXY_CIDRS` 中的確切網路提供 `X-Forwarded-For`。
 - UI 與 API 應盡量使用同一來源；若必須分開，只在 `CORS_ORIGINS` 列出 UI
   的確切來源。
-- 在主機或資料庫維護前備份 `vks-pgdata` volume。
+- 每次 migration、主機異動或資料庫維護前建立並實際測試 `pg_dump` 備份，
+  另將加密副本保存於其他主機。
 - 定期檢查日誌與相依套件更新。
 
 訪客限流資料儲存在記憶體中，並以單一 API 程序為單位。預設部署只使用一個
@@ -341,7 +344,7 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
 | 方法 | 路徑 | 用途 |
 |------|------|------|
 | `POST` | `/v1/auth/logout` | 結束目前的管理員工作階段 |
-| `GET` | `/v1/updater/status` | 程序內更新器與冷卻狀態 |
+| `GET` | `/v1/updater/status` | 即時細節、持久化結果、心跳、上次成功時間與冷卻狀態 |
 | `POST` | `/v1/channels` | 驗證並新增 YouTube 頻道 |
 | `POST` | `/v1/channels/{id}/videos/refresh` | 重新整理中繼資料而不刪除既有歌單 |
 | `POST` | `/v1/videos/{id}/songs/reload` | 重新抓取留言並執行歌單抽取 |
@@ -375,6 +378,10 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
 | `UPDATE_STEADY_SCAN_INTERVAL` | `21600` | 一般頻道發現間隔 |
 | `UPDATE_MAX_COMMENT_SCRAPES` | `3` | 每個更新週期的留言爬取上限 |
 | `UPDATE_YOUTUBE_COOLDOWN_SECONDS` | `21600` | 疑似遭封鎖後的持久化冷卻時間 |
+| `YTDLP_OPERATION_TIMEOUT_SECONDS` | `300` | 單次 blocking yt-dlp 操作的硬性期限 |
+| `UPDATER_SHUTDOWN_GRACE_SECONDS` | `20` | 允許取消與 rollback 完成的時間 |
+| `UPDATER_HEARTBEAT_INTERVAL_SECONDS` | `30` | 週期執行中寫入持久化心跳的間隔 |
+| `UPDATER_HEARTBEAT_STALE_SECONDS` | `120` | 背景 worker 觸發 stalled 警示的心跳逾期秒數 |
 | `LLM_CLEANING_ENABLED` | `false` | 可選用的正規表示式後處理 |
 
 完整設定與說明請見 [`.env.example`](.env.example)。
@@ -391,6 +398,11 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
    成功的歌單。
 6. 若疑似受到 YouTube 封鎖，系統會中止剩餘呼叫並保存冷卻時間，避免重啟
    繞過限制。
+7. 程序內 lock 與 PostgreSQL advisory lock 會跨 worker 與重疊部署序列化所有
+   背景及管理員觸發的 YouTube 工作。
+8. 正式環境的 yt-dlp 會在可終止的子程序執行，並具有網路與整體操作期限。
+   生命週期心跳由獨立交易提交，因此不會提交爬取資料，卻能將崩潰或卡住的
+   週期顯示為 stalled。
 
 詳細設計決策記錄於 [PLAN.md](PLAN.md)，爬蟲資料形狀則記錄於
 [backend/NOTE.md](backend/NOTE.md)。
@@ -434,7 +446,7 @@ setlist/
 ├── .devcontainer/          # Python 3.14 + Node 26 編輯器環境
 ├── .github/workflows/      # CI 與 release image 發佈
 ├── backend/                # FastAPI API、驗證、更新器、爬蟲與測試
-├── db/migrations/          # Flyway V1–V9 schema 歷史（唯一依據）
+├── db/migrations/          # Flyway V1–V10 schema 歷史（唯一依據）
 ├── frontend/               # React UI 與正式環境 nginx 代理
 ├── scripts/                # 倉庫安全檢查
 ├── CONTRIBUTING.md         # 貢獻流程
@@ -447,9 +459,9 @@ setlist/
 
 ## 貢獻與專案狀態
 
-Phase 0–8 已完成：資料流程、抽取、搜尋 API/UI、排程器強化、驗證、訪客限流、
-公開服務頁面、部署強化與公開文件。專案仍在快速開發，現階段不保證資料庫與 API
-向後相容。
+Phase 0–9 已完成：資料流程、抽取、搜尋 API/UI、排程器強化、驗證、訪客限流、
+公開服務頁面、部署強化、公開文件，以及 updater 崩潰安全性與可觀測性。專案仍
+在快速開發，現階段不保證資料庫與 API 向後相容。
 
 提交 pull request 前，請先閱讀 [CONTRIBUTING.md](CONTRIBUTING.md)、
 [AGENTS.md](AGENTS.md) 與 [PLAN.md](PLAN.md)。

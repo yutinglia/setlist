@@ -180,9 +180,11 @@ Production deployment is intentionally controlled by a separate private
 repository. Its self-hosted runner consumes published release images; it never
 checks out or executes pull-request code from the source repository. It polls
 the four private GHCR image labels every ten minutes and deploys only a complete,
-matching semantic release; exact tags can also be dispatched manually. A fork
-can use any deployment system or the local Compose instructions above without
-needing the private control plane.
+matching semantic release; exact tags can also be dispatched manually. Before
+replacement it creates a custom-format PostgreSQL backup, and after startup it
+requires both the same-origin health endpoint and a fresh durable updater
+heartbeat. A fork can use any deployment system or the local Compose
+instructions above without needing the private control plane.
 
 Production Compose also applies explicit resource ceilings: 128 MiB / 0.25 CPU
 for nginx, 768 MiB / 1 CPU for the API and scraper, 512 MiB / 0.75 CPU for
@@ -242,7 +244,8 @@ deploy production.
   `TRUSTED_PROXY_CIDRS`.
 - Keep the UI and API on one origin when possible. If they must be separate,
   list only the UI's exact origin in `CORS_ORIGINS`.
-- Back up the `vks-pgdata` volume before host or database maintenance.
+- Create and test a `pg_dump` backup before every migration, host change, or
+  database maintenance window; keep an encrypted copy off-host.
 - Review logs and dependency updates regularly.
 
 Guest limits are in memory and apply per API process. The default deployment
@@ -361,7 +364,7 @@ Search results include a `video_url` such as
 | Method | Path | Purpose |
 |--------|------|---------|
 | `POST` | `/v1/auth/logout` | End the current administrator session |
-| `GET` | `/v1/updater/status` | Process-local updater and cooldown status |
+| `GET` | `/v1/updater/status` | Live detail plus durable outcome, heartbeat, last success, and cooldown |
 | `POST` | `/v1/channels` | Validate and add a YouTube channel |
 | `POST` | `/v1/channels/{id}/videos/refresh` | Refresh metadata without deleting setlists |
 | `POST` | `/v1/videos/{id}/songs/reload` | Re-fetch comments and rerun extraction |
@@ -395,6 +398,10 @@ Important settings:
 | `UPDATE_STEADY_SCAN_INTERVAL` | `21600` | Normal per-channel discovery interval |
 | `UPDATE_MAX_COMMENT_SCRAPES` | `3` | Comment scrapes per update cycle |
 | `UPDATE_YOUTUBE_COOLDOWN_SECONDS` | `21600` | Persisted cooldown after a likely block |
+| `YTDLP_OPERATION_TIMEOUT_SECONDS` | `300` | Hard deadline for one blocking yt-dlp operation |
+| `UPDATER_SHUTDOWN_GRACE_SECONDS` | `20` | Time allowed for cancellation and rollback |
+| `UPDATER_HEARTBEAT_INTERVAL_SECONDS` | `30` | Durable heartbeat write interval during a cycle |
+| `UPDATER_HEARTBEAT_STALE_SECONDS` | `120` | Worker heartbeat age that triggers a stalled alert |
 | `LLM_CLEANING_ENABLED` | `false` | Optional post-regex cleanup |
 
 The complete list and explanatory comments live in [`.env.example`](.env.example).
@@ -414,6 +421,12 @@ The complete list and explanatory comments live in [`.env.example`](.env.example
    never erase richer snapshots or a previous successful setlist.
 6. Suspected YouTube blocking aborts remaining calls and persists a cooldown so
    a restart cannot bypass it.
+7. A process-local lock plus PostgreSQL advisory lock serializes background and
+   administrator-triggered YouTube work across workers and overlapping deploys.
+8. Production yt-dlp calls run in killable child processes with bounded
+   network retries and whole-operation deadlines. Independently committed
+   lifecycle heartbeats expose a crashed or wedged cycle as stalled without
+   committing scraper data.
 
 Detailed design decisions are recorded in [PLAN.md](PLAN.md) and scraper payload
 notes in [backend/NOTE.md](backend/NOTE.md).
@@ -459,7 +472,7 @@ setlist/
 ├── .devcontainer/          # Python 3.14 + Node 26 editor environment
 ├── .github/workflows/      # CI and release image publication
 ├── backend/                # FastAPI API, auth, updater, scrapers, tests
-├── db/migrations/          # Flyway V1–V9 schema history (source of truth)
+├── db/migrations/          # Flyway V1–V10 schema history (source of truth)
 ├── frontend/               # React UI and production nginx proxy
 ├── scripts/                # Repository security checks
 ├── CONTRIBUTING.md         # Contribution workflow
@@ -472,10 +485,11 @@ setlist/
 
 ## Contributing and project status
 
-Phases 0–8 are implemented: pipeline, extraction, search API/UI, scheduler
+Phases 0–9 are implemented: pipeline, extraction, search API/UI, scheduler
 hardening, authentication, guest limits, public-service pages, deployment
-hardening, and public documentation. Rapid development continues, so database
-and API compatibility are not guaranteed yet.
+hardening, public documentation, and updater crash safety/observability. Rapid
+development continues, so database and API compatibility are not guaranteed
+yet.
 
 Before opening a pull request, read [CONTRIBUTING.md](CONTRIBUTING.md),
 [AGENTS.md](AGENTS.md), and [PLAN.md](PLAN.md).

@@ -7,18 +7,18 @@ conservatively, extract timestamped songs, expose a useful search API/UI, and
 reserve operational controls for one authenticated administrator.
 
 This file preserves the implementation phases and their design decisions.
-Phases 0–8 are complete; future work should be added here only after it enters
+Phases 0–9 are complete; future work should be added here only after it enters
 scope, with individual work tracked in GitHub issues.
 
 ## Current state (baseline)
 
 | Area | Status |
 |------|--------|
-| Postgres schema (Flyway V1–V9) | Done |
+| Postgres schema (Flyway V1–V10) | Done |
 | yt-dlp scrapers (channel / videos / comments) | Done, used by DataUpdater |
 | Comment → song-list heuristics | Done (`video_id` required; unit tests) |
 | Repositories | Read + upsert / `replace_for_video` (updater-owned commits) |
-| `DataUpdater.update()` | Wired + fast durable backfill + persisted steady discovery + delayed global analysis queue |
+| `DataUpdater.update()` | Wired + atomic durable work units + cross-process singleton + delayed global analysis queue |
 | Search / UI | Public API + bilingual React search/browse UI |
 | Access control | Single-admin Argon2id login, signed sessions, CSRF |
 | Public service limits | Per-IP guest/login limits; admin-only status/mutations |
@@ -95,7 +95,7 @@ for channel in DB channels:
   3. upsert videos (skip shorts/live already filtered)
   for video in videos needing work (respect caps + cooldown):
      - skip if has_song_list_comment and songs exist (or if analyze_attempts >= N)
-     - scrape top comments (yt-dlp via asyncio.to_thread)
+     - scrape top comments (blocking yt-dlp offloaded from the event loop)
      - on suspected YouTube block → abort remaining scrapes this cycle + set cooldown
      - else CommentAnalyzer → detect + extract
      - update video analysis fields + persist songs
@@ -125,7 +125,8 @@ locally and run `python run_updater_once.py` for one production-equivalent cycle
 
 ### Implementation checklist
 
-- [x] Offload all yt-dlp calls with `asyncio.to_thread(...)`.
+- [x] Offload all yt-dlp calls; production now uses killable subprocesses and
+  unit-test doubles retain a thread fallback.
 - [x] Define “needs analysis” query (e.g. `analyze_attempts < 3` AND not yet successfully extracted, or `last_analyzed_at` older than X).
 - [x] Cap work per cycle (`UPDATE_MAX_COMMENT_SCRAPES`, `UPDATE_MAX_VIDEOS`).
 - [x] Inter-scrape jitter sleep between comment scrapes.
@@ -258,6 +259,25 @@ session/rate-limit storage.
 
 ---
 
+## Phase 9 — Updater crash safety and observability
+
+- [x] Keep video analysis metadata and replacement songs in one rollback-safe
+  transaction; unexpected errors and cancellation never consume attempts.
+- [x] Commit each backfill page together with its bounded reclassification,
+  song cleanup, and cursor advance.
+- [x] Persist YouTube cooldown state in the same transaction as the work that
+  observed the block.
+- [x] Serialize every background and administrator-triggered YouTube operation
+  with a process-local lock plus a PostgreSQL advisory lock.
+- [x] Run production yt-dlp calls in killable subprocesses with bounded network
+  retries, whole-operation deadlines, and a finite shutdown grace period.
+- [x] Persist cycle owner, outcome, last success, and heartbeat independently
+  from scraper transactions; flag stale running cycles in the administrator UI.
+- [x] Add crash, cancellation, timeout, advisory-lock, heartbeat, and
+  PostgreSQL recovery regression tests.
+
+---
+
 ## Release and homelab deployment automation
 
 - [x] Track a portable application version outside CI and expose it in the
@@ -272,7 +292,9 @@ session/rate-limit storage.
   private GHCR labels every ten minutes, support exact-tag manual dispatch, and
   deploy only when all four images report one complete semantic release.
 - [x] Pull immutable release tags, record `.deployed-release`, and verify the
-  same-origin health endpoint after deployment.
+  same-origin health endpoint plus durable updater heartbeat after deployment.
+- [x] Create a retained custom-format PostgreSQL backup before each production
+  rollout and document restore/off-host-copy expectations.
 
 ---
 
@@ -296,7 +318,9 @@ session/rate-limit storage.
 |------|------------|
 | YouTube / yt-dlp breakage | Pin version; rate-limit; classify failures explicitly; cap scrapes per cycle |
 | YouTube access / bot limits | Tier B: cycle caps, inter-scrape jitter, skip/retry, block detect → abort cycle + cooldown (no proxies/cookies yet) |
-| Event loop blocked | Always `asyncio.to_thread` for yt-dlp |
+| Event loop blocked / scraper wedged | Killable subprocesses with bounded yt-dlp retries and whole-operation deadlines |
+| Concurrent workers / overlapping deploys | Process-local lock plus PostgreSQL advisory singleton lock |
+| Silent updater death | Durable owner/outcome/heartbeat with stalled-cycle alert |
 | Duplicate / stale songs | `replace_for_video` or unique constraint; track `last_analyzed_at` |
 | Long first sync | Work caps + prioritize recent uploads |
 | Schema drift (sqlacodegen) | Migrations first; regenerate models; don’t hand-edit generated files lightly |

@@ -49,4 +49,29 @@ async def test_worker_passes_wake_channel_to_next_cycle(monkeypatch):
     await main.run_periodic_data_updater()
 
     assert priorities == [None, "channel-new"]
-    trigger.wait.assert_awaited_once_with(main.DATA_UPDATE_INTERVAL)
+    trigger.wait.assert_awaited_once_with(
+        min(
+            main.DATA_UPDATE_INTERVAL,
+            main.UPDATER_HEARTBEAT_INTERVAL_SECONDS,
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_waiting_worker_refreshes_durable_heartbeat(monkeypatch):
+    request = UpdateCycleRequest(priority_channel_id="channel-new")
+    trigger = SimpleNamespace(
+        wait=AsyncMock(side_effect=[None, request]),
+    )
+    runtime_store = SimpleNamespace(heartbeat=AsyncMock(return_value=True))
+    monkeypatch.setattr(main, "update_cycle_trigger", trigger)
+
+    result = await main.wait_for_next_update_cycle(
+        runtime_store,
+        timeout_seconds=60,
+        heartbeat_interval_seconds=5,
+    )
+
+    assert result == request
+    runtime_store.heartbeat.assert_awaited_once()
+    assert trigger.wait.await_count == 2
