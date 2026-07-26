@@ -73,6 +73,11 @@ class TestCommentAnalyzerDetection:
         analyzer = CommentAnalyzer([_comment(text)], video_id=VIDEO_ID)
         assert analyzer.has_song_list_comment() is False
 
+    def test_timestamp_cluster_without_enough_titles_does_not_qualify(self):
+        text = "31:40 20:56 4:04 1:41:00\nThanks for the wonderful stream!"
+        analyzer = CommentAnalyzer([_comment(text)], video_id=VIDEO_ID)
+        assert analyzer.has_song_list_comment() is False
+
     def test_ignores_non_mapping_comment_items(self):
         analyzer = CommentAnalyzer(
             [None, _comment("0:10 A\n0:20 B\n0:30 C")],  # type: ignore[list-item]
@@ -305,6 +310,126 @@ class TestCommentAnalyzerParsing:
             "Song B / Artist",
             "Song C / Artist",
         ]
+
+    def test_explicit_setlist_excludes_other_timestamps_section(self):
+        text = _setlist(
+            "Setlist:",
+            "04:00 Song A - Artist",
+            "10:37 Song B - Artist",
+            "15:49 Song C - Artist",
+            "",
+            "Other Timestamps:",
+            "01:57 greeting",
+            "08:44 talking",
+        )
+        songs = self._songs_from(text)
+        assert [song.title for song in songs] == [
+            "Song A - Artist",
+            "Song B - Artist",
+            "Song C - Artist",
+        ]
+
+    def test_explicit_setlist_keeps_encore_then_stops_at_announcement(self):
+        text = _setlist(
+            "♪ Set List ♪",
+            "4:51 Song A",
+            "13:48 Song B",
+            "♩アンコール / Encore♩",
+            "1:13:21 Song C",
+            "",
+            "🥐告知 / Announcement🥐",
+            "54:09 event announcement",
+            "↓雑談他 / Talk",
+            "1:31 greeting",
+        )
+        songs = self._songs_from(text)
+        assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
+
+    def test_explicit_setlist_stops_at_plain_divider(self):
+        text = _setlist(
+            "Set List",
+            "10:00 Song A",
+            "14:12 Song B",
+            "18:25 Song C",
+            "---------------------",
+            "2:46 :_custom_emoji:",
+            "3:18 audience reaction",
+        )
+        songs = self._songs_from(text)
+        assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
+
+    def test_explicit_setlist_keeps_songs_after_encore_divider(self):
+        text = _setlist(
+            "Set List",
+            "10:00 Song A",
+            "14:12 Song B",
+            "18:25 Song C",
+            "---------------------",
+            "Encore",
+            "22:40 Song D",
+        )
+        songs = self._songs_from(text)
+        assert [song.title for song in songs] == [
+            "Song A",
+            "Song B",
+            "Song C",
+            "Song D",
+        ]
+
+    def test_explicit_setlist_stops_at_large_timestamp_regression(self):
+        text = _setlist(
+            "🕰 セトリ 🥀",
+            "01. 0:03:19 ～ Song A／Artist",
+            "02. 0:10:04 ～ Song B／Artist",
+            "03. 0:17:25 ～ Song C／Artist",
+            "04. 1:28:04 ～ Song D／Artist",
+            "1:15:40 ～ unrelated event",
+        )
+        songs = self._songs_from(text)
+        assert [song.title for song in songs] == [
+            "Song A／Artist",
+            "Song B／Artist",
+            "Song C／Artist",
+            "Song D／Artist",
+        ]
+
+    def test_strips_youtube_custom_emoji_tokens_from_titles(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set List",
+                "10:00 Song A:_cheer:",
+                "14:12 :_sparkle: Song B",
+                "18:25 Song C :_thank_you:",
+            )
+        )
+        assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
+
+    def test_setlist_allows_untimestamped_metadata_continuation_lines(self):
+        text = _setlist(
+            ":_channel: セトリ [Set list] : 曲名 / Artist",
+            "00:09:16 Song A / Artist A",
+            "　　　　『Series A』OP",
+            "00:14:07 Song B / Artist B",
+            "　　　　『Series B』ED",
+            "00:18:51 Song C / Artist C",
+        )
+        songs = self._songs_from(text)
+        assert [song.title for song in songs] == [
+            "Song A / Artist A",
+            "Song B / Artist B",
+            "Song C / Artist C",
+        ]
+
+    def test_mismatched_timestamp_bracket_is_tolerated(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set List",
+                "「03:22] Song A",
+                "[10:04] Song B",
+                "【17:26】 Song C",
+            )
+        )
+        assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
 
     def test_no_heading_keeps_existing_all_timestamp_behavior(self):
         songs = self._songs_from(_setlist("0:10 Song A", "0:20 chat", "0:30 Song B"))
