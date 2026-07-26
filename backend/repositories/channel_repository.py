@@ -47,6 +47,14 @@ class ChannelRepository:
         channel = result.scalar_one_or_none()
         return YouTubeChannel.model_validate(channel) if channel else None
 
+    async def get_by_url(self, channel_url: str) -> YouTubeChannel | None:
+        """Return an exact normalized URL match without contacting YouTube."""
+        result = await self.session.execute(
+            select(Channels).where(Channels.url == channel_url)
+        )
+        channel = result.scalar_one_or_none()
+        return YouTubeChannel.model_validate(channel) if channel else None
+
     async def create(self, channel: YouTubeChannel) -> YouTubeChannel | None:
         """Atomically insert a channel, returning ``None`` on an id conflict."""
         now = datetime.now(UTC).replace(tzinfo=None)
@@ -192,6 +200,30 @@ class ChannelRepository:
                 index_elements=[ScraperState.id],
                 set_={
                     "youtube_cooldown_until": until,
+                    "updated_at": now,
+                },
+            )
+        )
+        await self.session.execute(stmt)
+        await self.session.flush()
+
+    async def get_channel_add_cooldown_until(self) -> datetime | None:
+        """Return the process-independent administrator add deadline."""
+        result = await self.session.execute(
+            select(ScraperState.channel_add_cooldown_until).where(ScraperState.id == 1)
+        )
+        return result.scalar_one_or_none()
+
+    async def set_channel_add_cooldown_until(self, until: datetime) -> None:
+        """Persist the next time an administrator may resolve a channel."""
+        now = datetime.now(UTC).replace(tzinfo=None)
+        stmt = (
+            insert(ScraperState)
+            .values(id=1, channel_add_cooldown_until=until, updated_at=now)
+            .on_conflict_do_update(
+                index_elements=[ScraperState.id],
+                set_={
+                    "channel_add_cooldown_until": until,
                     "updated_at": now,
                 },
             )

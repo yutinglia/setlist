@@ -1,16 +1,19 @@
-import asyncio
 import logging
-from datetime import UTC, datetime, timedelta
-from functools import partial
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import BACKGROUND_UPDATER_ENABLED, SCRAPE_POLICY
+from config import BACKGROUND_UPDATER_ENABLED, CHANNEL_ADD_COOLDOWN_SECONDS
 from deps import get_session, pagination_params, require_management_admin
-from models.channel import VIDEO_BACKFILL_PENDING, ChannelCreate
+from models.channel import (
+    MAX_CHANNELS_PER_BULK_ADD,
+    ChannelBulkAddItemResult,
+    ChannelBulkAddResponse,
+    ChannelBulkCreate,
+    ChannelCreate,
+)
 from models.search import (
     ChannelRead,
     Paginated,
@@ -20,15 +23,16 @@ from models.search import (
 )
 from models.song import Song
 from repositories import ChannelRepository, SongRepository, VideoRepository
+from services.channel_creator import (
+    ChannelAddCooldownActive,
+    ChannelCreator,
+    ChannelResolutionFailed,
+    YouTubeCooldownActive,
+)
 from services.data_updater import DataUpdater
 from services.update_cycle_trigger import update_cycle_trigger
-from services.youtube_operation_lock import (
-    YouTubeUpdaterBusyError,
-    youtube_operation_guard,
-)
-from services.yt_scraper.channel_scraper import YouTubeChannelScraper
-from services.yt_scraper.errors import YouTubeAccessBlocked, raise_if_block_error
-from services.yt_scraper.subprocess_runner import run_scrape_in_subprocess
+from services.youtube_operation_lock import YouTubeUpdaterBusyError
+from services.yt_scraper.errors import YouTubeAccessBlocked
 
 logger = logging.getLogger(__name__)
 
@@ -208,135 +212,68 @@ async def create_channel(
     Returns 409 if the channel id is already tracked.
     """
 
-    scraper = YouTubeChannelScraper(
-        sleep_interval=SCRAPE_POLICY.ytdlp_list_sleep_interval,
-        max_sleep_interval=SCRAPE_POLICY.ytdlp_list_max_sleep_interval,
-        socket_timeout=SCRAPE_POLICY.ytdlp_socket_timeout_seconds,
-        retries=SCRAPE_POLICY.ytdlp_retries,
-        extractor_retries=SCRAPE_POLICY.ytdlp_extractor_retries,
-    )
-    scrape = partial(scraper.get_channel_info, body.url)
-
     repo = ChannelRepository(session)
-    persisted_cooldown = await repo.get_youtube_cooldown_until()
-    if persisted_cooldown is not None:
-        remaining = (
-            persisted_cooldown - datetime.now(UTC).replace(tzinfo=None)
-        ).total_seconds()
-        if remaining > DataUpdater.youtube_cooldown_remaining():
-            DataUpdater.set_youtube_cooldown(remaining)
-
-    async def _persist_cooldown() -> None:
-        seconds = SCRAPE_POLICY.youtube_cooldown_seconds
-        try:
-            await repo.set_youtube_cooldown_until(
-                datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=seconds)
-            )
-            await session.commit()
-        except BaseException:
-            await session.rollback()
-            raise
-        DataUpdater.set_youtube_cooldown(seconds)
-
+    creator = ChannelCreator(session, repo)
     try:
-        async with youtube_operation_guard(session) as acquired:
-            if not acquired:
-                raise YouTubeUpdaterBusyError(
-                    "Another updater process is currently using YouTube"
-                )
-            cooldown = DataUpdater.youtube_cooldown_remaining()
-            if cooldown > 0:
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail=(
-                        f"YouTube cooldown active; try again in {cooldown:.0f} seconds"
-                    ),
-                )
-            if isinstance(session, AsyncSession):
-                scraped = await run_scrape_in_subprocess(
-                    scrape,
-                    timeout_seconds=SCRAPE_POLICY.ytdlp_operation_timeout_seconds,
-                    terminate_grace_seconds=(
-                        SCRAPE_POLICY.ytdlp_terminate_grace_seconds
-                    ),
-                )
-            else:
-                scraped = await asyncio.to_thread(scrape)
+        outcome = await creator.create(body.url)
     except YouTubeUpdaterBusyError as busy_exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Another updater operation is running; try again shortly",
         ) from busy_exc
-    except HTTPException:
-        raise
-    except Exception as scrape_exc:
-        try:
-            raise_if_block_error(scrape_exc)
-        except YouTubeAccessBlocked as block_exc:
-            await _persist_cooldown()
-            logger.warning(
-                "YouTube blocked while adding channel %s: %s", body.url, block_exc
-            )
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="YouTube temporarily blocked this request; try again later",
-            ) from block_exc
-        if isinstance(scrape_exc, YouTubeAccessBlocked):
-            await _persist_cooldown()
-            logger.warning(
-                "YouTube blocked while adding channel %s: %s", body.url, scrape_exc
-            )
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="YouTube temporarily blocked this request; try again later",
-            ) from scrape_exc
+    except ChannelAddCooldownActive as cooldown_exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                "Channel add cooldown active; "
+                f"try again in {cooldown_exc.remaining_seconds:.0f} seconds"
+            ),
+            headers={
+                "Retry-After": creator.retry_after_header(
+                    cooldown_exc.remaining_seconds
+                )
+            },
+        ) from cooldown_exc
+    except YouTubeCooldownActive as cooldown_exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "YouTube cooldown active; "
+                f"try again in {cooldown_exc.remaining_seconds:.0f} seconds"
+            ),
+            headers={
+                "Retry-After": creator.retry_after_header(
+                    cooldown_exc.remaining_seconds
+                )
+            },
+        ) from cooldown_exc
+    except YouTubeAccessBlocked as block_exc:
+        logger.warning(
+            "YouTube blocked while adding channel %s: %s", body.url, block_exc
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="YouTube temporarily blocked this request; try again later",
+        ) from block_exc
+    except ChannelResolutionFailed as scrape_exc:
         logger.warning("Failed to resolve channel %s: %s", body.url, scrape_exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Could not resolve a YouTube channel from that URL",
         ) from scrape_exc
 
-    if not scraped.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not resolve a channel id from that URL",
+    if outcome.status == "already_exists":
+        existing = outcome.channel
+        existing_label = (
+            f"{existing.name} ({existing.id})" if existing is not None else body.url
         )
-
-    existing = await repo.get_by_id(scraped.id)
-    if existing is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Channel already tracked: {existing.name} ({existing.id})",
+            detail=f"Channel already tracked: {existing_label}",
         )
-
-    to_create = scraped.model_copy(
-        update={
-            "video_backfill_status": VIDEO_BACKFILL_PENDING,
-            "video_backfill_offset": 1,
-            "video_backfill_updated_at": None,
-        }
-    )
-
-    try:
-        created = await repo.create(to_create)
-        if created is None:
-            await session.rollback()
-            existing = await repo.get_by_id(scraped.id)
-            existing_label = (
-                f"{existing.name} ({existing.id})"
-                if existing is not None
-                else scraped.id
-            )
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Channel already tracked: {existing_label}",
-            )
-        await session.commit()
-    except HTTPException:
-        raise
-    except Exception:
-        await session.rollback()
-        raise
+    created = outcome.channel
+    if created is None:
+        raise RuntimeError("Created channel outcome did not include a channel")
 
     if BACKGROUND_UPDATER_ENABLED:
         queued = update_cycle_trigger.request(priority_channel_id=created.id)
@@ -352,6 +289,106 @@ async def create_channel(
         )
 
     return created
+
+
+@router.post(
+    "/channels/bulk",
+    response_model=ChannelBulkAddResponse,
+)
+async def create_channels_bulk(
+    body: ChannelBulkCreate,
+    _=Depends(require_management_admin),
+    session: AsyncSession = Depends(get_session),
+):
+    """Add up to ten channels with durable pacing and one updater wake-up."""
+    item_results: list[ChannelBulkAddItemResult | None] = [None] * len(body.urls)
+    valid_urls: list[str] = []
+    valid_positions: list[int] = []
+    for index, raw_url in enumerate(body.urls):
+        try:
+            valid = ChannelCreate(url=raw_url)
+        except ValidationError:
+            item_results[index] = ChannelBulkAddItemResult(
+                url=raw_url,
+                status="invalid",
+                message="Enter a valid YouTube channel URL",
+            )
+            continue
+        valid_urls.append(valid.url)
+        valid_positions.append(index)
+
+    creator = ChannelCreator(session, ChannelRepository(session))
+    try:
+        outcomes = await creator.create_bulk(valid_urls) if valid_urls else []
+    except YouTubeUpdaterBusyError as busy_exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Another updater operation is running; try again shortly",
+        ) from busy_exc
+    except YouTubeCooldownActive as cooldown_exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "YouTube cooldown active; "
+                f"try again in {cooldown_exc.remaining_seconds:.0f} seconds"
+            ),
+            headers={
+                "Retry-After": creator.retry_after_header(
+                    cooldown_exc.remaining_seconds
+                )
+            },
+        ) from cooldown_exc
+
+    created_channel_ids: list[str] = []
+    for position, outcome in zip(valid_positions, outcomes, strict=True):
+        channel = outcome.channel
+        item_results[position] = ChannelBulkAddItemResult(
+            url=outcome.requested_url,
+            status=outcome.status,
+            channel_id=channel.id if channel is not None else None,
+            channel_name=channel.name if channel is not None else None,
+            message=outcome.message,
+        )
+        if outcome.status == "created" and channel is not None:
+            created_channel_ids.append(channel.id)
+
+    completed_items = [item for item in item_results if item is not None]
+    if len(completed_items) != len(body.urls):
+        raise RuntimeError("Bulk channel creation returned an incomplete result")
+
+    if created_channel_ids and BACKGROUND_UPDATER_ENABLED:
+        # One coalesced wake is intentional. Pending rows remain durable and the
+        # normal per-cycle backfill cap rotates through them every worker tick.
+        update_cycle_trigger.request()
+        logger.info(
+            "Bulk channel add committed %s channel(s); queued one updater wake",
+            len(created_channel_ids),
+        )
+    elif created_channel_ids:
+        logger.warning(
+            "Bulk channel add left %s pending backfill(s), but updater is disabled",
+            len(created_channel_ids),
+        )
+
+    counts = {
+        result_status: sum(item.status == result_status for item in completed_items)
+        for result_status in (
+            "created",
+            "already_exists",
+            "invalid",
+            "failed",
+            "skipped",
+        )
+    }
+    return ChannelBulkAddResponse(
+        items=completed_items,
+        created=counts["created"],
+        already_exists=counts["already_exists"],
+        failed=counts["invalid"] + counts["failed"],
+        skipped=counts["skipped"],
+        max_batch_size=MAX_CHANNELS_PER_BULK_ADD,
+        cooldown_seconds=CHANNEL_ADD_COOLDOWN_SECONDS,
+    )
 
 
 @router.get("/channels/{channel_id}/videos", response_model=Paginated[VideoRead])

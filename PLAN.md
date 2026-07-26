@@ -14,7 +14,7 @@ scope, with individual work tracked in GitHub issues.
 
 | Area | Status |
 |------|--------|
-| Postgres schema (Flyway V1–V10) | Done |
+| Postgres schema (Flyway V1–V11) | Done |
 | yt-dlp scrapers (channel / videos / comments) | Done, used by DataUpdater |
 | Comment → song-list heuristics | Done (`video_id` required; unit tests) |
 | Repositories | Read + upsert / `replace_for_video` (updater-owned commits) |
@@ -22,6 +22,7 @@ scope, with individual work tracked in GitHub issues.
 | Search / UI | Public API + bilingual React search/browse UI |
 | Access control | Single-admin Argon2id login, signed sessions, CSRF |
 | Public service limits | Per-IP guest/login limits; admin-only status/mutations |
+| Channel ingest | Admin bulk add (max 10), durable add cooldown, one coalesced updater wake |
 | Deployment | Tag-only release; private scheduled/manual control plane; same-origin frontend proxy; API/Postgres private |
 
 | Requirements (`backend/requirements.txt`) | Direct deps updated (Jul 2026) |
@@ -277,6 +278,17 @@ session/rate-limit storage.
   from scraper transactions; flag stale running cycles in the administrator UI.
 - [x] Add crash, cancellation, timeout, advisory-lock, heartbeat, and
   PostgreSQL recovery regression tests.
+
+---
+
+## Post-Phase 9 — Bounded administrator bulk channel ingest
+
+- [x] Accept 1–10 channel URLs with independent validation and per-item results.
+- [x] Resolve channels sequentially under the cross-process YouTube lock.
+- [x] Persist an administrator add cooldown across workers and restarts.
+- [x] Coalesce each bulk request into one updater wake so backfill retains its
+  normal per-cycle cadence.
+- [x] Surface pacing guidance and outcomes in the administrator UI.
 
 ---
 

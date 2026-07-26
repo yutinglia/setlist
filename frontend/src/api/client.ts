@@ -1,5 +1,6 @@
 import type {
   AuthSession,
+  ChannelBulkAddResponse,
   ChannelVideoRefresh,
   HealthResponse,
   Paginated,
@@ -175,6 +176,13 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
+    }),
+
+  createChannelsBulk: (urls: string[]) =>
+    request<ChannelBulkAddResponse>("/v1/channels/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ urls }),
     }),
 
   listChannelVideos: (

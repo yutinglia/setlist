@@ -33,6 +33,31 @@ export type YouTubeChannel = {
   updated_at: string | null
 }
 
+export type ChannelBulkAddStatus =
+  | "created"
+  | "already_exists"
+  | "invalid"
+  | "failed"
+  | "skipped"
+
+export type ChannelBulkAddItem = {
+  url: string
+  status: ChannelBulkAddStatus
+  channel_id: string | null
+  channel_name: string | null
+  message: string
+}
+
+export type ChannelBulkAddResponse = {
+  items: ChannelBulkAddItem[]
+  created: number
+  already_exists: number
+  failed: number
+  skipped: number
+  max_batch_size: number
+  cooldown_seconds: number
+}
+
 export type YouTubeVideo = {
   id: string
   title: string
