@@ -1,15 +1,25 @@
-from video_comment_scraper import YouTubeVideoCommentScraper
-from channel_video_scraper import YouTubeChannelVideoScraper
-from channel_scraper import YouTubeChannelScraper
-from analyzer.yt_comment_analyzer import CommentAnalyzer
+"""Manual yt-dlp smoke checks.
+
+This is intentionally not part of pytest because it performs live YouTube calls.
+Run from ``data_updater/`` with ``python services/yt_scraper/test.py``.
+"""
+
+from services.analyzer.yt_comment_analyzer import CommentAnalyzer
+from services.yt_scraper.channel_scraper import YouTubeChannelScraper
+from services.yt_scraper.channel_video_scraper import YouTubeChannelVideoScraper
+from services.yt_scraper.video_comment_scraper import YouTubeVideoCommentScraper
+from utils.ytdlp_snapshot import merged_video_metadata
 
 
-def test() -> None:
+def inspect_comments() -> None:
     video_url = "https://www.youtube.com/watch?v=u0MoCudW5eM"
     scraper = YouTubeVideoCommentScraper(video_url)
     comments = scraper.get_video_top_comments(max_comments=15)
     print(f"Top {len(comments)} comments fetched successfully.")
-    analyzer = CommentAnalyzer(comments, minimum_timestamp_count=5)
+    analyzer = CommentAnalyzer(
+        comments, video_id="u0MoCudW5eM", minimum_timestamp_count=5
+    )
+
     has_song_list = analyzer.has_song_list_comment()
     print(f"Has song list comment: {has_song_list}")
     if has_song_list:
@@ -21,7 +31,7 @@ def test() -> None:
             print(f"- {song.title} at {song.timestamp}")
 
 
-def test2() -> None:
+def inspect_videos() -> None:
     channel_url = "https://www.youtube.com/@Leona_Shishigami"
     scraper = YouTubeChannelVideoScraper(channel_url)
     videos = scraper.get_channel_videos()
@@ -31,7 +41,8 @@ def test2() -> None:
         # group by live_status
         type_count = {}
         for video in videos:
-            vtype = video.get("live_status", "unknown")
+            raw = merged_video_metadata(video.raw_data, video.metadata_raw_data)
+            vtype = raw.get("live_status", "unknown")
             type_count[vtype] = type_count.get(vtype, 0) + 1
 
         print("Video types count:")
@@ -39,18 +50,16 @@ def test2() -> None:
             print(f"{vtype}: {count}")
 
 
-def test3() -> None:
+def inspect_channel() -> None:
     channel_url = "https://www.youtube.com/@Leona_Shishigami"
     scraper = YouTubeChannelScraper()
     channel = scraper.get_channel_info(channel_url)
     print("Channel Info:")
-    print(f"ID: {channel.channel_id}")
+    print(f"ID: {channel.id}")
     print(f"Name: {channel.name}")
     print(f"URL: {channel.url}")
     print(f"Thumbnail URL: {channel.thumbnail_url}")
 
 
 if __name__ == "__main__":
-    # test()
-    # test2()
-    test3()
+    inspect_channel()

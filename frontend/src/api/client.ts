@@ -1,0 +1,186 @@
+import type {
+  AuthSession,
+  ChannelVideoRefresh,
+  HealthResponse,
+  Paginated,
+  Song,
+  SongSearchResult,
+  SummaryReport,
+  UpdaterStatus,
+  VideoSongReload,
+  YouTubeChannel,
+  YouTubeVideo,
+} from "@/api/types"
+
+/**
+ * Browser-facing API base.
+ * - Dev: empty → Vite proxies `/v1` to FastAPI (`127.0.0.1:8000`).
+ * - Prod / custom: set `VITE_API_BASE_URL` (e.g. `http://localhost:8000`).
+ */
+const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined)
+    ?.trim()
+    .replace(/\/+$/, "") ?? ""
+
+let csrfToken: string | null = null
+
+export class ApiError extends Error {
+  status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = "ApiError"
+    this.status = status
+  }
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? "GET").toUpperCase()
+  const headers = new Headers(init?.headers)
+  headers.set("Accept", "application/json")
+  if (!["GET", "HEAD", "OPTIONS"].includes(method) && csrfToken) {
+    headers.set("X-CSRF-Token", csrfToken)
+  }
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    credentials: "include",
+    headers,
+  })
+  if (!res.ok) {
+    let detail = res.statusText
+    try {
+      const body = (await res.json()) as { detail?: unknown }
+      if (typeof body.detail === "string") {
+        detail = body.detail
+      } else if (Array.isArray(body.detail)) {
+        detail = body.detail
+          .map((item) =>
+            typeof item === "object" && item && "msg" in item
+              ? String((item as { msg: unknown }).msg)
+              : String(item),
+          )
+          .join("; ")
+      }
+    } catch {
+      /* ignore non-JSON error bodies */
+    }
+    throw new ApiError(res.status, detail)
+  }
+  return (await res.json()) as T
+}
+
+function pageQuery(limit: number, offset: number): string {
+  return `limit=${limit}&offset=${offset}`
+}
+
+export const api = {
+  health: () => request<HealthResponse>("/v1/health"),
+
+  authSession: async () => {
+    const session = await request<AuthSession>("/v1/auth/session")
+    csrfToken = session.csrf_token
+    return session
+  },
+
+  login: async (username: string, password: string) => {
+    const session = await request<AuthSession>("/v1/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    })
+    csrfToken = session.csrf_token
+    return session
+  },
+
+  logout: async () => {
+    const session = await request<AuthSession>("/v1/auth/logout", {
+      method: "POST",
+    })
+    csrfToken = null
+    return session
+  },
+
+  updaterStatus: () => request<UpdaterStatus>("/v1/updater/status"),
+
+  summaryReport: () => request<SummaryReport>("/v1/report/summary"),
+
+  searchSongs: (
+    q: string,
+    limit: number,
+    offset: number,
+    filters?: {
+      channelId?: string
+      type?: "karaoke" | "song"
+      uploadDateFrom?: string
+      uploadDateTo?: string
+    },
+  ) => {
+    const params = new URLSearchParams({
+      q,
+      limit: String(limit),
+      offset: String(offset),
+    })
+    if (filters?.channelId) params.set("channel_id", filters.channelId)
+    if (filters?.type) params.set("type", filters.type)
+    if (filters?.uploadDateFrom) {
+      params.set("upload_date_from", filters.uploadDateFrom)
+    }
+    if (filters?.uploadDateTo) {
+      params.set("upload_date_to", filters.uploadDateTo)
+    }
+    return request<Paginated<SongSearchResult>>(
+      `/v1/songs/search?${params.toString()}`,
+    )
+  },
+
+  getSong: (id: number) => request<SongSearchResult>(`/v1/songs/${id}`),
+
+  listChannels: (limit: number, offset: number) =>
+    request<Paginated<YouTubeChannel>>(
+      `/v1/channels?${pageQuery(limit, offset)}`,
+    ),
+
+  createChannel: (url: string) =>
+    request<YouTubeChannel>("/v1/channels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    }),
+
+  listChannelVideos: (
+    channelId: string,
+    limit: number,
+    offset: number,
+    type?: "karaoke" | "song",
+    hasSongList?: boolean,
+  ) => {
+    const typeQuery = type ? `&type=${encodeURIComponent(type)}` : ""
+    const setlistQuery =
+      hasSongList === undefined
+        ? ""
+        : `&has_song_list=${hasSongList ? "true" : "false"}`
+    return request<Paginated<YouTubeVideo>>(
+      `/v1/channels/${encodeURIComponent(channelId)}/videos?${pageQuery(limit, offset)}${typeQuery}${setlistQuery}`,
+    )
+  },
+
+  refreshChannelVideos: (channelId: string) =>
+    request<ChannelVideoRefresh>(
+      `/v1/channels/${encodeURIComponent(channelId)}/videos/refresh`,
+      { method: "POST" },
+    ),
+
+  reloadVideoSongs: (videoId: string) =>
+    request<VideoSongReload>(
+      `/v1/videos/${encodeURIComponent(videoId)}/songs/reload`,
+      { method: "POST" },
+    ),
+
+  listVideoSongs: (videoId: string, limit: number, offset: number) =>
+    request<Paginated<Song>>(
+      `/v1/videos/${encodeURIComponent(videoId)}/songs?${pageQuery(limit, offset)}`,
+    ),
+
+  getVideo: (videoId: string) =>
+    request<YouTubeVideo>(`/v1/videos/${encodeURIComponent(videoId)}`),
+}

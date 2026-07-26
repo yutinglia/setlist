@@ -1,15 +1,17 @@
-# !! Please activate conda env first !!
-# !! WARNING: This script is intended for development use only. Do NOT use in production! !!
+$ErrorActionPreference = "Stop"
 
-# Database connection info from one_time_postgres_docker.ps1
-$dbUser = "vks_db_user"
-$dbPassword = "vks_db_pwd"
-$dbHost = "localhost"
-$dbPort = "5432"
-$dbName = "vks_db"
-$connectionString = "postgresql://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/${dbName}"
+# Defaults match the disposable/local Compose database; DB_* can override them.
+$dbUser = if ($env:DB_USER) { $env:DB_USER } else { "vks_db_user" }
+$dbPassword = if ($env:DB_PASSWORD) { $env:DB_PASSWORD } else { "vks_db_pwd" }
+$dbHost = if ($env:DB_HOST) { $env:DB_HOST } else { "localhost" }
+$dbPort = if ($env:DB_PORT) { $env:DB_PORT } else { "5432" }
+$dbName = if ($env:DB_NAME) { $env:DB_NAME } else { "vks_db" }
+$escapedUser = [uri]::EscapeDataString($dbUser)
+$escapedPassword = [uri]::EscapeDataString($dbPassword)
+$connectionString = "postgresql://${escapedUser}:${escapedPassword}@${dbHost}:${dbPort}/${dbName}"
 
-$modelsDir = "..\..\data_updater\db"
+$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+$modelsDir = Join-Path $projectRoot "data_updater\db"
 $outputFile = Join-Path $modelsDir "models.py"
 
 Write-Host "Generating models from database schema..."

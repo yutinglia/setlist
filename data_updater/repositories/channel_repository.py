@@ -1,21 +1,43 @@
-from sqlalchemy import select
+from datetime import UTC, datetime
+
+from sqlalchemy import func, select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import Channels
-from models.channel import YouTubeChannel
+from db.models import Channels, ScraperState
+from models.channel import (
+    VIDEO_BACKFILL_DONE,
+    VideoBackfillStatus,
+    YouTubeChannel,
+)
 
 
 class ChannelRepository:
-    """負責 Channel 資料的存取操作"""
+    """Channel read/write access. Does not commit — caller owns transactions."""
 
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_all(self) -> list[YouTubeChannel]:
-        """從資料庫取得所有頻道列表"""
-        result = await self.session.execute(select(Channels))
+    async def get_all(
+        self,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[YouTubeChannel]:
+        """從資料庫取得頻道列表 (optional pagination)."""
+        stmt = select(Channels).order_by(Channels.name)
+        if limit is not None:
+            stmt = stmt.limit(limit).offset(offset)
+        elif offset:
+            stmt = stmt.offset(offset)
+        result = await self.session.execute(stmt)
         channels = result.scalars().all()
         return [YouTubeChannel.model_validate(channel) for channel in channels]
+
+    async def count_all(self) -> int:
+        """Total number of tracked channels."""
+        result = await self.session.execute(select(func.count()).select_from(Channels))
+        return int(result.scalar_one())
 
     async def get_by_id(self, channel_id: str) -> YouTubeChannel | None:
         """根據 ID 取得單一頻道"""
@@ -24,3 +46,155 @@ class ChannelRepository:
         )
         channel = result.scalar_one_or_none()
         return YouTubeChannel.model_validate(channel) if channel else None
+
+    async def create(self, channel: YouTubeChannel) -> YouTubeChannel | None:
+        """Atomically insert a channel, returning ``None`` on an id conflict."""
+        now = datetime.now(UTC).replace(tzinfo=None)
+        stmt = (
+            insert(Channels)
+            .values(
+                id=channel.id,
+                name=channel.name,
+                url=channel.url,
+                thumbnail_url=channel.thumbnail_url,
+                raw_data=channel.raw_data,
+                created_at=now,
+                updated_at=now,
+                video_backfill_status=channel.video_backfill_status
+                or VIDEO_BACKFILL_DONE,
+                video_backfill_offset=channel.video_backfill_offset or 1,
+                video_backfill_updated_at=channel.video_backfill_updated_at,
+                last_video_scan_at=channel.last_video_scan_at,
+                next_video_scan_at=channel.next_video_scan_at,
+                video_scan_failures=channel.video_scan_failures,
+            )
+            .on_conflict_do_nothing(index_elements=[Channels.id])
+            .returning(Channels)
+        )
+        result = await self.session.execute(stmt)
+        row = result.scalar_one_or_none()
+        await self.session.flush()
+        return YouTubeChannel.model_validate(row) if row else None
+
+    async def upsert(self, channel: YouTubeChannel) -> YouTubeChannel:
+        """Insert or update a channel by primary key ``id``. Does not commit.
+
+        Backfill columns are written on insert only so metadata refreshes do not
+        reset paced full-catalog progress.
+        """
+        now = datetime.now(UTC).replace(tzinfo=None)
+        values = {
+            "id": channel.id,
+            "name": channel.name,
+            "url": channel.url,
+            "thumbnail_url": channel.thumbnail_url,
+            "raw_data": channel.raw_data,
+            "updated_at": now,
+        }
+        insert_values = {
+            **values,
+            "created_at": now,
+            "video_backfill_status": channel.video_backfill_status
+            or VIDEO_BACKFILL_DONE,
+            "video_backfill_offset": channel.video_backfill_offset or 1,
+            "video_backfill_updated_at": channel.video_backfill_updated_at,
+            "last_video_scan_at": channel.last_video_scan_at,
+            "next_video_scan_at": channel.next_video_scan_at,
+            "video_scan_failures": channel.video_scan_failures,
+        }
+        stmt = (
+            insert(Channels)
+            .values(**insert_values)
+            .on_conflict_do_update(
+                index_elements=[Channels.id],
+                set_={
+                    "name": values["name"],
+                    "url": values["url"],
+                    "thumbnail_url": values["thumbnail_url"],
+                    "raw_data": values["raw_data"],
+                    "updated_at": now,
+                },
+            )
+            .returning(Channels)
+        )
+        result = await self.session.execute(stmt)
+        row = result.scalar_one()
+        await self.session.flush()
+        return YouTubeChannel.model_validate(row)
+
+    async def update_video_backfill(
+        self,
+        channel_id: str,
+        *,
+        status: VideoBackfillStatus,
+        offset: int,
+    ) -> YouTubeChannel | None:
+        """Persist paced video-list backfill cursor. Does not commit."""
+        now = datetime.now(UTC).replace(tzinfo=None)
+        stmt = (
+            update(Channels)
+            .where(Channels.id == channel_id)
+            .values(
+                video_backfill_status=status,
+                video_backfill_offset=max(1, offset),
+                video_backfill_updated_at=now,
+                updated_at=now,
+            )
+            .returning(Channels)
+        )
+        result = await self.session.execute(stmt)
+        row = result.scalar_one_or_none()
+        await self.session.flush()
+        return YouTubeChannel.model_validate(row) if row else None
+
+    async def schedule_video_scan(
+        self,
+        channel_id: str,
+        *,
+        next_scan_at: datetime,
+        succeeded: bool,
+    ) -> YouTubeChannel | None:
+        """Persist steady-state discovery cadence. Does not commit."""
+        now = datetime.now(UTC).replace(tzinfo=None)
+        values: dict = {
+            "next_video_scan_at": next_scan_at,
+            "updated_at": now,
+        }
+        if succeeded:
+            values.update(last_video_scan_at=now, video_scan_failures=0)
+        else:
+            values["video_scan_failures"] = Channels.video_scan_failures + 1
+        stmt = (
+            update(Channels)
+            .where(Channels.id == channel_id)
+            .values(**values)
+            .returning(Channels)
+        )
+        result = await self.session.execute(stmt)
+        row = result.scalar_one_or_none()
+        await self.session.flush()
+        return YouTubeChannel.model_validate(row) if row else None
+
+    async def get_youtube_cooldown_until(self) -> datetime | None:
+        """Return the process-independent YouTube cooldown deadline."""
+        result = await self.session.execute(
+            select(ScraperState.youtube_cooldown_until).where(ScraperState.id == 1)
+        )
+        return result.scalar_one_or_none()
+
+    async def set_youtube_cooldown_until(self, until: datetime) -> None:
+        """Persist the global YouTube cooldown. Does not commit."""
+        now = datetime.now(UTC).replace(tzinfo=None)
+        stmt = (
+            insert(ScraperState)
+            .values(id=1, youtube_cooldown_until=until, updated_at=now)
+            .on_conflict_do_update(
+                index_elements=[ScraperState.id],
+                set_={
+                    "youtube_cooldown_until": until,
+                    "updated_at": now,
+                },
+            )
+        )
+        await self.session.execute(stmt)
+        await self.session.flush()

@@ -1,0 +1,16 @@
+.git
+.env
+.env.*
+.venv
+.pytest_cache
+**/__pycache__
+**/*.py[cod]
+**/.env
+**/.env.*
+**/.mypy_cache
+**/.pytest_cache
+**/.ruff_cache
+**/.venv
+**/node_modules
+**/dist
+**/*.log

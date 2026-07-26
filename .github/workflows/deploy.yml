@@ -1,0 +1,127 @@
+name: Deploy to homelab
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: homelab-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy
+    if: github.repository == 'yutinglia/vtuber-karaoke-search'
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - vtuber-karaoke-search
+    timeout-minutes: 30
+    environment: production
+
+    steps:
+      - name: Check out deployment revision
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve build version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          source_version="$(tr -d '\r\n' < VERSION)"
+          if [[ ! "$source_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=VERSION::VERSION must use MAJOR.MINOR.PATCH."
+            exit 1
+          fi
+
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            expected_tag="v${source_version}"
+            if [[ "$GITHUB_REF_NAME" != "$expected_tag" ]]; then
+              echo "::error::Tag ${GITHUB_REF_NAME} does not match VERSION (${expected_tag})."
+              exit 1
+            fi
+            app_version="$source_version"
+            image_tag="$GITHUB_REF_NAME"
+          else
+            if [[ "$(git tag --points-at HEAD --list "v${source_version}")" == "v${source_version}" ]]; then
+              echo "A matching release tag points at this commit; its tag event will deploy it."
+              echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            short_sha="${GITHUB_SHA:0:7}"
+            app_version="${source_version}+${short_sha}"
+            image_tag="main-${short_sha}"
+          fi
+
+          echo "APP_VERSION=$app_version" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=$image_tag" >> "$GITHUB_ENV"
+          echo "app_version=$app_version" >> "$GITHUB_OUTPUT"
+          echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+
+      - name: Validate host deployment configuration
+        if: steps.version.outputs.should_deploy == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          deploy_env="${HOME}/services/vtuber-karaoke-search/.env"
+          if [[ ! -r "$deploy_env" ]]; then
+            echo "::error::Expected a readable production env file at ${deploy_env}."
+            exit 1
+          fi
+
+          echo "DEPLOY_ENV_FILE=$deploy_env" >> "$GITHUB_ENV"
+          docker compose --env-file "$deploy_env" config --quiet
+
+      - name: Build production images
+        if: steps.version.outputs.should_deploy == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker compose --env-file "$DEPLOY_ENV_FILE" build --pull frontend data_updater
+          docker tag homelab/vtuber-karaoke-search-frontend:latest \
+            "homelab/vtuber-karaoke-search-frontend:${IMAGE_TAG}"
+          docker tag homelab/vtuber-karaoke-search-api:latest \
+            "homelab/vtuber-karaoke-search-api:${IMAGE_TAG}"
+
+      - name: Deploy production stack
+        if: steps.version.outputs.should_deploy == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Recreate the one-shot migration container so new SQL always runs.
+          docker compose --env-file "$DEPLOY_ENV_FILE" rm --stop --force flyway
+          docker compose --env-file "$DEPLOY_ENV_FILE" up --detach --remove-orphans
+
+      - name: Verify deployment
+        if: steps.version.outputs.should_deploy == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..20}; do
+            if docker compose --env-file "$DEPLOY_ENV_FILE" exec --no-TTY frontend \
+              wget -q -O /dev/null http://127.0.0.1:8080/v1/health; then
+              echo "Setlist ${APP_VERSION} is healthy."
+              docker compose --env-file "$DEPLOY_ENV_FILE" ps
+              exit 0
+            fi
+            sleep 3
+          done
+
+          echo "::error::Deployment did not become healthy within 60 seconds."
+          docker compose --env-file "$DEPLOY_ENV_FILE" ps
+          exit 1

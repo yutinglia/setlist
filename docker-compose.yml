@@ -1,5 +1,154 @@
-name: vtuber-karaoke-search-docker-compose
+name: vtuber-karaoke-search
 
 services:
--- TODO
+  frontend:
+    image: homelab/vtuber-karaoke-search-frontend:latest
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-}
+        VITE_SOURCE_URL: ${VITE_SOURCE_URL:-https://github.com/yutinglia/vtuber-karaoke-search}
+        VITE_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL in .env}
+    ports:
+      # Keep the loopback default. Set FRONTEND_BIND_ADDRESS to the host's
+      # private LAN address only when the TLS reverse proxy runs elsewhere.
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}:8080"
+    depends_on:
+      data_updater:
+        condition: service_healthy
+    networks:
+      - vks
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
+  data_updater:
+    image: homelab/vtuber-karaoke-search-api:latest
+    build:
+      context: .
+      dockerfile: data_updater/Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-}
+    expose:
+      - "8000"
+    environment:
+      APP_ENV: ${APP_ENV:-prod}
+      BACKGROUND_UPDATER_ENABLED: ${BACKGROUND_UPDATER_ENABLED:-true}
+      MANAGEMENT_API_ENABLED: ${MANAGEMENT_API_ENABLED:-true}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?Set ADMIN_PASSWORD_HASH in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      AUTH_SESSION_TTL_SECONDS: ${AUTH_SESSION_TTL_SECONDS:-43200}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
+      GUEST_RATE_LIMIT_ENABLED: ${GUEST_RATE_LIMIT_ENABLED:-true}
+      GUEST_RATE_LIMIT_REQUESTS: ${GUEST_RATE_LIMIT_REQUESTS:-60}
+      GUEST_RATE_LIMIT_WINDOW_SECONDS: ${GUEST_RATE_LIMIT_WINDOW_SECONDS:-60}
+      LOGIN_RATE_LIMIT_REQUESTS: ${LOGIN_RATE_LIMIT_REQUESTS:-5}
+      LOGIN_RATE_LIMIT_WINDOW_SECONDS: ${LOGIN_RATE_LIMIT_WINDOW_SECONDS:-300}
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-172.30.0.0/24}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-vks_db}
+      DB_USER: ${DB_USER:-vks_db_user}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      # Leave empty to build a safely escaped URL from DB_*; explicit URLs win.
+      DATABASE_URL: ${DATABASE_URL:-}
+      DATA_UPDATE_INTERVAL: ${DATA_UPDATE_INTERVAL:-300}
+      UPDATE_STEADY_SCAN_INTERVAL: ${UPDATE_STEADY_SCAN_INTERVAL:-21600}
+      UPDATE_STEADY_RETRY_BASE: ${UPDATE_STEADY_RETRY_BASE:-900}
+      UPDATE_STEADY_CHANNELS_PER_CYCLE: ${UPDATE_STEADY_CHANNELS_PER_CYCLE:-3}
+      UPDATE_MAX_VIDEOS: ${UPDATE_MAX_VIDEOS:-40}
+      UPDATE_MAX_METADATA_SCRAPES: ${UPDATE_MAX_METADATA_SCRAPES:-10}
+      UPDATE_BACKFILL_PAGE_SIZE: ${UPDATE_BACKFILL_PAGE_SIZE:-100}
+      UPDATE_BACKFILL_PAGES_PER_CYCLE: ${UPDATE_BACKFILL_PAGES_PER_CYCLE:-3}
+      UPDATE_BACKFILL_CHANNELS_PER_CYCLE: ${UPDATE_BACKFILL_CHANNELS_PER_CYCLE:-1}
+      UPDATE_LIST_SLEEP_MIN: ${UPDATE_LIST_SLEEP_MIN:-3}
+      UPDATE_LIST_SLEEP_MAX: ${UPDATE_LIST_SLEEP_MAX:-7}
+      UPDATE_MAX_COMMENT_SCRAPES: ${UPDATE_MAX_COMMENT_SCRAPES:-3}
+      UPDATE_MAX_COMMENTS_PER_VIDEO: ${UPDATE_MAX_COMMENTS_PER_VIDEO:-50}
+      UPDATE_MAX_ANALYZE_ATTEMPTS: ${UPDATE_MAX_ANALYZE_ATTEMPTS:-3}
+      UPDATE_ANALYSIS_RECHECK_SECONDS: ${UPDATE_ANALYSIS_RECHECK_SECONDS:-86400}
+      UPDATE_ANALYSIS_RETRY_BASE: ${UPDATE_ANALYSIS_RETRY_BASE:-1800}
+      UPDATE_SCRAPE_SLEEP_MIN: ${UPDATE_SCRAPE_SLEEP_MIN:-20}
+      UPDATE_SCRAPE_SLEEP_MAX: ${UPDATE_SCRAPE_SLEEP_MAX:-40}
+      UPDATE_YOUTUBE_COOLDOWN_SECONDS: ${UPDATE_YOUTUBE_COOLDOWN_SECONDS:-21600}
+      YTDLP_LIST_SLEEP_INTERVAL: ${YTDLP_LIST_SLEEP_INTERVAL:-1}
+      YTDLP_LIST_MAX_SLEEP_INTERVAL: ${YTDLP_LIST_MAX_SLEEP_INTERVAL:-2}
+      YTDLP_COMMENT_SLEEP_INTERVAL: ${YTDLP_COMMENT_SLEEP_INTERVAL:-2}
+      YTDLP_COMMENT_MAX_SLEEP_INTERVAL: ${YTDLP_COMMENT_MAX_SLEEP_INTERVAL:-10}
+      # Comma-separated browser origins; leave empty if no frontend yet
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+    networks:
+      - vks
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/v1/health')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  db:
+    image: postgres:18-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-vks_db}
+      POSTGRES_USER: ${DB_USER:-vks_db_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    volumes:
+      - vks-pgdata:/var/lib/postgresql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - vks
+
+  flyway:
+    image: flyway/flyway:11-alpine
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./db/migrations:/flyway/sql:ro
+    command:
+      - -url=jdbc:postgresql://db:5432/${DB_NAME:-vks_db}
+      - -user=${DB_USER:-vks_db_user}
+      - -password=${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      - -locations=filesystem:/flyway/sql
+      - -connectRetries=5
+      - migrate
+    networks:
+      - vks
+
+volumes:
+  vks-pgdata:
+
+networks:
+  vks:
+    ipam:
+      config:
+        - subnet: ${VKS_SUBNET:-172.30.0.0/24}
