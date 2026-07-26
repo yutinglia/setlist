@@ -104,7 +104,7 @@ jobs:
             VITE_PUBLIC_SITE_URL=https://setlist.yutinglia.com
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
-          provenance: false
+          provenance: mode=max
           sbom: true
 
       - name: Build and publish backend
@@ -121,7 +121,7 @@ jobs:
           build-args: APP_VERSION=${{ env.APP_VERSION }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,scope=backend,mode=max
-          provenance: false
+          provenance: mode=max
           sbom: true
 
       - name: Build and publish migrations
@@ -137,7 +137,7 @@ jobs:
           build-args: APP_VERSION=${{ env.APP_VERSION }}
           cache-from: type=gha,scope=migrations
           cache-to: type=gha,scope=migrations,mode=max
-          provenance: false
+          provenance: mode=max
           sbom: true
 
       - name: Build and publish PostgreSQL
@@ -153,40 +153,40 @@ jobs:
           build-args: APP_VERSION=${{ env.APP_VERSION }}
           cache-from: type=gha,scope=postgres
           cache-to: type=gha,scope=postgres,mode=max
-          provenance: false
+          provenance: mode=max
           sbom: true
 
       - name: Attest frontend image
+        if: github.event.repository.visibility == 'public'
         uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
         with:
           subject-name: ${{ env.FRONTEND_IMAGE }}
           subject-digest: ${{ steps.frontend.outputs.digest }}
           push-to-registry: true
-          create-storage-record: ${{ github.event.repository.visibility == 'public' }}
 
       - name: Attest backend image
+        if: github.event.repository.visibility == 'public'
         uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
         with:
           subject-name: ${{ env.BACKEND_IMAGE }}
           subject-digest: ${{ steps.backend.outputs.digest }}
           push-to-registry: true
-          create-storage-record: ${{ github.event.repository.visibility == 'public' }}
 
       - name: Attest migrations image
+        if: github.event.repository.visibility == 'public'
         uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
         with:
           subject-name: ${{ env.MIGRATIONS_IMAGE }}
           subject-digest: ${{ steps.migrations.outputs.digest }}
           push-to-registry: true
-          create-storage-record: ${{ github.event.repository.visibility == 'public' }}
 
       - name: Attest PostgreSQL image
+        if: github.event.repository.visibility == 'public'
         uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
         with:
           subject-name: ${{ env.POSTGRES_IMAGE }}
           subject-digest: ${{ steps.postgres.outputs.digest }}
           push-to-registry: true
-          create-storage-record: ${{ github.event.repository.visibility == 'public' }}
 
       - name: Publish GitHub Release
         env:
