@@ -5,8 +5,8 @@ rapid development. Security fixes are welcome.
 
 ## Supported version
 
-Only the latest revision of the default branch is supported. Older commits,
-forks, and modified deployments may not receive fixes.
+The latest published release and the current default branch are supported.
+Older releases, commits, forks, and modified deployments may not receive fixes.
 
 ## Reporting a vulnerability
 

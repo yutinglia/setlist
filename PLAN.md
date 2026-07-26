@@ -22,9 +22,10 @@ scope, with individual work tracked in GitHub issues.
 | Search / UI | Public API + bilingual React search/browse UI |
 | Access control | Single-admin Argon2id login, signed sessions, CSRF |
 | Public service limits | Per-IP guest/login limits; admin-only status/mutations |
-| Deployment | Same-origin frontend proxy; API/Postgres private; required secrets; gated self-hosted-runner CD |
+| Deployment | Tag-only release; private scheduled/manual control plane; same-origin frontend proxy; API/Postgres private |
 
 | Requirements (`backend/requirements.txt`) | Direct deps updated (Jul 2026) |
+| Frontend compiler | TypeScript 6.x; TypeScript 7 deferred pending toolchain compatibility |
 | Dev Container + Compose (Postgres + Flyway) | Done |
 | Public documentation | English + Traditional Chinese README, contribution/security policy |
 | `.env.example` + `DATA_UPDATE_INTERVAL` env | Done |
@@ -203,6 +204,12 @@ Defer LLM until regex path is useful.
 
 - [x] Prefer pinned / uploader comments when choosing song list.
 - [x] Support more line formats (`01. Title 0:12:00`, `Title - 1:23`, parenthesized timestamps, full-width colons, etc.).
+- [x] Score candidates by parsed songs rather than raw timestamps; stop explicit
+  setlist sections at unrelated chapters/announcements or large timestamp
+  regressions while preserving encore sections.
+- [x] Normalize zero-width characters and remove YouTube custom-emoji tokens
+  from extracted titles; validate real-world formats across multiple EN/JP
+  VTuber channels with the application yt-dlp integration.
 - [x] Optional LLM cleaning using existing schema columns (`cleaning_attempts`, `cleaned_song_list_comment`, `analyzed_by_llm`) — behind `LLM_CLEANING_ENABLED` (default off).
 - [x] Dedupe songs within a video; conflict policy if re-analysis changes the list (`replace_for_video` last-write-wins; intra-extract dedupe by `(timestamp, casefold(title))`).
 
@@ -244,7 +251,7 @@ session/rate-limit storage.
   security, API access, and project status.
 - [x] Add a complete Traditional Chinese README with matching operational
   guidance.
-- [x] Synchronize AGENTS, PLAN, TODO, frontend, Dev Container, and scraper
+- [x] Synchronize AGENTS, PLAN, frontend, Dev Container, and scraper
   notes with Phase 7 behavior.
 - [x] Add contribution and vulnerability-reporting guidance.
 - [x] Select the permissive MIT license for public reuse and contribution.
@@ -259,11 +266,13 @@ session/rate-limit storage.
   metadata, and the npm lockfile with a local release script.
 - [x] Create annotated semantic version tags without automatically pushing
   repository changes.
-- [x] Deploy only canonical-repository `main` or matching version-tag pushes on
-  the self-hosted runner; keep pull requests and manual dispatch out of the
-  deployment path.
-- [x] Preserve locally tagged images and verify the same-origin health endpoint
-  after deployment.
+- [x] Publish only matching semantic version tags that point to the protected
+  canonical `main`; branch pushes and pull requests cannot release or deploy.
+- [x] Isolate the self-hosted runner in a private deployment repository. Poll
+  private GHCR labels every ten minutes, support exact-tag manual dispatch, and
+  deploy only when all four images report one complete semantic release.
+- [x] Pull immutable release tags, record `.deployed-release`, and verify the
+  same-origin health endpoint after deployment.
 
 ---
 
@@ -309,5 +318,6 @@ session/rate-limit storage.
    calling the API directly.
 7. Administrator sessions expire, mutations require CSRF, and password-hash or
    signing-secret rotation invalidates existing sessions.
-8. The production stack exposes only the loopback frontend proxy and contains
-   no real deployment secret in Git.
+8. The production stack exposes only the frontend proxy: loopback when the TLS
+   proxy is local, or a firewalled private-LAN bind when it is remote. No real
+   deployment secret is stored in Git.

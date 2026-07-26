@@ -8,12 +8,17 @@ single-administrator operations.
 
 ## Stack
 
-- React 19 + Vite
+- React 19 + Vite + TypeScript 6
 - TanStack Router + TanStack Query
 - Zod (route search-param schemas)
 - Zustand (locale, theme, and recent searches only)
 - Paraglide (`en` / `zh-hant`)
 - Tailwind CSS v4 + shadcn/ui
+
+TypeScript stays on the latest compatible 6.x release. Dependabot intentionally
+ignores the TypeScript 7 semver-major update until Vite, TanStack Router, the
+Paraglide generator, and the production build have been compatibility-tested
+together.
 
 ## Run (dev)
 
@@ -79,7 +84,10 @@ unprivileged nginx image includes the top-level MIT license. The container
 proxies `/v1` to `backend:8000`, provides SPA route fallback, applies
 browser security headers, and caches fingerprinted assets. The root production
 Compose stack binds it to
-`127.0.0.1:${FRONTEND_PORT:-8080}` for a host TLS reverse proxy.
+`${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}`. Keep loopback
+when the TLS reverse proxy is on the same host. For a proxy on another machine,
+bind only the server's private LAN interface and restrict that port to the
+proxy.
 
 ## Routes
 
@@ -94,7 +102,7 @@ Compose stack binds it to
 | `/admin/login` | `GET /v1/auth/session`; `POST /v1/auth/login` |
 | `/status` | Administrator-only `GET /v1/updater/status` |
 | `/summary` | `GET /v1/report/summary` |
-| `/about` | Project purpose and public source |
+| `/about` | Project purpose and source link |
 | `/terms` | Terms of service |
 | `/privacy` | Privacy notice |
 | `/copyright` | Copyright and removal requests |
@@ -116,7 +124,7 @@ files whenever user-visible copy changes.
 
 ## Public metadata
 
-- `VITE_SOURCE_URL` sets the public repository/contact base.
+- `VITE_SOURCE_URL` sets the project source/contact base.
 - `VITE_PUBLIC_SITE_URL` sets the canonical Open Graph origin.
 - `VITE_APP_VERSION` optionally overrides the footer build version.
 - `public/og.png` is the social preview image.

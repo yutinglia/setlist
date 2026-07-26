@@ -19,21 +19,21 @@ bypass updater caps, jitter, block detection, or the persisted cooldown.
 
 | Option | Detail |
 |--------|--------|
-| Dev Container | Python **3.12** (recommended) |
-| Local / conda | Python **3.11–3.12** recommended; avoid bleeding-edge versions unless you need them |
+| Dev Container | Python **3.14** (recommended and CI-tested) |
+| Local / conda | Python **3.14** recommended to match CI and production |
 | Runtime deps | `pip install -r requirements.txt` from `backend/` |
 | Dev/test deps | `pip install -r requirements-dev.txt` |
 
 ```bash
 # Local example (conda)
-conda create -n vks-yt-scraper python=3.12 -y
+conda create -n vks-yt-scraper python=3.14 -y
 conda activate vks-yt-scraper
 cd backend
 pip install -r requirements-dev.txt
 ```
 
-`services/yt_scraper/test.py` is a manual scratch script with known stale
-assumptions; it is not part of pytest or CI.
+`services/yt_scraper/test.py` performs live, ad-hoc smoke checks. It is
+intentionally not part of pytest or CI and may call YouTube when run.
 
 ## YouTube comment dict structure
 

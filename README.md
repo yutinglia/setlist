@@ -24,7 +24,8 @@ view live updater status.
 - YouTube deep links that open directly at each song's timestamp
 - Channel, video, song-detail, and database-summary browsing
 - English and Traditional Chinese UI
-- Pinned/uploader-aware setlist extraction with several timestamp formats
+- Pinned/uploader-aware setlist extraction with parsed-song scoring, mixed
+  setlist/chapter boundaries, and several timestamp formats
 - Durable full-channel backfill and conservative ongoing discovery
 - Tier B YouTube pacing: bounded work, jitter, retry limits, block detection,
   and a persisted cooldown
@@ -152,6 +153,9 @@ Verify the local proxy before exposing it:
 curl http://127.0.0.1:8080/v1/health
 ```
 
+The example uses the default loopback bind. When `FRONTEND_BIND_ADDRESS` is a
+private LAN address, verify that configured address instead.
+
 Point the HTTPS reverse proxy at
 `http://${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}`. Keep
 `AUTH_COOKIE_SECURE=true`. The bundled frontend serves the SPA, applies browser
@@ -162,7 +166,7 @@ Compose refuses to start without `PUBLIC_SITE_URL`, `DB_PASSWORD`,
 
 ### Automated homelab deployment
 
-This public repository does not contain production host paths, secrets, or a
+The source repository does not contain production host paths, secrets, or a
 self-hosted deployment job. A semantic release tag such as `v0.1.0` runs the
 [`Build release images`](.github/workflows/release.yml) workflow on a
 GitHub-hosted runner. It verifies that the tag matches [`VERSION`](VERSION) and
@@ -174,7 +178,9 @@ is enabled when the source repository is public.
 
 Production deployment is intentionally controlled by a separate private
 repository. Its self-hosted runner consumes published release images; it never
-checks out or executes pull-request code from this public repository. A fork
+checks out or executes pull-request code from the source repository. It polls
+the four private GHCR image labels every ten minutes and deploys only a complete,
+matching semantic release; exact tags can also be dispatched manually. A fork
 can use any deployment system or the local Compose instructions above without
 needing the private control plane.
 
@@ -202,7 +208,7 @@ Prepare a release pull request from a clean, up-to-date `main` branch:
 git switch main
 git pull --ff-only
 node scripts/bump-version.mjs patch
-# Follow the printed commands to push release/v0.0.1 and open its pull request.
+# Follow the printed commands to push release/vX.Y.Z and open its pull request.
 ```
 
 The argument may be `major`, `minor`, `patch`, or an explicit higher
@@ -218,7 +224,7 @@ git switch main
 git pull --ff-only
 node scripts/bump-version.mjs tag
 # Review the annotated tag, then use the exact tag printed:
-git push origin v0.0.1
+git push origin vX.Y.Z
 ```
 
 Ordinary source builds display the tracked version (and add a short commit SHA
@@ -400,8 +406,10 @@ The complete list and explanatory comments live in [`.env.example`](.env.example
 2. Flat-list snapshots preserve stable metadata and approximate dates without
    a per-video request fan-out.
 3. Karaoke candidates enter a separate, paced comment-analysis queue.
-4. The analyzer prefers pinned and uploader comments, extracts timestamp/title
-   pairs, and replaces a video's song list only after a successful analysis.
+4. The analyzer prefers pinned and uploader comments, then parsed-song count and
+   likes. It isolates explicit setlist sections, stops before unrelated chapters
+   or large timestamp regressions, preserves encore sections, and replaces a
+   video's song list only after a successful analysis.
 5. Exact metadata can upgrade approximate values; later sparse observations
    never erase richer snapshots or a previous successful setlist.
 6. Suspected YouTube blocking aborts remaining calls and persists a cooldown so

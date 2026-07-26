@@ -4,7 +4,7 @@
 
 Public-ready homelab service that scrapes VTuber karaoke streams, detects setlist comments (timestamp lists), extracts songs, and exposes them through a minimal HTTP API + search UI. **Phases 0–8 landed** (pipeline, Tier B pacing, search API, extraction quality, React UI, administrator auth, guest limits, public-service pages, deployment hardening, and bilingual public documentation).
 
-Stack: **FastAPI + SQLAlchemy 2 (async) + PostgreSQL + yt-dlp + Flyway** (backend); **React (Vite) + TanStack Router/Query + Zustand + Paraglide + Tailwind + shadcn/ui** (frontend).
+Stack: **FastAPI + SQLAlchemy 2 (async) + PostgreSQL + yt-dlp + Flyway** (backend); **React (Vite + TypeScript 6) + TanStack Router/Query + Zustand + Paraglide + Tailwind + shadcn/ui** (frontend).
 
 ## Layout
 
@@ -13,7 +13,7 @@ setlist/
 ├── frontend/              # Vite React search UI (run cwd = this dir)
 │   ├── src/routes/        # TanStack Router pages (search, song, browse)
 │   ├── src/api/           # Typed fetch client + Query hooks
-│   ├── src/stores/        # Zustand UI prefs (locale, recent searches)
+│   ├── src/stores/        # Zustand UI prefs (locale, theme, recent searches)
 │   ├── messages/          # Paraglide en + zh-hant
 │   └── README.md          # Frontend run / proxy notes
 ├── backend/               # FastAPI service (run cwd = this dir)
@@ -101,11 +101,16 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
 - **Guest API traffic** is rate-limited per resolved client IP in-process. Only honor `X-Forwarded-For` from `TRUSTED_PROXY_CIDRS`. Updater status is admin-only; guests may search and browse public records.
 - **Authentication responses** and authenticated API responses must remain
   `Cache-Control: no-store`; session-bearing responses vary on `Cookie`.
-- **Production topology** exposes only the bundled frontend nginx proxy on a
-  loopback host port. It serves the SPA and proxies `/v1`; FastAPI and Postgres
+- **Production topology** exposes only the bundled frontend nginx proxy. Keep
+  the loopback bind when the TLS proxy is on the same host; when the proxy is on
+  another machine, bind only the private LAN interface and firewall it to that
+  proxy. The frontend serves the SPA and proxies `/v1`; FastAPI and Postgres
   stay internal. Keep this same-origin topology unless there is a documented
   reason to introduce credentialed CORS.
-- **Setlist comment choice** prefers pinned, then uploader, then denser timestamps / likes (`CommentAnalyzer`).
+- **Setlist comment choice** prefers pinned, then uploader, then more parsed
+  songs, then likes (`CommentAnalyzer`). Explicit setlist sections stop at
+  unrelated chapters/announcements or large timestamp regressions while
+  preserving encore sections.
 - **Optional LLM cleaning** is behind `LLM_CLEANING_ENABLED` (default off); uses schema columns `cleaning_attempts`, `cleaned_song_list_comment`, `analyzed_by_llm`. Regex extract remains primary.
 - **Frontend server cache** = TanStack Query; Zustand is for UI prefs only (locale, recent searches).
 
@@ -127,7 +132,11 @@ Seed channels: `db/devscript/seed_channels.sql` (see README).
 - New HTTP routes go under `routers/v1/` and are registered in `routers/v1/__init__.py`.
 - Keep yt-dlp rate limiting (`sleep_interval` / `max_sleep_interval`) when scraping; YouTube blocks aggressive clients.
 - **Phase 2 Tier B (required):** cycle scrape caps, inter-scrape jitter, skip/retry via `analyze_attempts`, block detection → abort remaining YouTube calls + cooldown. No proxies/cookies unless Tier B still fails.
-- Use structured logging eventually; today the code uses `print` — when touching a file, prefer `logging` over adding more prints.
+- Application code uses `logging`. Reserve `print` for interactive command-line
+  helpers and the manual live scraper smoke script.
+- Keep TypeScript on the latest compatible 6.x release. Dependabot intentionally
+  ignores the TypeScript 7 semver-major update until Vite, TanStack, and the
+  generated-code toolchain have been explicitly compatibility-tested.
 - Mixed ZH/EN comments exist; match the file you edit. Prefer English for new public docs/API strings.
 
 ## Do not
@@ -140,7 +149,8 @@ Seed channels: `db/devscript/seed_channels.sql` (see README).
 - Do not expose updater status, scraper controls, or mutations to guests.
 - Do not trust forwarding headers from arbitrary peers or convert the in-memory
   limiter into a claimed multi-replica security control.
-- Do not treat `services/yt_scraper/test.py` as a real test suite; it is a manual scratch script with known attribute bugs.
+- Do not treat `services/yt_scraper/test.py` as a real test suite; it performs
+  live YouTube smoke checks and is intentionally outside pytest/CI.
 - Do not add public registration or another role without first defining its
   authorization, persistence, privacy, and migration model.
 - Do not rewrite the whole stack (Poetry/uv, Alembic vs Flyway, etc.) unless requested; incremental completion of the pipeline is more valuable.
