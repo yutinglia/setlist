@@ -15,6 +15,7 @@ from db import async_session_factory, engine
 from repositories import ChannelRepository, SongRepository, VideoRepository
 from routers.v1 import router as v1_router
 from services.data_updater import DataUpdater
+from services.rate_limit import GuestRateLimitMiddleware
 from services.update_cycle_trigger import update_cycle_trigger
 from services.updater_status import UpdaterPhase, updater_status
 
@@ -119,23 +120,18 @@ app = FastAPI(
     openapi_url=openapi_url,
 )
 
-# CORS: loose only in APP_ENV=dev; prod uses explicit CORS_ORIGINS
-if IS_DEV:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=False,
-        allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Accept", "Content-Type"],
-    )
-else:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=CORS_ORIGINS,
-        allow_credentials=False,
-        allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Accept", "Content-Type"],
-    )
+# Anonymous callers are rate-limited before reaching API handlers.
+app.add_middleware(GuestRateLimitMiddleware)
+
+# Credentialed cross-origin access must always use explicit origins. Normal Vite
+# development remains same-origin through its `/v1` proxy.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Accept", "Content-Type", "X-CSRF-Token"],
+)
 
 # 註冊 v1 路由
 app.include_router(v1_router)

@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import BACKGROUND_UPDATER_ENABLED, MANAGEMENT_API_ENABLED, SCRAPE_POLICY
-from deps import get_session, pagination_params
+from config import BACKGROUND_UPDATER_ENABLED, SCRAPE_POLICY
+from deps import get_session, pagination_params, require_management_admin
 from models.channel import VIDEO_BACKFILL_PENDING, ChannelCreate, YouTubeChannel
 from models.search import ChannelRead, Paginated, SongSearchResult, VideoRead
 from models.song import Song
@@ -38,10 +38,12 @@ class ChannelVideoRefreshResponse(BaseModel):
     message: str
 
 
-def require_management_api() -> None:
-    """Keep scraper/mutation controls off the public production API by default."""
-    if not MANAGEMENT_API_ENABLED:
-        raise HTTPException(status_code=404, detail="Not found")
+class VideoSongReloadResponse(BaseModel):
+    video_id: str
+    song_count: int = Field(ge=0)
+    has_song_list_comment: bool
+    analysis_status: str
+    message: str
 
 
 _UPLOAD_DATE_PATTERN = r"^\d{8}$"
@@ -135,7 +137,7 @@ async def list_channels(
 )
 async def create_channel(
     body: ChannelCreate,
-    _: None = Depends(require_management_api),
+    _=Depends(require_management_admin),
     session: AsyncSession = Depends(get_session),
 ):
     """Scrape a YouTube channel URL and add it to the tracked list.
@@ -305,7 +307,7 @@ async def list_channel_videos(
 )
 async def refresh_channel_videos(
     channel_id: str,
-    _: None = Depends(require_management_api),
+    _=Depends(require_management_admin),
     session: AsyncSession = Depends(get_session),
 ):
     """Safely refresh recent video metadata without deleting existing setlists."""
@@ -341,6 +343,47 @@ async def refresh_channel_videos(
         deleted=result.deleted,
         reclassified=result.reclassified,
         cleared=result.cleared,
+        message=result.message,
+    )
+
+
+@router.post(
+    "/videos/{video_id}/songs/reload",
+    response_model=VideoSongReloadResponse,
+)
+async def reload_video_song_list(
+    video_id: str,
+    _=Depends(require_management_admin),
+    session: AsyncSession = Depends(get_session),
+):
+    """Re-fetch top comments and replace a video's songs on successful analysis."""
+    channel_repo = ChannelRepository(session)
+    video_repo = VideoRepository(session)
+    song_repo = SongRepository(session)
+    video = await video_repo.get_by_id(video_id)
+    if video is None:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    updater = DataUpdater(session, channel_repo, video_repo, song_repo)
+    try:
+        result = await updater.reload_video_song_list(video)
+    except YouTubeAccessBlocked as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="YouTube temporarily blocked this request; try again later",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Failed reloading song list for video %s", video_id)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not reload this song list from YouTube",
+        ) from exc
+
+    return VideoSongReloadResponse(
+        video_id=result.video_id,
+        song_count=result.song_count,
+        has_song_list_comment=result.has_song_list_comment,
+        analysis_status=result.analysis_status,
         message=result.message,
     )
 

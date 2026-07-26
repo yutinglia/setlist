@@ -1,24 +1,71 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 
 import { api } from "@/api/client"
 
 export const PAGE_SIZE = 20
 
+export const authSessionQueryOptions = queryOptions({
+  queryKey: ["auth", "session"],
+  queryFn: () => api.authSession(),
+  staleTime: 5 * 60_000,
+  retry: false,
+})
+
+export function useAuthSession() {
+  return useQuery(authSessionQueryOptions)
+}
+
+export function useLogin() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      username,
+      password,
+    }: {
+      username: string
+      password: string
+    }) => api.login(username, password),
+    onSuccess: (session) => {
+      queryClient.setQueryData(authSessionQueryOptions.queryKey, session)
+    },
+  })
+}
+
+export function useLogout() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.logout(),
+    onSuccess: (session) => {
+      queryClient.setQueryData(authSessionQueryOptions.queryKey, session)
+      queryClient.removeQueries({ queryKey: ["updater"] })
+    },
+  })
+}
+
 export function useHealth() {
   return useQuery({
     queryKey: ["health"],
     queryFn: () => api.health(),
-    refetchInterval: 60_000,
+    staleTime: 60_000,
     retry: 1,
   })
 }
 
 export function useUpdaterStatus() {
+  const auth = useAuthSession()
+  const isAdmin =
+    auth.data?.authenticated === true && auth.data.role === "admin"
   return useQuery({
     queryKey: ["updater", "status"],
     queryFn: () => api.updaterStatus(),
-    refetchInterval: 2_000,
-    refetchIntervalInBackground: true,
+    enabled: isAdmin,
+    refetchInterval: isAdmin ? 2_000 : false,
+    refetchIntervalInBackground: isAdmin,
     retry: 1,
   })
 }
@@ -27,7 +74,6 @@ export function useSummaryReport() {
   return useQuery({
     queryKey: ["report", "summary"],
     queryFn: () => api.summaryReport(),
-    refetchInterval: 30_000,
     staleTime: 15_000,
     retry: 1,
   })

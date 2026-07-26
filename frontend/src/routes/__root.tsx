@@ -1,9 +1,16 @@
-import { Outlet, createRootRoute } from "@tanstack/react-router"
+import type { QueryClient } from "@tanstack/react-query"
+import {
+  Link,
+  Outlet,
+  createRootRouteWithContext,
+} from "@tanstack/react-router"
 
 import { SiteHeader } from "@/components/site-header"
 import { m } from "@/paraglide/messages"
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{
+  queryClient: QueryClient
+}>()({
   component: RootLayout,
 })
 
@@ -24,11 +31,30 @@ function RootLayout() {
         <Outlet />
       </main>
       <footer className="border-t border-border/60 bg-card/30">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-8 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <p>{m.footer_note()}</p>
-          <p className="font-mono text-[0.65rem] tracking-[0.18em] uppercase">
-            {m.brand_full()}
-          </p>
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-8 text-xs text-muted-foreground sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+          <div>
+            <p>{m.footer_note()}</p>
+            <p className="mt-1 font-mono text-[0.65rem] tracking-[0.18em] uppercase">
+              {m.brand_full()}
+            </p>
+          </div>
+          <nav
+            className="flex flex-wrap gap-x-5 gap-y-2"
+            aria-label={m.footer_info_nav()}
+          >
+            <Link to="/about" className="hover:text-primary">
+              {m.nav_about()}
+            </Link>
+            <Link to="/terms" className="hover:text-primary">
+              {m.nav_terms()}
+            </Link>
+            <Link to="/privacy" className="hover:text-primary">
+              {m.nav_privacy()}
+            </Link>
+            <Link to="/copyright" className="hover:text-primary">
+              {m.nav_copyright()}
+            </Link>
+          </nav>
         </div>
       </footer>
     </div>

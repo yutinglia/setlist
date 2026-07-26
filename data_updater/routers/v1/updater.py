@@ -1,6 +1,6 @@
 """Live status of the background scraper / analyzer."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from config import (
     BACKGROUND_UPDATER_ENABLED,
@@ -8,6 +8,7 @@ from config import (
     SCRAPE_POLICY,
     UPDATE_MAX_COMMENT_SCRAPES,
 )
+from deps import require_admin_session
 from models.updater import UpdaterStatusResponse
 from services.data_updater import DataUpdater
 from services.updater_status import UpdaterPhase, updater_status
@@ -16,7 +17,11 @@ router = APIRouter(prefix="/updater", tags=["Updater"])
 PUBLIC_ERROR_MESSAGE = "An updater operation failed; check server logs"
 
 
-@router.get("/status", response_model=UpdaterStatusResponse)
+@router.get(
+    "/status",
+    response_model=UpdaterStatusResponse,
+    dependencies=[Depends(require_admin_session)],
+)
 async def get_updater_status() -> UpdaterStatusResponse:
     """Return what the scraper/analyzer is doing (process-local, in-memory)."""
     snap = updater_status.snapshot()

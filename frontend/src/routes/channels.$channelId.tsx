@@ -10,7 +10,7 @@ import {
 } from "lucide-react"
 
 import { api } from "@/api/client"
-import { useChannelVideos } from "@/api/hooks"
+import { useAuthSession, useChannelVideos } from "@/api/hooks"
 import type { ChannelVideoRefresh } from "@/api/types"
 import { PaginationControls } from "@/components/pagination-controls"
 import { QueryState } from "@/components/query-state"
@@ -28,7 +28,6 @@ import {
   sortVideosByUploadDateDesc,
   uploadDateTimeAttr,
 } from "@/lib/upload-date"
-import { MANAGEMENT_UI_ENABLED } from "@/lib/app-config"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
 
@@ -78,6 +77,11 @@ function ChannelVideosPage() {
   const videoType = TAB_TO_TYPE[tab]
   const navigate = Route.useNavigate()
   const queryClient = useQueryClient()
+  const auth = useAuthSession()
+  const canManage =
+    auth.data?.authenticated === true &&
+    auth.data.role === "admin" &&
+    auth.data.management_enabled
   const query = useChannelVideos(
     channelId,
     page,
@@ -205,7 +209,7 @@ function ChannelVideosPage() {
             {channelId}
           </p>
         </div>
-        {MANAGEMENT_UI_ENABLED ? (
+        {canManage ? (
           <div className="flex max-w-sm flex-col items-end gap-1">
             <Button
               type="button"

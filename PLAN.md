@@ -1,28 +1,38 @@
-# Plan: Finish vtuber-karaoke-search
+# Implementation plan and current status
 
 ## Goal
 
-Turn the current scaffold into a working **data pipeline** that scrapes VTuber karaoke streams, detects setlist comments, stores songs, then add a minimal **search API**. Do not build a UI until search returns real data.
+Operate Setlist as a public-ready, self-hosted VTuber karaoke index: scrape
+conservatively, extract timestamped songs, expose a useful search API/UI, and
+reserve operational controls for one authenticated administrator.
+
+This file preserves the implementation phases and their design decisions.
+Phases 0–8 are complete; future work should be added here only after it enters
+scope, with individual work tracked in GitHub issues.
 
 ## Current state (baseline)
 
 | Area | Status |
 |------|--------|
-| Postgres schema (Flyway V1 + V2 title index) | Done |
+| Postgres schema (Flyway V1–V9) | Done |
 | yt-dlp scrapers (channel / videos / comments) | Done, used by DataUpdater |
 | Comment → song-list heuristics | Done (`video_id` required; unit tests) |
 | Repositories | Read + upsert / `replace_for_video` (updater-owned commits) |
 | `DataUpdater.update()` | Wired + fast durable backfill + persisted steady discovery + delayed global analysis queue |
-| Search / UI | Search API + Phase 5 extraction + Phase 6 search UI MVP |
+| Search / UI | Public API + bilingual React search/browse UI |
+| Access control | Single-admin Argon2id login, signed sessions, CSRF |
+| Public service limits | Per-IP guest/login limits; admin-only status/mutations |
+| Deployment | Same-origin frontend proxy; API/Postgres private; required secrets |
 
 | Requirements (`data_updater/requirements.txt`) | Direct deps updated (Jul 2026) |
 | Dev Container + Compose (Postgres + Flyway) | Done |
-| README / AGENTS / TODO docs | Done (keep in sync when behavior changes) |
+| Public documentation | English + Traditional Chinese README, contribution/security policy |
 | `.env.example` + `DATA_UPDATE_INTERVAL` env | Done |
 
 ## Principles
 
-1. **Pipeline first, search second, UI last.**
+1. **Pipeline first, search second, UI last.** (Historical implementation
+   order; all three now exist.)
 2. Prefer completing existing modules over rewrites (keep FastAPI + Flyway + yt-dlp + sqlacodegen).
 3. One channel end-to-end before scaling to many channels / LLM cleaning.
 4. Scraping must not block the FastAPI event loop; respect yt-dlp sleep intervals.
@@ -136,20 +146,25 @@ locally and run `python run_updater_once.py` for one production-equivalent cycle
 **Why:** Safe to leave running overnight.
 
 - [x] Compose: `postgres` + `flyway` + app workspace (`.devcontainer/`; root compose includes it).
-- [x] Dev Container Dockerfile (Python 3.12). Production `data_updater` image + Compose service (`docker compose up --build data_updater`); IDE `app` stays `sleep infinity`.
-- [x] Fix CORS: explicit origins in prod (`CORS_ORIGINS`); keep loose only when `APP_ENV=dev`.
-- [x] Remove the placeholder example router; keep `/v1/health` and gate management mutations by environment.
+- [x] Dev Container Dockerfile (Python 3.12). Production backend and frontend
+  images in the root Compose stack; IDE `app` stays `sleep infinity`.
+- [x] Fix credentialed CORS: explicit origins in every environment
+  (`APP_ENV=dev` only supplies exact localhost defaults).
+- [x] Remove the placeholder example router; keep `/v1/health` and require an
+  authenticated administrator for management mutations.
 - [x] Health check pings DB (`SELECT 1`; 503 if unavailable).
 - [x] yt-dlp bump notes in `data_updater/NOTE.md` (keep pin in `requirements.txt` after upgrades).
 - [x] Root `.gitignore`: `.env`, `__pycache__`, venvs, caches, etc.
 
-**Exit:** `docker compose up --build data_updater` brings API + DB; updater runs without blocking health checks.
+**Exit:** With required production secrets configured, `docker compose up
+--build` brings up the same-origin frontend proxy, API, DB, and Flyway; updater
+work does not block health checks.
 
 ---
 
 ## Phase 4 — Minimal search API (1–2 days)
 
-**Why:** Delivers the project name without a frontend yet.
+**Why:** Establish the public data contract before building the frontend.
 
 ### Endpoints (v1)
 
@@ -199,10 +214,40 @@ Defer LLM until regex path is useful.
 - [x] TanStack Router + TanStack Query + Zustand (UI prefs) + Paraglide (`en` / `zh-hant`) + Tailwind + shadcn/ui
 - [x] Search page → `GET /v1/songs/search` with debounce, pagination, deep links, advanced filters (channel / type / date)
 - [x] Song detail + channel → videos → video songs browse
-- [x] Live updater status page → `GET /v1/updater/status`
+- [x] Administrator-only live updater status page →
+  `GET /v1/updater/status`; guests do not poll it
 - [x] Dev proxy / `VITE_API_BASE_URL` + CORS notes (`APP_ENV=dev` or `CORS_ORIGINS`)
 
-**Still out of scope:** auth, multi-user, public deploy hardening, Flyway→Alembic / Poetry/uv rewrite, Celery/RQ, Tier C proxies/cookies.
+**Still out of scope:** multi-user accounts, Flyway→Alembic / Poetry/uv rewrite, Celery/RQ, Tier C proxies/cookies.
+
+---
+
+## Phase 7 — Public homelab hardening
+
+- [x] Single administrator login backed by an environment-only Argon2id hash.
+- [x] Signed HttpOnly session cookie plus per-session CSRF validation.
+- [x] Server-side authorization for updater status and every scraper mutation.
+- [x] Per-IP guest API limits and stricter login limits, with explicit trusted proxies.
+- [x] Administrator-only channel controls and per-video song-list reload.
+- [x] Public About, Terms, Privacy, and Copyright/removal pages.
+- [x] Production secret requirements, deployment documentation, and CI credential scan.
+
+**Still out of scope:** public account registration, multiple roles/accounts,
+password recovery email, external identity providers, and shared distributed
+session/rate-limit storage.
+
+---
+
+## Phase 8 — Public repository documentation
+
+- [x] Restructure the English README around public use, development, deployment,
+  security, API access, and project status.
+- [x] Add a complete Traditional Chinese README with matching operational
+  guidance.
+- [x] Synchronize AGENTS, PLAN, TODO, frontend, Dev Container, and scraper
+  notes with Phase 7 behavior.
+- [x] Add contribution and vulnerability-reporting guidance.
+- [x] Select the permissive MIT license for public reuse and contribution.
 
 ---
 
@@ -215,6 +260,8 @@ Defer LLM until regex path is useful.
 5. Phase 4 — search endpoints + title index ✅  
 6. Phase 5 — extraction improvements / optional LLM ✅  
 7. Phase 6 — search UI MVP ✅
+8. Phase 7 — public homelab hardening ✅
+9. Phase 8 — bilingual public documentation and policies ✅
 
 ---
 
@@ -228,6 +275,10 @@ Defer LLM until regex path is useful.
 | Duplicate / stale songs | `replace_for_video` or unique constraint; track `last_analyzed_at` |
 | Long first sync | Work caps + prioritize recent uploads |
 | Schema drift (sqlacodegen) | Migrations first; regenerate models; don’t hand-edit generated files lightly |
+| Guest abuse | Per-IP limits, stricter login limit, explicit trusted proxies; add a gateway limiter for replicas |
+| Admin request forgery | Signed HttpOnly session + per-session CSRF on every mutation |
+| Secret disclosure | Ignored env files, build-context exclusions, CI/history signature scan, documented rotation |
+| License ambiguity | Top-level MIT license, matching README/UI notices, and preserved third-party terms |
 
 ---
 
@@ -237,4 +288,10 @@ Defer LLM until regex path is useful.
 2. `GET /v1/songs/search?q=...` returns results with timestamp deep links (optional channel / type / date filters).  
 3. `docker compose up` (or documented manual path) is reproducible on a clean machine.  
 4. Updater failures are logged and do not crash the API process.  
-5. Search UI can query the API and open YouTube deep links (Phase 6).
+5. Search UI can query the API and open YouTube deep links.
+6. Guests cannot view updater status or invoke any mutation, including by
+   calling the API directly.
+7. Administrator sessions expire, mutations require CSRF, and password-hash or
+   signing-secret rotation invalidates existing sessions.
+8. The production stack exposes only the loopback frontend proxy and contains
+   no real deployment secret in Git.

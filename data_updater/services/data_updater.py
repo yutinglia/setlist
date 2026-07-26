@@ -83,6 +83,17 @@ class ChannelVideoRefreshResult:
     message: str
 
 
+@dataclass(frozen=True)
+class VideoSongReloadResult:
+    """Outcome of an administrator-requested comment/setlist re-analysis."""
+
+    video_id: str
+    song_count: int
+    has_song_list_comment: bool
+    analysis_status: str
+    message: str
+
+
 logger = logging.getLogger(__name__)
 
 # One process must not run the periodic updater and manual scraper operations at
@@ -352,6 +363,77 @@ class DataUpdater:
                     channel_name=channel.name,
                     clear_video=True,
                     last_error="A manual video metadata refresh failed",
+                )
+                raise
+            except BaseException:
+                await self.session.rollback()
+                raise
+
+    async def reload_video_song_list(
+        self,
+        video: YouTubeVideo,
+    ) -> VideoSongReloadResult:
+        """Run the normal comment analyzer once for an administrator request."""
+        async with youtube_operation_lock:
+            try:
+                await self._sync_persisted_cooldown()
+                remaining = self.youtube_cooldown_remaining()
+                if remaining > 0:
+                    updater_status.set(
+                        UpdaterPhase.COOLDOWN,
+                        detail=f"YouTube cooldown active ({remaining:.0f}s remaining)",
+                        video_id=video.id,
+                        video_title=video.title,
+                    )
+                    raise YouTubeAccessBlocked(
+                        f"YouTube cooldown active ({remaining:.0f}s remaining)"
+                    )
+
+                self._comment_scrapes_this_cycle = 0
+                await self._analyze_video(video)
+                song_count = await self.song_repo.count_by_video_id(video.id)
+                await self.session.commit()
+                updater_status.set(
+                    self._manual_operation_resting_phase(),
+                    detail=f"Song-list reload finished for {video.title}",
+                    clear_channel=True,
+                    video_id=video.id,
+                    video_title=video.title,
+                )
+                return VideoSongReloadResult(
+                    video_id=video.id,
+                    song_count=song_count,
+                    has_song_list_comment=video.has_song_list_comment,
+                    analysis_status=video.analysis_status,
+                    message=(
+                        f"Reloaded comments and found {song_count} song(s)."
+                        if video.has_song_list_comment
+                        else "Reloaded comments; no new setlist was found."
+                    ),
+                )
+            except asyncio.CancelledError:
+                await self.session.rollback()
+                updater_status.set(
+                    self._manual_operation_resting_phase(),
+                    detail="Manual song-list reload was cancelled",
+                    clear_channel=True,
+                    clear_video=True,
+                )
+                raise
+            except YouTubeAccessBlocked:
+                await self.session.rollback()
+                await self._activate_youtube_cooldown()
+                await self.session.commit()
+                raise
+            except Exception:
+                await self.session.rollback()
+                updater_status.set(
+                    UpdaterPhase.ERROR,
+                    detail=f"Could not reload song list for {video.title}",
+                    clear_channel=True,
+                    video_id=video.id,
+                    video_title=video.title,
+                    last_error="A manual song-list reload failed",
                 )
                 raise
             except BaseException:

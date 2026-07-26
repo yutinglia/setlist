@@ -1,21 +1,55 @@
 name: vtuber-karaoke-search
 
 services:
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_SOURCE_URL: ${VITE_SOURCE_URL:-https://github.com/yutinglia/vtuber-karaoke-search}
+        VITE_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL in .env}
+    ports:
+      # Bind locally; terminate public TLS in the homelab reverse proxy.
+      - "127.0.0.1:${FRONTEND_PORT:-8080}:8080"
+    depends_on:
+      data_updater:
+        condition: service_healthy
+    networks:
+      - vks
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   data_updater:
     build:
-      context: ./data_updater
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
+      context: .
+      dockerfile: data_updater/Dockerfile
+    expose:
+      - "8000"
     environment:
       APP_ENV: ${APP_ENV:-prod}
       BACKGROUND_UPDATER_ENABLED: ${BACKGROUND_UPDATER_ENABLED:-true}
-      MANAGEMENT_API_ENABLED: ${MANAGEMENT_API_ENABLED:-false}
+      MANAGEMENT_API_ENABLED: ${MANAGEMENT_API_ENABLED:-true}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?Set ADMIN_PASSWORD_HASH in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      AUTH_SESSION_TTL_SECONDS: ${AUTH_SESSION_TTL_SECONDS:-43200}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
+      GUEST_RATE_LIMIT_ENABLED: ${GUEST_RATE_LIMIT_ENABLED:-true}
+      GUEST_RATE_LIMIT_REQUESTS: ${GUEST_RATE_LIMIT_REQUESTS:-60}
+      GUEST_RATE_LIMIT_WINDOW_SECONDS: ${GUEST_RATE_LIMIT_WINDOW_SECONDS:-60}
+      LOGIN_RATE_LIMIT_REQUESTS: ${LOGIN_RATE_LIMIT_REQUESTS:-5}
+      LOGIN_RATE_LIMIT_WINDOW_SECONDS: ${LOGIN_RATE_LIMIT_WINDOW_SECONDS:-300}
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-172.30.0.0/24}
       DB_HOST: db
       DB_PORT: "5432"
       DB_NAME: ${DB_NAME:-vks_db}
       DB_USER: ${DB_USER:-vks_db_user}
-      DB_PASSWORD: ${DB_PASSWORD:-vks_db_pwd}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
       # Leave empty to build a safely escaped URL from DB_*; explicit URLs win.
       DATABASE_URL: ${DATABASE_URL:-}
       DATA_UPDATE_INTERVAL: ${DATA_UPDATE_INTERVAL:-300}
@@ -70,7 +104,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME:-vks_db}
       POSTGRES_USER: ${DB_USER:-vks_db_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-vks_db_pwd}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     volumes:
       - vks-pgdata:/var/lib/postgresql
     healthcheck:
@@ -97,7 +131,7 @@ services:
     command:
       - -url=jdbc:postgresql://db:5432/${DB_NAME:-vks_db}
       - -user=${DB_USER:-vks_db_user}
-      - -password=${DB_PASSWORD:-vks_db_pwd}
+      - -password=${DB_PASSWORD:?Set DB_PASSWORD in .env}
       - -locations=filesystem:/flyway/sql
       - -connectRetries=5
       - migrate
@@ -109,3 +143,6 @@ volumes:
 
 networks:
   vks:
+    ipam:
+      config:
+        - subnet: ${VKS_SUBNET:-172.30.0.0/24}

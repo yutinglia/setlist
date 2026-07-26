@@ -5,9 +5,11 @@ import { useUpdaterStatus } from "@/api/hooks"
 import type { UpdaterPhase } from "@/api/types"
 import { QueryState } from "@/components/query-state"
 import { cn } from "@/lib/utils"
+import { requireAdminRoute } from "@/lib/auth-guard"
 import { m } from "@/paraglide/messages"
 
 export const Route = createFileRoute("/status")({
+  beforeLoad: requireAdminRoute,
   component: StatusPage,
 })
 

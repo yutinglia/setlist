@@ -57,6 +57,14 @@ export type HealthResponse = {
   database?: string
 }
 
+export type AuthSession = {
+  authenticated: boolean
+  role: "admin" | null
+  username: string | null
+  csrf_token: string | null
+  management_enabled: boolean
+}
+
 export type SummaryReport = {
   generated_at: string
   channels: number
@@ -147,4 +155,12 @@ export type UpdaterStatus = {
   backfill_page_size: number
   backfill_pages_per_cycle: number
   updated_at: string | null
+}
+
+export type VideoSongReload = {
+  video_id: string
+  song_count: number
+  has_song_list_comment: boolean
+  analysis_status: string
+  message: string
 }

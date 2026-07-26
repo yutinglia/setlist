@@ -12,6 +12,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan tracked files for credentials
+        run: python scripts/check_secrets.py
+
   backend:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -51,7 +61,8 @@ jobs:
         run: python -m pytest
 
       - name: Build production runtime image
-        run: docker build --target runtime -t vks-data-updater:ci .
+        working-directory: .
+        run: docker build -f data_updater/Dockerfile --target runtime -t vks-data-updater:ci .
 
       - name: Stop test services
         if: always()
@@ -82,3 +93,7 @@ jobs:
 
       - name: Frontend production build
         run: npm run build
+
+      - name: Build production frontend image
+        working-directory: .
+        run: docker build -f frontend/Dockerfile -t vks-frontend:ci .

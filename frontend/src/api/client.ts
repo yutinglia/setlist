@@ -1,4 +1,5 @@
 import type {
+  AuthSession,
   ChannelVideoRefresh,
   HealthResponse,
   Paginated,
@@ -6,6 +7,7 @@ import type {
   SongSearchResult,
   SummaryReport,
   UpdaterStatus,
+  VideoSongReload,
   YouTubeChannel,
   YouTubeVideo,
 } from "@/api/types"
@@ -20,6 +22,8 @@ const API_BASE =
     ?.trim()
     .replace(/\/+$/, "") ?? ""
 
+let csrfToken: string | null = null
+
 export class ApiError extends Error {
   status: number
 
@@ -31,12 +35,16 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? "GET").toUpperCase()
+  const headers = new Headers(init?.headers)
+  headers.set("Accept", "application/json")
+  if (!["GET", "HEAD", "OPTIONS"].includes(method) && csrfToken) {
+    headers.set("X-CSRF-Token", csrfToken)
+  }
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: {
-      Accept: "application/json",
-      ...init?.headers,
-    },
+    credentials: "include",
+    headers,
   })
   if (!res.ok) {
     let detail = res.statusText
@@ -67,6 +75,30 @@ function pageQuery(limit: number, offset: number): string {
 
 export const api = {
   health: () => request<HealthResponse>("/v1/health"),
+
+  authSession: async () => {
+    const session = await request<AuthSession>("/v1/auth/session")
+    csrfToken = session.csrf_token
+    return session
+  },
+
+  login: async (username: string, password: string) => {
+    const session = await request<AuthSession>("/v1/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    })
+    csrfToken = session.csrf_token
+    return session
+  },
+
+  logout: async () => {
+    const session = await request<AuthSession>("/v1/auth/logout", {
+      method: "POST",
+    })
+    csrfToken = null
+    return session
+  },
 
   updaterStatus: () => request<UpdaterStatus>("/v1/updater/status"),
 
@@ -135,6 +167,12 @@ export const api = {
   refreshChannelVideos: (channelId: string) =>
     request<ChannelVideoRefresh>(
       `/v1/channels/${encodeURIComponent(channelId)}/videos/refresh`,
+      { method: "POST" },
+    ),
+
+  reloadVideoSongs: (videoId: string) =>
+    request<VideoSongReload>(
+      `/v1/videos/${encodeURIComponent(videoId)}/songs/reload`,
       { method: "POST" },
     ),
 

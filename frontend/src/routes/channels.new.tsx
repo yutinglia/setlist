@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react"
 import {
   Link,
   createFileRoute,
-  redirect,
   useNavigate,
 } from "@tanstack/react-router"
 import { ArrowLeft, Link2, Plus, Radio } from "lucide-react"
@@ -11,15 +10,11 @@ import { ApiError } from "@/api/client"
 import { useCreateChannel } from "@/api/hooks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MANAGEMENT_UI_ENABLED } from "@/lib/app-config"
+import { requireManagementRoute } from "@/lib/auth-guard"
 import { m } from "@/paraglide/messages"
 
 export const Route = createFileRoute("/channels/new")({
-  beforeLoad: () => {
-    if (!MANAGEMENT_UI_ENABLED) {
-      throw redirect({ to: "/channels" })
-    }
-  },
+  beforeLoad: requireManagementRoute,
   component: AddChannelPage,
 })
 

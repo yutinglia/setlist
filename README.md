@@ -1,232 +1,419 @@
-# vtuber-karaoke-search
+# Setlist — VTuber Karaoke Search
 
-Scrape VTuber karaoke streams, detect setlist comments (timestamp lists), store songs, and search them via a minimal HTTP API + React search UI.
+[English](README.md) · [繁體中文](README.zh-Hant.md)
 
-**Status:** Phases 0–6 MVP are in place (pipeline + Tier B pacing, search API, extraction quality, search UI). Optional LLM cleaning is off by default (`LLM_CLEANING_ENABLED`). See [PLAN.md](PLAN.md) and [TODO.md](TODO.md).
+![Setlist social preview](frontend/public/og.png)
 
-## Stack
+Setlist is a self-hosted search index for songs performed in VTuber karaoke
+streams. It discovers public YouTube archives, finds timestamped setlist
+comments, extracts song titles, and turns them into searchable links that jump
+to the right moment in the original video.
 
-- **FastAPI** (`data_updater/`) — API + background data updater
-- **PostgreSQL 18** + **Flyway** migrations (`db/migrations/`)
-- **yt-dlp** — channel / video / comment scraping
-- **SQLAlchemy 2** (async) + **sqlacodegen** for ORM models
-- **React / Vite** (`frontend/`) — search UI (TanStack Router/Query, Zustand, Paraglide, Tailwind, shadcn/ui)
+The project is under rapid development and is designed for a small public
+homelab deployment. Guests can search and browse. A single administrator can
+sign in to manage channels, refresh metadata, reload a video's song list, and
+view live updater status.
 
-## Quick start (Dev Container)
+> Automated metadata can be incomplete or wrong. Setlist is an independent
+> index, does not host video or audio, and is not affiliated with YouTube,
+> Google, any VTuber agency, channel, or performer.
 
-1. Open this repo in Cursor or VS Code.
-2. **Dev Containers: Reopen in Container**.
-3. Compose starts Postgres, runs Flyway, prepares the Python/Node toolchain,
-   and automatically starts the API and UI with hot reload.
-4. The editor forwards ports 8000 and 5173 to the host. Open
-   http://localhost:5173.
+## What you get
 
-Service logs are available inside the Dev Container at
-`/tmp/vtuber-karaoke-search-dev/backend.log` and
-`/tmp/vtuber-karaoke-search-dev/frontend.log`.
+- Fast, paginated song search with channel, content type, and date filters
+- YouTube deep links that open directly at each song's timestamp
+- Channel, video, song-detail, and database-summary browsing
+- English and Traditional Chinese UI
+- Pinned/uploader-aware setlist extraction with several timestamp formats
+- Durable full-channel backfill and conservative ongoing discovery
+- Tier B YouTube pacing: bounded work, jitter, retry limits, block detection,
+  and a persisted cooldown
+- Optional OpenAI-compatible cleanup after the regex extractor
+- Single-administrator authentication with signed HttpOnly sessions and CSRF
+- Per-IP guest API limits and stricter login limits
+- Public About, Terms, Privacy, and Copyright/removal pages
+- Production containers for the React frontend, FastAPI service, PostgreSQL,
+  and Flyway
+
+## Access model
+
+| Capability | Guest | Administrator |
+|------------|:-----:|:-------------:|
+| Search and browse public index data | Yes | Yes |
+| View summary report | Yes | Yes |
+| Poll live updater status | No | Yes |
+| Add channels or refresh channel metadata | No | Yes |
+| Reload a video's song list | No | Yes |
+
+Authorization is enforced by the API. Hiding a frontend control is never
+treated as a security boundary.
+
+## Quick start with a Dev Container
+
+This is the easiest path for development on Windows, macOS, or Linux.
+
+1. Clone the repository and open it in VS Code or Cursor.
+2. Run **Dev Containers: Reopen in Container**.
+3. Wait for PostgreSQL, Flyway, Python dependencies, and `npm ci` to finish.
+4. Open <http://localhost:5173>.
+
+The API and UI start automatically with hot reload. Background scraping is
+disabled by default in development, so opening the repository does not
+immediately call YouTube.
 
 | URL | Purpose |
 |-----|---------|
-| http://localhost:5173 | Search UI |
-| http://localhost:5173/status | Live updater status |
-| http://localhost:8000/v1/health | Health check |
-| http://localhost:8000/v1/updater/status | Process-local updater status |
-| http://localhost:8000/v1/songs/search?q=... | Search songs by title (optional `channel_id`, `type`, date bounds) |
-| http://localhost:8000/docs | OpenAPI (when `APP_ENV=dev`) |
+| <http://localhost:5173> | Search UI |
+| <http://localhost:5173/admin/login> | Administrator sign-in |
+| <http://localhost:5173/status> | Administrator-only updater status |
+| <http://localhost:8000/v1/health> | API and database health |
+| <http://localhost:8000/docs> | OpenAPI documentation in `APP_ENV=dev` |
 
-More detail: [.devcontainer/README.md](.devcontainer/README.md) · [frontend/README.md](frontend/README.md).
+Inside the container, logs are written to:
 
-## Quick start (local Docker)
+```text
+/tmp/vtuber-karaoke-search-dev/backend.log
+/tmp/vtuber-karaoke-search-dev/frontend.log
+```
+
+See [.devcontainer/README.md](.devcontainer/README.md) for database access,
+admin setup, and lifecycle details.
+
+## Public homelab deployment
+
+### Requirements
+
+- Docker Engine with Compose v2
+- A public hostname
+- An HTTPS reverse proxy such as Caddy, Traefik, or nginx
+- Enough storage for PostgreSQL
+
+The production stack binds only the frontend proxy to
+`127.0.0.1:${FRONTEND_PORT:-8080}`. FastAPI and PostgreSQL stay on the private
+Compose network.
+
+### 1. Create local production configuration
 
 ```bash
-# Postgres + migrations
-docker compose -f docker-compose.dev.yml up -d db flyway
+cp .env.production.example .env
+```
 
-# Python deps (3.12 recommended)
+On PowerShell:
+
+```powershell
+Copy-Item .env.production.example .env
+```
+
+Set `PUBLIC_SITE_URL` to the final HTTPS origin and replace every required
+blank in `.env`.
+
+### 2. Generate the administrator password hash
+
+Install the runtime dependencies, then use the interactive helper:
+
+```bash
 cd data_updater
-pip install -r requirements-dev.txt
-APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false uvicorn main:app --host 0.0.0.0 --port 8000
+python -m pip install -r requirements.txt
+python generate_admin_password_hash.py
+cd ..
+```
 
-# UI (separate terminal)
+Store the output in `.env` inside **single quotes** because Argon2 hashes
+contain `$`:
+
+```dotenv
+ADMIN_PASSWORD_HASH='$argon2id$...'
+```
+
+The plaintext password is never stored by the application.
+
+### 3. Generate a separate session-signing secret
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Put the result in `SESSION_SECRET`. Do not reuse the administrator password or
+database password.
+
+### 4. Start the stack
+
+```bash
+docker compose up --build -d
+docker compose ps
+```
+
+Verify the local proxy before exposing it:
+
+```bash
+curl http://127.0.0.1:8080/v1/health
+```
+
+Point the HTTPS reverse proxy at `http://127.0.0.1:8080`. Keep
+`AUTH_COOKIE_SECURE=true`. The bundled frontend serves the SPA, applies browser
+security headers, and proxies `/v1` to FastAPI.
+
+Compose refuses to start without `PUBLIC_SITE_URL`, `DB_PASSWORD`,
+`ADMIN_PASSWORD_HASH`, and `SESSION_SECRET`.
+
+### Deployment security checklist
+
+- Keep `.env` outside Git and restrict who can read it.
+- Expose only the TLS reverse proxy; do not publish PostgreSQL or FastAPI.
+- Use a unique random database password and a session secret of at least 32
+  bytes.
+- Trust `X-Forwarded-For` only from the exact networks in
+  `TRUSTED_PROXY_CIDRS`.
+- Keep the UI and API on one origin when possible. If they must be separate,
+  list only the UI's exact origin in `CORS_ORIGINS`.
+- Back up the `vks-pgdata` volume before host or database maintenance.
+- Review logs and dependency updates regularly.
+
+Guest limits are in memory and apply per API process. The default deployment
+uses one API worker; add an external gateway limiter before scaling to multiple
+replicas.
+
+More security and private-reporting guidance is in
+[SECURITY.md](SECURITY.md).
+
+## Local development without a Dev Container
+
+Start PostgreSQL and apply all Flyway migrations:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d db flyway
+```
+
+Run the API from its required working directory:
+
+```bash
+cd data_updater
+python -m pip install -r requirements-dev.txt
+APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false \
+  uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+PowerShell:
+
+```powershell
+Set-Location data_updater
+python -m pip install -r requirements-dev.txt
+$env:APP_ENV = "dev"
+$env:BACKGROUND_UPDATER_ENABLED = "false"
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+In another terminal:
+
+```bash
 cd frontend
-npm install && npm run dev
+npm ci
+npm run dev
 ```
 
-Or run the production-oriented API container (uvicorn + background updater):
+Vite proxies `/v1` to `http://127.0.0.1:8000`. See
+[frontend/README.md](frontend/README.md) for frontend-specific commands.
 
-```bash
-docker compose up --build data_updater
-# Health: http://localhost:8000/v1/health  (includes DB ping)
-```
+## Administrator setup in development
 
-Without Compose, Windows one-shot DB scripts live under `db/devscript/`.
+Administrator features remain protected in `APP_ENV=dev`. To test them:
 
-## Search UI
+1. Generate an Argon2id hash with
+   `data_updater/generate_admin_password_hash.py`.
+2. Set `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, and a 32-byte-or-longer
+   `SESSION_SECRET` in the ignored root `.env`.
+3. Keep `AUTH_COOKIE_SECURE=false` only while using local HTTP.
+4. Restart or rebuild the development environment.
 
-Brand name in the UI: **Setlist** (`vtuber-karaoke-search`). Locales: English + Traditional Chinese (`en` / `zh-hant`).
+If those settings are absent, guest search and browse continue to work, while
+administrator login fails closed.
 
-- Debounced song search with pagination and YouTube `&t=` deep links
-- Song detail, channel list → videos → video songs
-- Live updater phase, channel/video context, cooldown, and last-error status
-- Dev-only channel management; metadata refresh preserves existing setlists
-- Vite proxies `/v1` to `http://127.0.0.1:8000` in dev; or set `VITE_API_BASE_URL`
-- Use `APP_ENV=dev` for loose CORS, or set `CORS_ORIGINS` to the Vite origin (e.g. `http://localhost:5173`) in prod
+## Seed channels and run one update
 
-## Search API (v1)
-
-List/search endpoints accept `limit` (1–100, default 20) and `offset`
-(0–1,000,000, default 0).
-
-| Method | Path | Notes |
-|--------|------|-------|
-| GET | `/v1/songs/search?q=` | Literal substring match; optional `channel_id`, `type=karaoke\|song`, `upload_date_from` / `upload_date_to` (`YYYYMMDD`); returns `video_url` with `&t=` deep link |
-| GET | `/v1/songs/{id}` | Song detail + deep link + channel |
-| GET | `/v1/channels` | Tracked channels |
-| GET | `/v1/channels/{id}/videos` | Videos for a channel |
-| GET | `/v1/videos/{id}/songs` | Songs for a video |
-| GET | `/v1/updater/status` | Process-local scraper/analyzer status; internal errors are redacted |
-| GET | `/v1/report/summary` | Database totals for scraped records, analysis, comments, songs, and backfill |
-| POST | `/v1/channels` | Trusted management mode only; add a validated YouTube channel |
-| POST | `/v1/channels/{id}/videos/refresh` | Trusted management mode only; safe metadata upsert |
-
-Example:
-
-```bash
-curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
-# → video_url like https://www.youtube.com/watch?v=...&t=300s
-```
-
-## Environment
-
-Copy [`.env.example`](.env.example) to `.env` and adjust. Do not commit a real `.env`.
-
-| Variable | Default | Notes |
-|----------|---------|-------|
-| `APP_ENV` | `prod` | `dev` enables docs, loose CORS, and management; scraper policy is unchanged |
-| `BACKGROUND_UPDATER_ENABLED` | `false` | Opt in explicitly; production Compose defaults it to `true` |
-| `MANAGEMENT_API_ENABLED` | `true` (dev) / `false` (prod) | Enables mutating channel/scraper endpoints |
-| `CORS_ORIGINS` | _(empty)_ | Comma-separated browser origins in prod; ignored when `APP_ENV=dev` |
-| `DB_HOST` | `localhost` | Use `db` inside Compose / Dev Container |
-| `DB_PORT` | `5432` | |
-| `DB_NAME` | `vks_db` | |
-| `DB_USER` | `vks_db_user` | Local/dev only — change for anything public |
-| `DB_PASSWORD` | `vks_db_pwd` | Local/dev only |
-| `DATABASE_URL` | built from `DB_*` | `postgresql+asyncpg://...` |
-| `DATA_UPDATE_INTERVAL` | `300` | Environment-independent worker heartbeat; only due work calls YouTube |
-| `UPDATE_STEADY_SCAN_INTERVAL` | `21600` | Successful recent-record scan interval per channel (6 hours) |
-| `UPDATE_STEADY_CHANNELS_PER_CYCLE` | `3` | Due steady-state channels checked per worker cycle |
-| `UPDATE_MAX_COMMENT_SCRAPES` | `3` | Max comment scrapes per updater cycle |
-| `UPDATE_MAX_VIDEOS` | `40` | Recent entries considered per channel scan |
-| `UPDATE_BACKFILL_PAGE_SIZE` | `100` | Flat playlist entries requested from each tab per durable page |
-| `UPDATE_BACKFILL_PAGES_PER_CYCLE` | `3` | Max pages processed for one backfill channel per worker cycle |
-| `UPDATE_BACKFILL_CHANNELS_PER_CYCLE` | `1` | Max backfill channels processed per worker cycle |
-| `UPDATE_MAX_METADATA_SCRAPES` | `10` | Per-video enrichment cap for manual metadata refresh |
-| `UPDATE_LIST_SLEEP_MIN` / `MAX` | `3` / `7` | Jitter between backfill pages |
-| `UPDATE_SCRAPE_SLEEP_MIN` / `MAX` | `20` / `40` | Jitter between comment scrapes |
-| `UPDATE_MAX_ANALYZE_ATTEMPTS` | `3` | Max content-analysis attempts; blocks do not consume attempts |
-| `UPDATE_ANALYSIS_RECHECK_SECONDS` | `86400` | Delay before rechecking a successful “no setlist” archive |
-| `UPDATE_YOUTUBE_COOLDOWN_SECONDS` | `21600` | Skip all YouTube work after a suspected block (6 hours) |
-| `YTDLP_COMMENT_SLEEP_INTERVAL` / `MAX` | `2` / `10` | yt-dlp sleeps for comment scrapes |
-| `LLM_CLEANING_ENABLED` | `false` | Optional OpenAI-compatible setlist cleaning after regex extract |
-| `LLM_API_URL` | OpenAI chat completions URL | Used only when cleaning is enabled |
-| `LLM_API_KEY` | _(empty)_ | Required when `LLM_CLEANING_ENABLED=true` |
-| `LLM_MODEL` | `gpt-4o-mini` | Chat model id |
-| `LLM_MAX_CLEANING_ATTEMPTS` | `2` | Cap LLM clean tries per video |
-| `LLM_MAX_INPUT_CHARS` | `20000` | Truncate unusually large comments before optional LLM calls |
-| `VITE_API_BASE_URL` | _(empty)_ | Frontend only; leave empty in Vite dev (proxy). See `frontend/.env.example` |
-| `VITE_MANAGEMENT_UI_ENABLED` | `false` in production builds | Show management UI only when the backend also enables it |
-
-## Seed karaoke channels
-
-After Postgres + Flyway are up, insert the sample channels (@UTANOch, @QuonTama, @Leona_Shishigami):
+After the development database is running:
 
 ```bash
 docker compose -f docker-compose.dev.yml exec -T db \
   psql -U vks_db_user -d vks_db < db/devscript/seed_channels.sql
 ```
 
-Then start the API from `data_updater/` with
-`BACKGROUND_UPDATER_ENABLED=true`. Development and production use the same
-five-minute worker heartbeat and scraping policy. A persisted per-channel due
-time means established channels call YouTube at most every six hours. Newly
-added channels instead backfill full Streams + Videos history in 100-entry,
-durable pages (up to three pages per cycle). A successful `POST /v1/channels`
-immediately wakes the enabled background updater and prioritizes that channel;
-multiple additions remain separate bounded cycles. Failed/partial pages retain
-their cursor and retry fairly. Comment analysis is a separate global queue,
-limited to three archives per cycle with 20–40 second jitter. Live, upcoming,
-and post-live records are ignored until yt-dlp reports an archive. Flat
-channel-tab entries derive an approximate date from the same list response
-(no per-video metadata fan-out); the UI labels it as approximate. A later
-manual metadata refresh or already-required comment scrape upgrades it to an
-exact date. Exact dates are never downgraded by later flat refreshes. Playlist
-position remains the fallback ordering when YouTube omits even relative date
-text, and a block cooldown is persisted across process restarts.
-
-Every normal archive discovered in the bounded Streams + Videos scans is kept,
-including records currently classified as `other`. Only karaoke candidates
-enter the comment queue. This preserves enough history to reclassify old rows
-when the title rules improve instead of requiring another full channel
-backfill.
-
-Channel-list and full-video yt-dlp observations are stored separately with
-source, capture time, schema version, and dropped-field provenance. Snapshots
-retain stable metadata (including description, tags, statistics, language,
-availability, dates, and unknown future extractor fields) within a 256 KiB
-record / 64 KiB field bound. Volatile playback formats, signed URLs, headers,
-captions, and subtitles are deliberately excluded; comments are stored in
-their own analysis snapshot. A sparse list refresh therefore cannot erase
-richer full metadata. A temporary negative re-analysis also preserves any
-previous successful setlist and songs.
-
-To test the exact background path once without leaving a scheduler running:
+To exercise the same bounded updater path once without leaving a scheduler
+running:
 
 ```bash
 cd data_updater
 python run_updater_once.py
 ```
 
-After songs exist, try the UI or `GET /v1/songs/search?q=...`.
+Enable the long-running worker only when you intend to scrape:
 
-### Tests
+```dotenv
+BACKGROUND_UPDATER_ENABLED=true
+```
 
-From `data_updater/`:
+## API overview
+
+List endpoints accept `limit` (1–100, default 20) and `offset`
+(0–1,000,000, default 0).
+
+### Public guest endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/v1/health` | API and database health |
+| `GET` | `/v1/songs/search?q=` | Search songs; optional channel/type/date filters |
+| `GET` | `/v1/songs/{id}` | Song detail and timestamped YouTube link |
+| `GET` | `/v1/channels` | Tracked channels |
+| `GET` | `/v1/channels/{id}/videos` | Videos for one channel |
+| `GET` | `/v1/videos/{id}` | Video metadata |
+| `GET` | `/v1/videos/{id}/songs` | Extracted songs for one video |
+| `GET` | `/v1/report/summary` | Aggregate database and pipeline counts |
+| `GET` | `/v1/auth/session` | Current guest/admin session state |
+| `POST` | `/v1/auth/login` | Rate-limited administrator sign-in |
+
+Example:
 
 ```bash
-pip install -r requirements-dev.txt
-ruff check .
-pytest
+curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
 ```
 
-Analyzer and timestamp-helper unit tests always run (including pinned/uploader preference and extra setlist formats). Repository write smoke tests skip if Postgres is unreachable.
+Search results include a `video_url` such as
+`https://www.youtube.com/watch?v=...&t=300s`.
 
-GitHub Actions runs Ruff, all backend tests against PostgreSQL 18 after Flyway
-migrations, the frontend lint/build, and a production runtime image build.
+### Administrator-only endpoints
 
-### Setlist extraction notes
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/v1/auth/logout` | End the current administrator session |
+| `GET` | `/v1/updater/status` | Process-local updater and cooldown status |
+| `POST` | `/v1/channels` | Validate and add a YouTube channel |
+| `POST` | `/v1/channels/{id}/videos/refresh` | Refresh metadata without deleting setlists |
+| `POST` | `/v1/videos/{id}/songs/reload` | Re-fetch comments and rerun extraction |
 
-- Comment choice prefers **pinned**, then **uploader**, then timestamp density / likes.
-- Line formats include `1:23 Title`, `Title - 1:23`, `01. Title 0:12:00`, parenthesized timestamps, and full-width `：`.
-- An explicit setlist section stops at a later stream-chapter heading, avoiding chat/announcement timestamps in mixed community comments.
-- Songs are deduped within a video by `(timestamp, casefold(title))`. A successful re-analysis uses `replace_for_video` (delete + insert), while a temporary negative observation does not erase the previous successful setlist.
+Browser mutations require both the signed administrator cookie and the
+session's `X-CSRF-Token`.
 
-## Layout
+## Configuration
 
+Copy [`.env.example`](.env.example) for development or
+[`.env.production.example`](.env.production.example) for Compose production.
+The sample files contain placeholders only.
+
+Important settings:
+
+| Setting | Default | Meaning |
+|---------|---------|---------|
+| `APP_ENV` | `prod` | `dev` enables API docs and local development origins |
+| `BACKGROUND_UPDATER_ENABLED` | `false` | Explicitly enables periodic scraping |
+| `MANAGEMENT_API_ENABLED` | `true` | Emergency kill switch; never bypasses auth |
+| `ADMIN_USERNAME` | `admin` | The single administrator name |
+| `ADMIN_PASSWORD_HASH` | empty | Argon2id hash; never plaintext |
+| `SESSION_SECRET` | empty | Session-signing secret, minimum 32 bytes |
+| `AUTH_SESSION_TTL_SECONDS` | `43200` | Administrator session lifetime |
+| `AUTH_COOKIE_SECURE` | true in prod | Must remain true on public HTTPS |
+| `GUEST_RATE_LIMIT_REQUESTS/WINDOW_SECONDS` | `60/60` | Guest requests per resolved IP/window |
+| `LOGIN_RATE_LIMIT_REQUESTS/WINDOW_SECONDS` | `5/300` | Login attempts per resolved IP/window |
+| `TRUSTED_PROXY_CIDRS` | empty | Proxies allowed to provide client IPs |
+| `CORS_ORIGINS` | empty | Exact credentialed cross-origin UI origins |
+| `DATA_UPDATE_INTERVAL` | `300` | Worker heartbeat; only due work calls YouTube |
+| `UPDATE_STEADY_SCAN_INTERVAL` | `21600` | Normal per-channel discovery interval |
+| `UPDATE_MAX_COMMENT_SCRAPES` | `3` | Comment scrapes per update cycle |
+| `UPDATE_YOUTUBE_COOLDOWN_SECONDS` | `21600` | Persisted cooldown after a likely block |
+| `LLM_CLEANING_ENABLED` | `false` | Optional post-regex cleanup |
+
+The complete list and explanatory comments live in [`.env.example`](.env.example).
+
+## How the pipeline behaves
+
+1. A tracked channel is discovered through bounded Streams and Videos playlist
+   pages.
+2. Flat-list snapshots preserve stable metadata and approximate dates without
+   a per-video request fan-out.
+3. Karaoke candidates enter a separate, paced comment-analysis queue.
+4. The analyzer prefers pinned and uploader comments, extracts timestamp/title
+   pairs, and replaces a video's song list only after a successful analysis.
+5. Exact metadata can upgrade approximate values; later sparse observations
+   never erase richer snapshots or a previous successful setlist.
+6. Suspected YouTube blocking aborts remaining calls and persists a cooldown so
+   a restart cannot bypass it.
+
+Detailed design decisions are recorded in [PLAN.md](PLAN.md) and scraper payload
+notes in [data_updater/NOTE.md](data_updater/NOTE.md).
+
+## Tests and CI
+
+Backend:
+
+```bash
+cd data_updater
+python -m pip install -r requirements-dev.txt
+python -m ruff check .
+python -m ruff format --check .
+python -m pytest
 ```
+
+Frontend:
+
+```bash
+cd frontend
+npm ci
+npm run lint
+npm run build
+```
+
+Repository credential scan:
+
+```bash
+python scripts/check_secrets.py
+```
+
+GitHub Actions runs the credential scan, Ruff, backend tests against PostgreSQL
+18 after all Flyway migrations, both production image builds, frontend lint,
+and the production frontend build.
+
+## Project layout
+
+```text
 vtuber-karaoke-search/
-├── .devcontainer/     # Dev Container (app + Postgres + Flyway)
-├── frontend/          # Vite React search UI
-├── data_updater/      # FastAPI service (run with cwd = this dir)
-├── db/migrations/     # Flyway SQL (schema source of truth; V1–V8)
-├── .env.example       # Sample env vars (copy to .env)
-├── AGENTS.md          # Instructions for coding agents
-├── PLAN.md            # Phased implementation plan
-└── TODO.md            # Checklist derived from the plan
+├── .devcontainer/          # Python 3.12 + Node 22 editor environment
+├── .github/workflows/      # CI
+├── data_updater/           # FastAPI API, auth, updater, scrapers, tests
+├── db/migrations/          # Flyway V1–V9 schema history (source of truth)
+├── frontend/               # React UI and production nginx proxy
+├── scripts/                # Repository security checks
+├── CONTRIBUTING.md         # Contribution workflow
+├── SECURITY.md             # Private vulnerability-reporting guidance
+├── LICENSE                 # MIT license for project-authored code
+├── docker-compose.dev.yml  # Development database and Dev Container
+└── docker-compose.yml      # Production homelab stack
 ```
 
-## Docs for contributors / agents
+## Contributing and project status
 
-- [AGENTS.md](AGENTS.md) — conventions and do-nots
-- [PLAN.md](PLAN.md) — phases 0–6
-- [frontend/README.md](frontend/README.md) — UI run / proxy
-- [data_updater/NOTE.md](data_updater/NOTE.md) — yt-dlp payload shape notes
+Phases 0–8 are implemented: pipeline, extraction, search API/UI, scheduler
+hardening, authentication, guest limits, public-service pages, deployment
+hardening, and public documentation. Rapid development continues, so database
+and API compatibility are not guaranteed yet.
+
+Before opening a pull request, read [CONTRIBUTING.md](CONTRIBUTING.md),
+[AGENTS.md](AGENTS.md), and [PLAN.md](PLAN.md).
+
+## Legal and removal requests
+
+Setlist stores factual metadata and links to public YouTube pages; it does not
+host the linked performances. Rights to videos, audio, thumbnails, names, and
+other creative material remain with their respective owners.
+
+Rights holders and channel operators can request a correction, channel
+exclusion, or removal through
+[GitHub Issues](https://github.com/yutinglia/vtuber-karaoke-search/issues).
+Do not post private identity documents in a public issue.
+
+## License
+
+Setlist is released under the [MIT License](LICENSE). You may use, modify,
+redistribute, sublicense, or sell copies of the project as long as the
+copyright and license notice is retained.
+
+Third-party packages, fonts, service APIs, linked media, and extracted metadata
+remain subject to their own licenses and terms.

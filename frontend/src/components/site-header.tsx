@@ -1,17 +1,20 @@
-import { Link } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { useEffect } from "react"
 import {
   Activity,
   BarChart3,
   Disc3,
   Languages,
+  LogIn,
+  LogOut,
   Moon,
   Radio,
   Search,
+  ShieldCheck,
   Sun,
 } from "lucide-react"
 
-import { useHealth } from "@/api/hooks"
+import { useAuthSession, useHealth, useLogout } from "@/api/hooks"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
@@ -24,7 +27,12 @@ export function SiteHeader() {
   const setLocalePref = useUiStore((s) => s.setLocalePref)
   const toggleTheme = useUiStore((s) => s.toggleTheme)
   const health = useHealth()
+  const auth = useAuthSession()
+  const logout = useLogout()
+  const navigate = useNavigate()
   const current = locale || getLocale()
+  const isAdmin =
+    auth.data?.authenticated === true && auth.data.role === "admin"
 
   useEffect(() => {
     document.documentElement.lang = current
@@ -32,7 +40,6 @@ export function SiteHeader() {
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark")
-    document.documentElement.style.colorScheme = theme
   }, [theme])
 
   const apiLabel = health.isLoading
@@ -66,10 +73,45 @@ export function SiteHeader() {
           <NavLink to="/" label={m.nav_search()} icon={Search} exact />
           <NavLink to="/channels" label={m.nav_channels()} icon={Radio} />
           <NavLink to="/summary" label={m.nav_summary()} icon={BarChart3} />
-          <NavLink to="/status" label={m.nav_status()} icon={Activity} />
+          {isAdmin ? (
+            <NavLink to="/status" label={m.nav_status()} icon={Activity} />
+          ) : null}
         </nav>
 
         <div className="order-2 ml-auto flex items-center gap-1.5 lg:order-3">
+          {isAdmin ? (
+            <>
+              <span className="hidden items-center gap-1.5 rounded-full border border-primary/20 bg-primary/8 px-2.5 py-1 text-[0.68rem] font-semibold text-primary sm:inline-flex">
+                <ShieldCheck className="size-3.5" aria-hidden />
+                {auth.data?.username ?? m.auth_admin()}
+              </span>
+              <Button
+                type="button"
+                size="icon-sm"
+                variant="ghost"
+                onClick={() =>
+                  logout.mutate(undefined, {
+                    onSuccess: () => {
+                      void navigate({ to: "/" })
+                    },
+                  })
+                }
+                disabled={logout.isPending}
+                aria-label={m.auth_sign_out()}
+                title={m.auth_sign_out()}
+              >
+                <LogOut aria-hidden />
+              </Button>
+            </>
+          ) : (
+            <Button asChild size="sm" variant="ghost">
+              <Link to="/admin/login">
+                <LogIn aria-hidden />
+                <span className="hidden sm:inline">{m.auth_sign_in()}</span>
+              </Link>
+            </Button>
+          )}
+
           <span
             className={cn(
               "mr-1 hidden items-center gap-2 rounded-full border border-border/70 bg-card/70 px-2.5 py-1.5 text-[0.7rem] xl:inline-flex",

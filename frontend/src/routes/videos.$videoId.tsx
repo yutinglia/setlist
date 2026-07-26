@@ -2,17 +2,26 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import {
   ArrowLeft,
   CalendarDays,
+  Check,
   ExternalLink,
   Hash,
   Play,
   Radio,
+  RefreshCw,
 } from "lucide-react"
-import { useCallback } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { useCallback, useEffect, useState } from "react"
 
-import { PAGE_SIZE, useVideo, useVideoSongs } from "@/api/hooks"
+import { api } from "@/api/client"
+import {
+  PAGE_SIZE,
+  useAuthSession,
+  useVideo,
+  useVideoSongs,
+} from "@/api/hooks"
 import { PaginationControls } from "@/components/pagination-controls"
 import { QueryState } from "@/components/query-state"
-import { buttonVariants } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { VideoListBadges } from "@/components/video-list-badges"
 import { useClampPage } from "@/hooks/use-clamp-page"
 import { pageSearchSchema } from "@/lib/search-schemas"
@@ -30,11 +39,22 @@ function VideoDetailPage() {
   const { videoId } = Route.useParams()
   const { page = 0 } = Route.useSearch()
   const navigate = Route.useNavigate()
+  const queryClient = useQueryClient()
+  const auth = useAuthSession()
   const videoQuery = useVideo(videoId)
   const isSong = (videoQuery.data?.type ?? "").toLowerCase() === "song"
+  const isKaraoke = (videoQuery.data?.type ?? "").toLowerCase() === "karaoke"
   const songsQuery = useVideoSongs(videoId, page, {
     enabled: videoQuery.isSuccess && !isSong,
   })
+  const [reloadStatus, setReloadStatus] = useState<
+    "idle" | "loading" | "done" | "error"
+  >("idle")
+  const [reloadDetail, setReloadDetail] = useState("")
+  const canManage =
+    auth.data?.authenticated === true &&
+    auth.data.role === "admin" &&
+    auth.data.management_enabled
   const changePage = useCallback(
     (next: number) => {
       void navigate({
@@ -48,6 +68,39 @@ function VideoDetailPage() {
     [navigate],
   )
   useClampPage(page, songsQuery.data?.total, PAGE_SIZE, changePage)
+
+  useEffect(() => {
+    if (reloadStatus !== "done" && reloadStatus !== "error") return
+    const timer = window.setTimeout(() => {
+      setReloadStatus("idle")
+      setReloadDetail("")
+    }, 5000)
+    return () => window.clearTimeout(timer)
+  }, [reloadStatus])
+
+  async function handleSongReload() {
+    setReloadStatus("loading")
+    setReloadDetail("")
+    try {
+      const result = await api.reloadVideoSongs(videoId)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["videos", videoId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["videos", videoId, "songs"],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["report", "summary"] }),
+      ])
+      setReloadStatus("done")
+      setReloadDetail(
+        m.song_reload_summary({ count: String(result.song_count) }),
+      )
+    } catch (error) {
+      setReloadStatus("error")
+      setReloadDetail(
+        error instanceof Error ? error.message : m.song_reload_failed(),
+      )
+    }
+  }
 
   const formattedUploadDate = formatUploadDate(videoQuery.data?.upload_date)
   const uploadDateLabel =
@@ -267,6 +320,43 @@ function VideoDetailPage() {
                     {m.open_youtube()}
                     <ExternalLink className="size-3.5" aria-hidden />
                   </a>
+                  {canManage && isKaraoke ? (
+                    <div className="mt-3 border-t border-border/60 pt-4">
+                      <Button
+                        type="button"
+                        variant={
+                          reloadStatus === "error" ? "destructive" : "outline"
+                        }
+                        className="w-full"
+                        disabled={reloadStatus === "loading"}
+                        onClick={() => void handleSongReload()}
+                      >
+                        {reloadStatus === "done" ? (
+                          <Check aria-hidden />
+                        ) : (
+                          <RefreshCw
+                            className={
+                              reloadStatus === "loading"
+                                ? "animate-spin"
+                                : undefined
+                            }
+                            aria-hidden
+                          />
+                        )}
+                        {reloadStatus === "loading"
+                          ? m.song_reload_loading()
+                          : reloadStatus === "done"
+                            ? m.song_reload_done()
+                            : m.song_reload_action()}
+                      </Button>
+                      <p
+                        className="mt-2 min-h-8 text-xs leading-relaxed text-muted-foreground"
+                        aria-live="polite"
+                      >
+                        {reloadDetail || m.song_reload_hint()}
+                      </p>
+                    </div>
+                  ) : null}
                 </aside>
               </div>
             </article>

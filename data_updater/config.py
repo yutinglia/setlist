@@ -1,5 +1,6 @@
 import math
 import os
+from ipaddress import ip_network
 
 from dotenv import load_dotenv
 from sqlalchemy.engine import URL
@@ -56,12 +57,51 @@ IS_DEV = APP_ENV == "dev"
 # it. This prevents APP_ENV from silently changing scraper behavior.
 BACKGROUND_UPDATER_ENABLED = _env_bool("BACKGROUND_UPDATER_ENABLED", default=False)
 
-# Mutation/scraper endpoints are local management tools, not public API surface.
-MANAGEMENT_API_ENABLED = _env_bool("MANAGEMENT_API_ENABLED", default=IS_DEV)
+# Mutation/scraper endpoints always require an authenticated administrator.
+# This flag is only an emergency kill switch; it is not an authorization layer.
+MANAGEMENT_API_ENABLED = _env_bool("MANAGEMENT_API_ENABLED", default=True)
 
-# CORS is loose in dev. Production uses explicit comma-separated origins;
-# an empty value allows no browser origins.
-_CORS_ORIGINS_RAW = os.getenv("CORS_ORIGINS", "")
+# Single-administrator authentication. Only password hashes and a random session
+# signing secret belong in deployment environment variables; never store a
+# plaintext password in configuration.
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin").strip()
+ADMIN_PASSWORD_HASH = os.getenv("ADMIN_PASSWORD_HASH", "").strip()
+SESSION_SECRET = os.getenv("SESSION_SECRET", "").strip()
+AUTH_SESSION_TTL_SECONDS = _env_int(
+    "AUTH_SESSION_TTL_SECONDS", 12 * 60 * 60, minimum=300
+)
+AUTH_COOKIE_SECURE = _env_bool("AUTH_COOKIE_SECURE", default=APP_ENV == "prod")
+if not ADMIN_USERNAME:
+    raise ValueError("ADMIN_USERNAME must not be empty")
+if ADMIN_PASSWORD_HASH and not ADMIN_PASSWORD_HASH.startswith("$argon2id$"):
+    raise ValueError("ADMIN_PASSWORD_HASH must be an Argon2id hash")
+if SESSION_SECRET and len(SESSION_SECRET.encode("utf-8")) < 32:
+    raise ValueError("SESSION_SECRET must be at least 32 bytes")
+
+# Anonymous API clients are limited per source address. Authenticated admin
+# sessions are exempt so the private updater dashboard can poll normally.
+GUEST_RATE_LIMIT_ENABLED = _env_bool("GUEST_RATE_LIMIT_ENABLED", default=True)
+GUEST_RATE_LIMIT_REQUESTS = _env_int("GUEST_RATE_LIMIT_REQUESTS", 60, minimum=1)
+GUEST_RATE_LIMIT_WINDOW_SECONDS = _env_int(
+    "GUEST_RATE_LIMIT_WINDOW_SECONDS", 60, minimum=1
+)
+LOGIN_RATE_LIMIT_REQUESTS = _env_int("LOGIN_RATE_LIMIT_REQUESTS", 5, minimum=1)
+LOGIN_RATE_LIMIT_WINDOW_SECONDS = _env_int(
+    "LOGIN_RATE_LIMIT_WINDOW_SECONDS", 5 * 60, minimum=1
+)
+
+_TRUSTED_PROXY_CIDRS_RAW = os.getenv("TRUSTED_PROXY_CIDRS", "")
+TRUSTED_PROXY_CIDRS = tuple(
+    ip_network(value.strip(), strict=False)
+    for value in _TRUSTED_PROXY_CIDRS_RAW.split(",")
+    if value.strip()
+)
+
+# Cross-origin cookies require explicit origins in every environment. The Vite
+# dev server normally uses its same-origin proxy, while these defaults support
+# direct local API calls without permitting arbitrary credentialed origins.
+_DEFAULT_CORS_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173" if IS_DEV else ""
+_CORS_ORIGINS_RAW = os.getenv("CORS_ORIGINS", _DEFAULT_CORS_ORIGINS)
 CORS_ORIGINS = [o.strip() for o in _CORS_ORIGINS_RAW.split(",") if o.strip()]
 
 # Database configuration

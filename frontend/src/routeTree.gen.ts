@@ -10,8 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as CopyrightRouteImport } from './routes/copyright'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as StatusRouteImport } from './routes/status'
 import { Route as SummaryRouteImport } from './routes/summary'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as ChannelsIndexRouteImport } from './routes/channels.index'
 import { Route as ChannelsChannelIdRouteImport } from './routes/channels.$channelId'
 import { Route as ChannelsNewRouteImport } from './routes/channels.new'
@@ -23,6 +28,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CopyrightRoute = CopyrightRouteImport.update({
+  id: '/copyright',
+  path: '/copyright',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StatusRoute = StatusRouteImport.update({
   id: '/status',
   path: '/status',
@@ -31,6 +51,16 @@ const StatusRoute = StatusRouteImport.update({
 const SummaryRoute = SummaryRouteImport.update({
   id: '/summary',
   path: '/summary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChannelsIndexRoute = ChannelsIndexRouteImport.update({
@@ -61,8 +91,13 @@ const VideosVideoIdRoute = VideosVideoIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/copyright': typeof CopyrightRoute
+  '/privacy': typeof PrivacyRoute
   '/status': typeof StatusRoute
   '/summary': typeof SummaryRoute
+  '/terms': typeof TermsRoute
+  '/admin/login': typeof AdminLoginRoute
   '/channels/$channelId': typeof ChannelsChannelIdRoute
   '/channels/new': typeof ChannelsNewRoute
   '/songs/$songId': typeof SongsSongIdRoute
@@ -71,8 +106,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/copyright': typeof CopyrightRoute
+  '/privacy': typeof PrivacyRoute
   '/status': typeof StatusRoute
   '/summary': typeof SummaryRoute
+  '/terms': typeof TermsRoute
+  '/admin/login': typeof AdminLoginRoute
   '/channels/$channelId': typeof ChannelsChannelIdRoute
   '/channels/new': typeof ChannelsNewRoute
   '/songs/$songId': typeof SongsSongIdRoute
@@ -82,8 +122,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/copyright': typeof CopyrightRoute
+  '/privacy': typeof PrivacyRoute
   '/status': typeof StatusRoute
   '/summary': typeof SummaryRoute
+  '/terms': typeof TermsRoute
+  '/admin/login': typeof AdminLoginRoute
   '/channels/$channelId': typeof ChannelsChannelIdRoute
   '/channels/new': typeof ChannelsNewRoute
   '/songs/$songId': typeof SongsSongIdRoute
@@ -94,8 +139,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
+    | '/copyright'
+    | '/privacy'
     | '/status'
     | '/summary'
+    | '/terms'
+    | '/admin/login'
     | '/channels/$channelId'
     | '/channels/new'
     | '/songs/$songId'
@@ -104,8 +154,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
+    | '/copyright'
+    | '/privacy'
     | '/status'
     | '/summary'
+    | '/terms'
+    | '/admin/login'
     | '/channels/$channelId'
     | '/channels/new'
     | '/songs/$songId'
@@ -114,8 +169,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
+    | '/copyright'
+    | '/privacy'
     | '/status'
     | '/summary'
+    | '/terms'
+    | '/admin/login'
     | '/channels/$channelId'
     | '/channels/new'
     | '/songs/$songId'
@@ -125,8 +185,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  CopyrightRoute: typeof CopyrightRoute
+  PrivacyRoute: typeof PrivacyRoute
   StatusRoute: typeof StatusRoute
   SummaryRoute: typeof SummaryRoute
+  TermsRoute: typeof TermsRoute
+  AdminLoginRoute: typeof AdminLoginRoute
   ChannelsChannelIdRoute: typeof ChannelsChannelIdRoute
   ChannelsNewRoute: typeof ChannelsNewRoute
   SongsSongIdRoute: typeof SongsSongIdRoute
@@ -143,6 +208,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/copyright': {
+      id: '/copyright'
+      path: '/copyright'
+      fullPath: '/copyright'
+      preLoaderRoute: typeof CopyrightRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/status': {
       id: '/status'
       path: '/status'
@@ -155,6 +241,20 @@ declare module '@tanstack/react-router' {
       path: '/summary'
       fullPath: '/summary'
       preLoaderRoute: typeof SummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/channels/': {
@@ -197,8 +297,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  CopyrightRoute: CopyrightRoute,
+  PrivacyRoute: PrivacyRoute,
   StatusRoute: StatusRoute,
   SummaryRoute: SummaryRoute,
+  TermsRoute: TermsRoute,
+  AdminLoginRoute: AdminLoginRoute,
   ChannelsChannelIdRoute: ChannelsChannelIdRoute,
   ChannelsNewRoute: ChannelsNewRoute,
   SongsSongIdRoute: SongsSongIdRoute,

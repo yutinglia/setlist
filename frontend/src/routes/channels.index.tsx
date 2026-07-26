@@ -2,12 +2,11 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { ArrowRight, Plus, Radio } from "lucide-react"
 import { useCallback } from "react"
 
-import { PAGE_SIZE, useChannels } from "@/api/hooks"
+import { PAGE_SIZE, useAuthSession, useChannels } from "@/api/hooks"
 import { PaginationControls } from "@/components/pagination-controls"
 import { QueryState } from "@/components/query-state"
 import { buttonVariants } from "@/components/ui/button"
 import { useClampPage } from "@/hooks/use-clamp-page"
-import { MANAGEMENT_UI_ENABLED } from "@/lib/app-config"
 import { pageSearchSchema } from "@/lib/search-schemas"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
@@ -23,6 +22,11 @@ function ChannelsPage() {
   const { page = 0 } = Route.useSearch()
   const navigate = Route.useNavigate()
   const query = useChannels(page)
+  const auth = useAuthSession()
+  const canManage =
+    auth.data?.authenticated === true &&
+    auth.data.role === "admin" &&
+    auth.data.management_enabled
   const changePage = useCallback(
     (next: number) => {
       void navigate({
@@ -52,7 +56,7 @@ function ChannelsPage() {
               {m.channels_count({ total: integer.format(query.data.total) })}
             </span>
           ) : null}
-          {MANAGEMENT_UI_ENABLED ? (
+          {canManage ? (
             <Link
               to="/channels/new"
               className={cn(buttonVariants(), "inline-flex")}

@@ -12,6 +12,14 @@ export const pageSearchSchema = z.object({
   page: z.coerce.number().int().min(0).max(MAX_PAGE).optional().catch(undefined),
 })
 
+export const loginSearchSchema = z.object({
+  returnTo: z
+    .string()
+    .max(500)
+    .optional()
+    .catch(undefined),
+})
+
 const channelPageSizeSchema = z
   .coerce.number()
   .pipe(z.union([z.literal(10), z.literal(20), z.literal(50)]))
