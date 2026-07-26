@@ -165,9 +165,9 @@ curl http://127.0.0.1:8080/v1/health
 ~/services/vtuber-karaoke-search/.env
 ```
 
-只有推送至 `main` 與 `v0.1.0` 這類語意版本 release tag 才會觸發此
-workflow；pull request 與手動 workflow dispatch 均無法部署。Job 也會拒絕在
-`yutinglia/vtuber-karaoke-search` 以外的 repo 執行。將服務對外開放前，請先
+只有 `v0.1.0` 這類語意版本 release tag 才會觸發 production workflow；
+branch push、pull request 與手動 workflow dispatch 均無法部署。Job 也會拒絕在
+`yutinglia/setlist` 以外的 repo 執行。將服務對外開放前，請先
 設定 branch protection、release tag 保護，以及 `production` GitHub
 Environment 的保護規則。
 
@@ -421,7 +421,7 @@ migration 後的後端測試、兩個正式環境映像建置、前端 lint，�
 ## 專案結構
 
 ```text
-vtuber-karaoke-search/
+setlist/
 ├── .devcontainer/          # Python 3.12 + Node 22 編輯器環境
 ├── .github/workflows/      # CI 與受控的 homelab 部署
 ├── data_updater/           # FastAPI API、驗證、更新器、爬蟲與測試
@@ -450,7 +450,7 @@ Setlist 儲存事實性中繼資料並連結至公開 YouTube 頁面，不託管
 影片、音訊、縮圖、名稱與其他創作素材的權利仍屬各自權利人。
 
 權利人與頻道營運者可透過
-[GitHub Issues](https://github.com/yutinglia/vtuber-karaoke-search/issues)
+[GitHub Issues](https://github.com/yutinglia/setlist/issues)
 要求更正、排除頻道或移除資料。請勿在公開 Issue 中張貼私人身分文件。
 
 ## 授權

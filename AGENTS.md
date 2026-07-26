@@ -1,4 +1,4 @@
-# AGENTS.md — vtuber-karaoke-search
+# AGENTS.md — Setlist
 
 ## What this project is
 
@@ -9,7 +9,7 @@ Stack: **FastAPI + SQLAlchemy 2 (async) + PostgreSQL + yt-dlp + Flyway** (backen
 ## Layout
 
 ```
-vtuber-karaoke-search/
+setlist/
 ├── frontend/              # Vite React search UI (run cwd = this dir)
 │   ├── src/routes/        # TanStack Router pages (search, song, browse)
 │   ├── src/api/           # Typed fetch client + Query hooks
