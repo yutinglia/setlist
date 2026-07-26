@@ -2,10 +2,12 @@ name: vtuber-karaoke-search
 
 services:
   frontend:
+    image: homelab/vtuber-karaoke-search-frontend:latest
     build:
       context: .
       dockerfile: frontend/Dockerfile
       args:
+        APP_VERSION: ${APP_VERSION:-}
         VITE_SOURCE_URL: ${VITE_SOURCE_URL:-https://github.com/yutinglia/vtuber-karaoke-search}
         VITE_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL in .env}
     ports:
@@ -25,9 +27,12 @@ services:
       start_period: 10s
 
   data_updater:
+    image: homelab/vtuber-karaoke-search-api:latest
     build:
       context: .
       dockerfile: data_updater/Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-}
     expose:
       - "8000"
     environment:

@@ -4,8 +4,12 @@ import {
   Outlet,
   createRootRouteWithContext,
 } from "@tanstack/react-router"
+import { ExternalLink } from "lucide-react"
 
 import { SiteHeader } from "@/components/site-header"
+import { buttonVariants } from "@/components/ui/button"
+import { SOURCE_URL } from "@/lib/public-config"
+import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
 
 export const Route = createRootRouteWithContext<{
@@ -39,7 +43,7 @@ function RootLayout() {
             </p>
           </div>
           <nav
-            className="flex flex-wrap gap-x-5 gap-y-2"
+            className="flex flex-wrap items-center gap-x-5 gap-y-2"
             aria-label={m.footer_info_nav()}
           >
             <Link to="/about" className="hover:text-primary">
@@ -54,6 +58,25 @@ function RootLayout() {
             <Link to="/copyright" className="hover:text-primary">
               {m.nav_copyright()}
             </Link>
+            <span
+              className="font-mono text-[0.65rem] tracking-[0.12em]"
+              aria-label={m.footer_version({ version: __APP_VERSION__ })}
+              title={m.footer_version({ version: __APP_VERSION__ })}
+            >
+              v{__APP_VERSION__}
+            </span>
+            <a
+              href={SOURCE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "h-7 rounded-md px-2.5 text-xs"
+              )}
+            >
+              <ExternalLink aria-hidden />
+              {m.footer_github()}
+            </a>
           </nav>
         </div>
       </footer>

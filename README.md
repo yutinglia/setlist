@@ -156,6 +156,52 @@ security headers, and proxies `/v1` to FastAPI.
 Compose refuses to start without `PUBLIC_SITE_URL`, `DB_PASSWORD`,
 `ADMIN_PASSWORD_HASH`, and `SESSION_SECRET`.
 
+### Automated homelab deployment
+
+The deployment workflow follows the local-image pattern used by the homelab
+entry-site repository. A Linux x64 self-hosted runner builds the two application
+images, reruns Flyway, starts the production Compose stack, and verifies the
+proxied health endpoint.
+
+On the runner, keep the production configuration at:
+
+```text
+~/services/vtuber-karaoke-search/.env
+```
+
+Only pushes to `main` and semantic release tags such as `v0.1.0` trigger the
+workflow. Pull requests and manual workflow dispatches cannot deploy. The job
+also refuses to run outside `yutinglia/vtuber-karaoke-search`. Configure branch
+protection, protected release tags, and protection rules on the `production`
+GitHub Environment before relying on it for an internet-facing service.
+
+### Versions and releases
+
+The version shown in the site footer is resolved in this order:
+
+1. the deployment/build override;
+2. an exact `v*` Git tag at the checked-out commit;
+3. the tracked [`VERSION`](VERSION) file;
+4. the synchronized frontend package version.
+
+The last fallback keeps a source archive or ordinary
+`docker compose up --build -d` deployment versioned even when Git metadata and
+CI are unavailable.
+
+Create a release from a clean, up-to-date `main` branch:
+
+```bash
+node scripts/bump-version.mjs patch
+# Review the generated commit and annotated tag, then use the exact tag printed:
+git push --atomic origin main v0.0.1
+```
+
+The argument may be `major`, `minor`, `patch`, or an explicit higher
+`MAJOR.MINOR.PATCH`. The script synchronizes `VERSION`, the frontend package
+metadata, and the lockfile, then creates the release commit and tag. It never
+pushes on the user's behalf. A main build displays the base version plus its
+short commit SHA; a release-tag build displays the clean release version.
+
 ### Deployment security checklist
 
 - Keep `.env` outside Git and restrict who can read it.
@@ -367,16 +413,17 @@ Repository credential scan:
 python scripts/check_secrets.py
 ```
 
-GitHub Actions runs the credential scan, Ruff, backend tests against PostgreSQL
-18 after all Flyway migrations, both production image builds, frontend lint,
-and the production frontend build.
+GitHub Actions CI runs the credential scan, Ruff, backend tests against
+PostgreSQL 18 after all Flyway migrations, both production image builds,
+frontend lint, and the production frontend build. The separate deployment
+workflow is limited to canonical-repository `main` and version-tag pushes.
 
 ## Project layout
 
 ```text
 vtuber-karaoke-search/
 ├── .devcontainer/          # Python 3.12 + Node 22 editor environment
-├── .github/workflows/      # CI
+├── .github/workflows/      # CI and gated homelab deployment
 ├── data_updater/           # FastAPI API, auth, updater, scrapers, tests
 ├── db/migrations/          # Flyway V1–V9 schema history (source of truth)
 ├── frontend/               # React UI and production nginx proxy

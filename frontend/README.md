@@ -50,6 +50,11 @@ Open <http://localhost:5173>.
 frontend build. Production Compose maps its required `PUBLIC_SITE_URL` value to
 that build argument.
 
+The footer version comes from `VITE_APP_VERSION`, an exact `v*` Git tag, the
+tracked root `VERSION` file, or the synchronized package version, in that order.
+These fallbacks keep standalone and Docker builds versioned without CI or a
+`.git` directory. The footer source button uses `VITE_SOURCE_URL`.
+
 Management controls are based on the authenticated session returned by the API,
 not a frontend build flag. The backend always enforces administrator
 authorization and CSRF protection. Guests can search and browse but cannot view
@@ -113,6 +118,7 @@ files whenever user-visible copy changes.
 
 - `VITE_SOURCE_URL` sets the public repository/contact base.
 - `VITE_PUBLIC_SITE_URL` sets the canonical Open Graph origin.
+- `VITE_APP_VERSION` optionally overrides the footer build version.
 - `public/og.png` is the social preview image.
 
 Production Compose maps its required `PUBLIC_SITE_URL` to the frontend build.

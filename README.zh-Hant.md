@@ -148,6 +148,50 @@ curl http://127.0.0.1:8080/v1/health
 若缺少 `PUBLIC_SITE_URL`、`DB_PASSWORD`、`ADMIN_PASSWORD_HASH` 或
 `SESSION_SECRET`，Compose 會拒絕啟動。
 
+### 自動化 homelab 部署
+
+部署 workflow 參考 homelab 入口網站 repo 的本機 image 模式：Linux x64
+self-hosted runner 會建置兩個應用程式 image、重新執行 Flyway、啟動正式環境
+Compose stack，最後驗證經前端代理的健康檢查端點。
+
+請在 runner 上把正式環境設定存放於：
+
+```text
+~/services/vtuber-karaoke-search/.env
+```
+
+只有推送至 `main` 與 `v0.1.0` 這類語意版本 release tag 才會觸發此
+workflow；pull request 與手動 workflow dispatch 均無法部署。Job 也會拒絕在
+`yutinglia/vtuber-karaoke-search` 以外的 repo 執行。將服務對外開放前，請先
+設定 branch protection、release tag 保護，以及 `production` GitHub
+Environment 的保護規則。
+
+### 版本與 release
+
+網站 footer 顯示的版本會依以下順序解析：
+
+1. 部署或建置時傳入的覆寫值；
+2. checkout commit 上完全相符的 `v*` Git tag；
+3. repo 內受版本控制的 [`VERSION`](VERSION) 檔；
+4. 已同步的前端 package 版本。
+
+最後一個 fallback 可確保 GitHub source archive 或一般
+`docker compose up --build -d` 即使沒有 Git metadata 與 CI，仍會顯示目前
+版本。
+
+請從乾淨且已更新的 `main` branch 建立 release：
+
+```bash
+node scripts/bump-version.mjs patch
+# 檢查產生的 commit 與 annotated tag，再使用 script 顯示的實際 tag：
+git push --atomic origin main v0.0.1
+```
+
+參數可以是 `major`、`minor`、`patch`，或更高的明確
+`MAJOR.MINOR.PATCH`。Script 會同步 `VERSION`、前端 package metadata 與
+lockfile，再建立 release commit 與 tag，但不會自行 push。Main build 會顯示
+基準版本加上短 commit SHA；release tag build 則顯示乾淨的 release 版本。
+
 ### 部署安全檢查表
 
 - 將 `.env` 排除於 Git，並限制可讀取它的人員。
@@ -350,15 +394,16 @@ npm run build
 python scripts/check_secrets.py
 ```
 
-GitHub Actions 會執行憑證掃描、Ruff、在 PostgreSQL 18 與完整 Flyway
+GitHub Actions CI 會執行憑證掃描、Ruff、在 PostgreSQL 18 與完整 Flyway
 migration 後的後端測試、兩個正式環境映像建置、前端 lint，以及正式前端建置。
+另一個部署 workflow 只接受 canonical repo 的 `main` 與版本 tag push。
 
 ## 專案結構
 
 ```text
 vtuber-karaoke-search/
 ├── .devcontainer/          # Python 3.12 + Node 22 編輯器環境
-├── .github/workflows/      # CI
+├── .github/workflows/      # CI 與受控的 homelab 部署
 ├── data_updater/           # FastAPI API、驗證、更新器、爬蟲與測試
 ├── db/migrations/          # Flyway V1–V9 schema 歷史（唯一依據）
 ├── frontend/               # React UI 與正式環境 nginx 代理

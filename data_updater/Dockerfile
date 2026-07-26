@@ -25,7 +25,9 @@ ENV APP_ENV=test
 CMD ["python", "-m", "pytest"]
 
 FROM base AS runtime
+ARG APP_VERSION=0.0.0
 LABEL org.opencontainers.image.source="https://github.com/yutinglia/vtuber-karaoke-search" \
+      org.opencontainers.image.version="${APP_VERSION}" \
       org.opencontainers.image.licenses="MIT"
 RUN useradd --create-home --uid 10001 appuser
 COPY LICENSE /usr/share/licenses/vtuber-karaoke-search/LICENSE

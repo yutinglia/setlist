@@ -132,6 +132,8 @@
   "api_checking": "Checking API…",
   "footer_note": "Community-built VTuber karaoke search index.",
   "footer_info_nav": "Service information",
+  "footer_version": "Version {version}",
+  "footer_github": "GitHub",
   "auth_admin": "Admin",
   "auth_admin_only": "Administrator access",
   "auth_login_heading": "Sign in to manage Setlist",

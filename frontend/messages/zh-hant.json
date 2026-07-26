@@ -132,6 +132,8 @@
   "api_checking": "檢查 API…",
   "footer_note": "由社群打造的 VTuber 歌回搜尋索引。",
   "footer_info_nav": "服務資訊",
+  "footer_version": "版本 {version}",
+  "footer_github": "GitHub",
   "auth_admin": "管理員",
   "auth_admin_only": "管理員專用",
   "auth_login_heading": "登入管理 Setlist",

@@ -22,7 +22,7 @@ scope, with individual work tracked in GitHub issues.
 | Search / UI | Public API + bilingual React search/browse UI |
 | Access control | Single-admin Argon2id login, signed sessions, CSRF |
 | Public service limits | Per-IP guest/login limits; admin-only status/mutations |
-| Deployment | Same-origin frontend proxy; API/Postgres private; required secrets |
+| Deployment | Same-origin frontend proxy; API/Postgres private; required secrets; gated self-hosted-runner CD |
 
 | Requirements (`data_updater/requirements.txt`) | Direct deps updated (Jul 2026) |
 | Dev Container + Compose (Postgres + Flyway) | Done |
@@ -248,6 +248,22 @@ session/rate-limit storage.
   notes with Phase 7 behavior.
 - [x] Add contribution and vulnerability-reporting guidance.
 - [x] Select the permissive MIT license for public reuse and contribution.
+
+---
+
+## Release and homelab deployment automation
+
+- [x] Track a portable application version outside CI and expose it in the
+  frontend footer.
+- [x] Keep the release version synchronized across `VERSION`, frontend package
+  metadata, and the npm lockfile with a local release script.
+- [x] Create annotated semantic version tags without automatically pushing
+  repository changes.
+- [x] Deploy only canonical-repository `main` or matching version-tag pushes on
+  the self-hosted runner; keep pull requests and manual dispatch out of the
+  deployment path.
+- [x] Preserve locally tagged images and verify the same-origin health endpoint
+  after deployment.
 
 ---
 
