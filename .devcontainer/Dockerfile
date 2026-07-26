@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/python:3-3.12-bookworm@sha256:6ef67a2f0d2f054ad60990679e15208367ff10110a0c0be7f18dbaa7b7319d1d
+FROM mcr.microsoft.com/devcontainers/python:3.14-bookworm@sha256:0fdcf958b64fd9ffe19972b4afb1337d1c57596442fb2424130bae8e093b9fcc
 
 RUN pip install --no-cache-dir \
         pip==26.1.2 \

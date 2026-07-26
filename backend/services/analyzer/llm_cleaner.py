@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-import httpx
+import httpx2
 
 from config import (
     LLM_API_KEY,
@@ -65,7 +65,7 @@ async def maybe_clean_song_list_comment(text: str) -> str | None:
     }
 
     try:
-        async with httpx.AsyncClient(timeout=LLM_TIMEOUT_SECONDS) as client:
+        async with httpx2.AsyncClient(timeout=LLM_TIMEOUT_SECONDS) as client:
             response = await client.post(LLM_API_URL, json=payload, headers=headers)
             response.raise_for_status()
             data = response.json()

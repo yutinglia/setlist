@@ -3,7 +3,7 @@
 [Project README](../README.md) ·
 [繁體中文 README](../README.zh-Hant.md)
 
-The Dev Container provides a reproducible Python 3.12, Node 22, PostgreSQL 18,
+The Dev Container provides a reproducible Python 3.14, Node 26, PostgreSQL 18,
 and Flyway development environment.
 
 ## Open the workspace
@@ -18,7 +18,7 @@ Ports 8000 and 5173 are forwarded to the host.
 
 | Service | Role |
 |---------|------|
-| `app` | Editor workspace with Python 3.12 and Node 22 |
+| `app` | Editor workspace with Python 3.14 and Node 26 |
 | `db` | PostgreSQL 18 development database |
 | `flyway` | Applies every migration in `db/migrations/`, then exits |
 

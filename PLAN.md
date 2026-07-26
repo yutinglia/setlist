@@ -146,7 +146,7 @@ locally and run `python run_updater_once.py` for one production-equivalent cycle
 **Why:** Safe to leave running overnight.
 
 - [x] Compose: `postgres` + `flyway` + app workspace (`.devcontainer/`; root compose includes it).
-- [x] Dev Container Dockerfile (Python 3.12). Production backend and frontend
+- [x] Dev Container Dockerfile (Python 3.14). Production backend and frontend
   images in the root Compose stack; IDE `app` stays `sleep infinity`.
 - [x] Fix credentialed CORS: explicit origins in every environment
   (`APP_ENV=dev` only supplies exact localhost defaults).

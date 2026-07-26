@@ -30,63 +30,63 @@ MIT License. The packages below remain subject to their respective terms.
 - `@oxc-project/types@0.139.0` — MIT; full text L008 — Boshen and oxc contributors — https://oxc.rs
 - `@radix-ui/number@1.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
 - `@radix-ui/primitive@1.1.7` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-accessible-icon@1.1.14` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-accordion@1.2.19` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-alert-dialog@1.1.22` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-arrow@1.1.14` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-aspect-ratio@1.1.14` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-avatar@1.2.5` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-checkbox@1.3.10` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-collapsible@1.1.19` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-collection@1.1.14` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-compose-refs@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-context-menu@2.3.6` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-context@1.2.1` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-dialog@1.1.22` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-direction@1.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-dismissable-layer@1.1.18` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-dropdown-menu@2.1.23` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-focus-guards@1.1.5` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-focus-scope@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-form@0.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-hover-card@1.1.22` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-id@1.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-label@2.1.14` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-menu@2.1.23` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-menubar@1.1.23` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-navigation-menu@1.2.21` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-one-time-password-field@0.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-password-toggle-field@0.1.10` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-popover@1.1.22` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-popper@1.3.6` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-portal@1.1.16` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-presence@1.1.9` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-primitive@2.1.9` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-progress@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-radio-group@1.4.6` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-roving-focus@1.1.18` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-scroll-area@1.2.17` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-select@2.3.6` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-separator@1.1.14` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-slider@1.4.6` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-slot@1.3.2` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-switch@1.3.6` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-tabs@1.1.20` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-toast@1.2.22` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-toggle-group@1.1.18` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-toggle@1.1.17` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-toolbar@1.1.18` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-tooltip@1.2.15` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-callback-ref@1.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-controllable-state@1.2.5` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-effect-event@0.0.4` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-escape-keydown@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-is-hydrated@0.1.2` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-layout-effect@1.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-previous@1.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-rect@1.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-size@1.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-visually-hidden@1.2.10` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-accessible-icon@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-accordion@1.2.20` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-alert-dialog@1.1.23` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-arrow@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-aspect-ratio@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-avatar@1.2.6` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-checkbox@1.3.11` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-collapsible@1.1.20` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-collection@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-compose-refs@1.1.5` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-context-menu@2.3.7` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-context@1.2.2` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-dialog@1.1.23` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-direction@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-dismissable-layer@1.1.19` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-dropdown-menu@2.1.24` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-focus-guards@1.1.6` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-focus-scope@1.1.16` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-form@0.1.16` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-hover-card@1.1.23` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-id@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-label@2.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-menu@2.1.24` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-menubar@1.1.24` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-navigation-menu@1.2.22` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-one-time-password-field@0.1.16` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-password-toggle-field@0.1.11` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-popover@1.1.23` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-popper@1.3.7` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-portal@1.1.17` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-presence@1.1.10` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-primitive@2.1.10` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-progress@1.1.16` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-radio-group@1.4.7` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-roving-focus@1.1.19` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-scroll-area@1.2.18` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-select@2.3.7` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-separator@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-slider@1.4.7` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-slot@1.3.3` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-switch@1.3.7` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-tabs@1.1.21` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-toast@1.2.23` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-toggle-group@1.1.19` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-toggle@1.1.18` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-toolbar@1.1.19` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-tooltip@1.2.16` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-callback-ref@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-controllable-state@1.2.6` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-effect-event@0.0.5` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-escape-keydown@1.1.5` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-is-hydrated@0.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-layout-effect@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-previous@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-rect@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-size@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
+- `@radix-ui/react-visually-hidden@1.2.11` — MIT; full text L009 — https://radix-ui.com/primitives
 - `@radix-ui/rect@1.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
 - `@rolldown/pluginutils@1.0.1` — MIT; full text L010 — https://github.com/rolldown/plugins/tree/main/packages/pluginutils#readme
 - `@sinclair/typebox@0.31.30` — MIT; full text L011 — sinclairzx81 — https://github.com/sinclairzx81/sinclair-typebox
@@ -98,7 +98,7 @@ MIT License. The packages below remain subject to their respective terms.
 - `@tanstack/react-store@0.9.3` — MIT; full text L014 — Tanner Linsley — https://tanstack.com/store
 - `@tanstack/router-core@1.171.15` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/router
 - `@tanstack/store@0.9.3` — MIT; full text L014 — Tanner Linsley — https://tanstack.com/store
-- `@types/node@24.13.3` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
+- `@types/node@26.1.1` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
 - `@types/react-dom@19.2.3` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
 - `@types/react@19.2.17` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
 - `acorn@8.17.0` — MIT; full text L016 — https://github.com/acornjs/acorn
@@ -124,12 +124,12 @@ MIT License. The packages below remain subject to their respective terms.
 - `json5@2.2.3` — MIT; full text L036 — Aseem Kishore <aseem.kishore@gmail.com> — http://json5.org/
 - `kysely@0.28.17` — MIT; full text L037 — Sami Koskimäki <sami@jakso.me> — https://kysely.dev
 - `lightningcss@1.33.0` — MPL-2.0; full text L038 — https://github.com/parcel-bundler/lightningcss
-- `lucide-react@1.26.0` — ISC; full text L039 — Eric Fennis — https://lucide.dev
+- `lucide-react@1.27.0` — ISC; full text L039 — Eric Fennis — https://lucide.dev
 - `nanoid@3.3.16` — MIT; full text L040 — Andrey Sitnik <andrey@sitnik.ru> — ai/nanoid
 - `picocolors@1.1.1` — ISC; full text L041 — Alexey Raspopov — alexeyraspopov/picocolors
 - `picomatch@4.0.5` — MIT; full text L042 — Jon Schlinkert (https://github.com/jonschlinkert) — https://github.com/micromatch/picomatch
 - `postcss@8.5.23` — MIT; full text L043 — Andrey Sitnik <andrey@sitnik.es> — https://postcss.org/
-- `radix-ui@1.6.6` — MIT; full text L009 — https://radix-ui.com/primitives
+- `radix-ui@1.6.7` — MIT; full text L009 — https://radix-ui.com/primitives
 - `react-dom@19.2.8` — MIT; full text L044 — https://react.dev/
 - `react-remove-scroll-bar@2.3.8` — MIT; full text L017 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll-bar
 - `react-remove-scroll@2.7.2` — MIT; full text L017 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll
@@ -146,7 +146,7 @@ MIT License. The packages below remain subject to their respective terms.
 - `tslib@2.8.1` — 0BSD; full text L050 — Microsoft Corp. — https://www.typescriptlang.org/
 - `tw-animate-css@1.4.0` — MIT; full text L051 — Luca Bosin — https://github.com/Wombosvideo/tw-animate-css#readme
 - `typescript@6.0.3` — Apache-2.0; full text L012 — Microsoft Corp. — https://www.typescriptlang.org/
-- `undici-types@7.18.2` — MIT; full text L052 — https://undici.nodejs.org
+- `undici-types@8.3.0` — MIT; full text L052 — https://undici.nodejs.org
 - `unplugin@2.3.11` — MIT; full text L053 — https://unplugin.unjs.io
 - `urlpattern-polyfill@10.1.0` — MIT; full text L054 — https://github.com/kenchris/urlpattern-polyfill
 - `use-callback-ref@1.3.3` — MIT; full text L017 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-callback-ref/
@@ -526,7 +526,7 @@ SOFTWARE.
 
 ### L009
 
-Applies to: `@radix-ui/number@1.1.3`, `@radix-ui/primitive@1.1.7`, `@radix-ui/react-accessible-icon@1.1.14`, `@radix-ui/react-accordion@1.2.19`, `@radix-ui/react-alert-dialog@1.1.22`, `@radix-ui/react-arrow@1.1.14`, `@radix-ui/react-aspect-ratio@1.1.14`, `@radix-ui/react-avatar@1.2.5`, `@radix-ui/react-checkbox@1.3.10`, `@radix-ui/react-collapsible@1.1.19`, `@radix-ui/react-collection@1.1.14`, `@radix-ui/react-compose-refs@1.1.4`, `@radix-ui/react-context@1.2.1`, `@radix-ui/react-context-menu@2.3.6`, `@radix-ui/react-dialog@1.1.22`, `@radix-ui/react-direction@1.1.3`, `@radix-ui/react-dismissable-layer@1.1.18`, `@radix-ui/react-dropdown-menu@2.1.23`, `@radix-ui/react-focus-guards@1.1.5`, `@radix-ui/react-focus-scope@1.1.15`, `@radix-ui/react-form@0.1.15`, `@radix-ui/react-hover-card@1.1.22`, `@radix-ui/react-id@1.1.3`, `@radix-ui/react-label@2.1.14`, `@radix-ui/react-menu@2.1.23`, `@radix-ui/react-menubar@1.1.23`, `@radix-ui/react-navigation-menu@1.2.21`, `@radix-ui/react-one-time-password-field@0.1.15`, `@radix-ui/react-password-toggle-field@0.1.10`, `@radix-ui/react-popover@1.1.22`, `@radix-ui/react-popper@1.3.6`, `@radix-ui/react-portal@1.1.16`, `@radix-ui/react-presence@1.1.9`, `@radix-ui/react-primitive@2.1.9`, `@radix-ui/react-progress@1.1.15`, `@radix-ui/react-radio-group@1.4.6`, `@radix-ui/react-roving-focus@1.1.18`, `@radix-ui/react-scroll-area@1.2.17`, `@radix-ui/react-select@2.3.6`, `@radix-ui/react-separator@1.1.14`, `@radix-ui/react-slider@1.4.6`, `@radix-ui/react-slot@1.3.2`, `@radix-ui/react-switch@1.3.6`, `@radix-ui/react-tabs@1.1.20`, `@radix-ui/react-toast@1.2.22`, `@radix-ui/react-toggle@1.1.17`, `@radix-ui/react-toggle-group@1.1.18`, `@radix-ui/react-toolbar@1.1.18`, `@radix-ui/react-tooltip@1.2.15`, `@radix-ui/react-use-callback-ref@1.1.3`, `@radix-ui/react-use-controllable-state@1.2.5`, `@radix-ui/react-use-effect-event@0.0.4`, `@radix-ui/react-use-escape-keydown@1.1.4`, `@radix-ui/react-use-is-hydrated@0.1.2`, `@radix-ui/react-use-layout-effect@1.1.3`, `@radix-ui/react-use-previous@1.1.3`, `@radix-ui/react-use-rect@1.1.3`, `@radix-ui/react-use-size@1.1.3`, `@radix-ui/react-visually-hidden@1.2.10`, `@radix-ui/rect@1.1.3`, `radix-ui@1.6.6`
+Applies to: `@radix-ui/number@1.1.3`, `@radix-ui/primitive@1.1.7`, `@radix-ui/react-accessible-icon@1.1.15`, `@radix-ui/react-accordion@1.2.20`, `@radix-ui/react-alert-dialog@1.1.23`, `@radix-ui/react-arrow@1.1.15`, `@radix-ui/react-aspect-ratio@1.1.15`, `@radix-ui/react-avatar@1.2.6`, `@radix-ui/react-checkbox@1.3.11`, `@radix-ui/react-collapsible@1.1.20`, `@radix-ui/react-collection@1.1.15`, `@radix-ui/react-compose-refs@1.1.5`, `@radix-ui/react-context@1.2.2`, `@radix-ui/react-context-menu@2.3.7`, `@radix-ui/react-dialog@1.1.23`, `@radix-ui/react-direction@1.1.4`, `@radix-ui/react-dismissable-layer@1.1.19`, `@radix-ui/react-dropdown-menu@2.1.24`, `@radix-ui/react-focus-guards@1.1.6`, `@radix-ui/react-focus-scope@1.1.16`, `@radix-ui/react-form@0.1.16`, `@radix-ui/react-hover-card@1.1.23`, `@radix-ui/react-id@1.1.4`, `@radix-ui/react-label@2.1.15`, `@radix-ui/react-menu@2.1.24`, `@radix-ui/react-menubar@1.1.24`, `@radix-ui/react-navigation-menu@1.2.22`, `@radix-ui/react-one-time-password-field@0.1.16`, `@radix-ui/react-password-toggle-field@0.1.11`, `@radix-ui/react-popover@1.1.23`, `@radix-ui/react-popper@1.3.7`, `@radix-ui/react-portal@1.1.17`, `@radix-ui/react-presence@1.1.10`, `@radix-ui/react-primitive@2.1.10`, `@radix-ui/react-progress@1.1.16`, `@radix-ui/react-radio-group@1.4.7`, `@radix-ui/react-roving-focus@1.1.19`, `@radix-ui/react-scroll-area@1.2.18`, `@radix-ui/react-select@2.3.7`, `@radix-ui/react-separator@1.1.15`, `@radix-ui/react-slider@1.4.7`, `@radix-ui/react-slot@1.3.3`, `@radix-ui/react-switch@1.3.7`, `@radix-ui/react-tabs@1.1.21`, `@radix-ui/react-toast@1.2.23`, `@radix-ui/react-toggle@1.1.18`, `@radix-ui/react-toggle-group@1.1.19`, `@radix-ui/react-toolbar@1.1.19`, `@radix-ui/react-tooltip@1.2.16`, `@radix-ui/react-use-callback-ref@1.1.4`, `@radix-ui/react-use-controllable-state@1.2.6`, `@radix-ui/react-use-effect-event@0.0.5`, `@radix-ui/react-use-escape-keydown@1.1.5`, `@radix-ui/react-use-is-hydrated@0.1.3`, `@radix-ui/react-use-layout-effect@1.1.4`, `@radix-ui/react-use-previous@1.1.4`, `@radix-ui/react-use-rect@1.1.4`, `@radix-ui/react-use-size@1.1.4`, `@radix-ui/react-visually-hidden@1.2.11`, `@radix-ui/rect@1.1.3`, `radix-ui@1.6.7`
 
 ```text
 MIT License
@@ -730,7 +730,7 @@ SOFTWARE.
 
 ### L015
 
-Applies to: `@types/node@24.13.3`, `@types/react@19.2.17`, `@types/react-dom@19.2.3`
+Applies to: `@types/node@26.1.1`, `@types/react@19.2.17`, `@types/react-dom@19.2.3`
 
 ```text
 MIT License
@@ -2117,7 +2117,7 @@ defined by the Mozilla Public License, v. 2.0.
 
 ### L039
 
-Applies to: `lucide-react@1.26.0`
+Applies to: `lucide-react@1.27.0`
 
 ```text
 ISC License
@@ -2482,7 +2482,7 @@ SOFTWARE.
 
 ### L052
 
-Applies to: `undici-types@7.18.2`
+Applies to: `undici-types@8.3.0`
 
 ```text
 MIT License

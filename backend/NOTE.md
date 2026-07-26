@@ -9,7 +9,7 @@ Implementation notes for the YouTube wrappers under `services/yt_scraper/`.
 
 yt-dlp wrappers collect channel metadata, bounded video-list pages, full video
 metadata, and top comments for the Setlist pipeline. Prefer the **Dev
-Container** (Python 3.12) over an ad-hoc conda environment.
+Container** (Python 3.14) over an ad-hoc conda environment.
 
 All yt-dlp wrappers are synchronous. Call them from async application code with
 `asyncio.to_thread` while holding the shared YouTube operation lock. Do not
