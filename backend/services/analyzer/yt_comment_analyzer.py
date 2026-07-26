@@ -39,16 +39,29 @@ _SETLIST_HEADER_RE = re.compile(
     flags=re.IGNORECASE,
 )
 _NON_SETLIST_HEADER_RE = re.compile(
-    r"(?:配信内容|配信チャプター|チャプター|chapters?|stream\s+contents?)",
+    r"(?:"
+    r"other\s+(?:time\s*stamps?|chapters?)|"
+    r"announcements?|"
+    r"配信内容|配信チャプター|チャプター|その他の?タイムスタンプ|"
+    r"告知|お知らせ|雑談|"
+    r"chapters?|stream\s+contents?"
+    r")",
+    flags=re.IGNORECASE,
+)
+_SECTION_DIVIDER_RE = re.compile(r"^\s*[-_=─━—~～・･*＊#＃]{3,}\s*$")
+_SETLIST_CONTINUATION_HEADER_RE = re.compile(
+    r"(?:encore|アンコール|安可|앵콜)",
     flags=re.IGNORECASE,
 )
 _TITLE_CHAR_RE = re.compile(r"[\w\u3040-\u30ff\u3400-\u9fff]")
+_CUSTOM_EMOJI_RE = re.compile(r":[\w+-]{2,}:")
+_TIMESTAMP_REGRESSION_TOLERANCE_SECONDS = 60
 
 
 class CommentAnalyzer:
     """Pick the best setlist comment and parse timestamped song lines.
 
-    Selection preference (highest first): pinned → uploader → timestamp count → likes.
+    Selection preference (highest first): pinned → uploader → parsed songs → likes.
     Within one extract, songs are deduped by
     ``(timestamp, casefold(title))``; first wins.
     """
@@ -75,43 +88,42 @@ class CommentAnalyzer:
         self.song_list_comment = None
         self.song_list = []
 
-        best: tuple[tuple[int, int, int, int], dict[str, Any]] | None = None
+        best: tuple[tuple[int, int, int, int], dict[str, Any], list[Song]] | None = None
         for comment in self.comments:
             if not isinstance(comment, dict):
                 continue
             text = self._comment_text(comment)
-            if not self._contains_timestamp(text):
+            songs = self.extract_from_text(text)
+            if len(songs) < self.minimum_timestamp_count:
                 continue
-            score = self._score_comment(comment, text)
+            score = self._score_comment(comment, len(songs))
             if best is None or score > best[0]:
-                best = (score, comment)
+                best = (score, comment, songs)
 
         if best is None:
             return False
 
         self.has_song_list = True
         self.song_list_comment = best[1]
+        self.song_list = best[2]
         logger.info(
-            "Song list comment found for video %s (score pinned=%s uploader=%s)",
+            "Song list comment found for video %s "
+            "(score pinned=%s uploader=%s songs=%s)",
             self.video_id,
             best[0][0],
             best[0][1],
+            best[0][2],
         )
         return True
 
     def _score_comment(
-        self, comment: dict[str, Any], text: str
+        self, comment: dict[str, Any], song_count: int
     ) -> tuple[int, int, int, int]:
-        """Higher is better: pinned, uploader, timestamp density, likes."""
+        """Higher is better: pinned, uploader, parsed songs, likes."""
         pinned = 1 if comment.get("is_pinned") else 0
         uploader = 1 if comment.get("author_is_uploader") else 0
-        ts_count = len(self._timestamp_matches(text))
         likes = self._coerce_like_count(comment.get("like_count"))
-        return (pinned, uploader, ts_count, likes)
-
-    def _contains_timestamp(self, text: str) -> bool:
-        matches = self._timestamp_matches(text)
-        return len(matches) >= self.minimum_timestamp_count
+        return (pinned, uploader, song_count, likes)
 
     @staticmethod
     def _timestamp_matches(text: str) -> list[re.Match[str]]:
@@ -147,8 +159,9 @@ class CommentAnalyzer:
 
     @staticmethod
     def _normalize_text(text: str) -> str:
-        # Full-width colon → ASCII so one timestamp regex covers JP setlists
-        return text.replace("：", ":")
+        # Full-width colon → ASCII so one timestamp regex covers JP setlists.
+        # Zero-width characters frequently precede copied YouTube timestamps.
+        return text.replace("：", ":").replace("\u200b", "").replace("\ufeff", "")
 
     @classmethod
     def _comment_text(cls, comment: dict[str, Any]) -> str:
@@ -158,6 +171,8 @@ class CommentAnalyzer:
     def extract_song_list(self) -> list[Song]:
         if not self.has_song_list or not self.song_list_comment:
             return []
+        if self.song_list:
+            return self.song_list
 
         text = self._comment_text(self.song_list_comment)
         self.song_list = self.extract_from_text(text)
@@ -176,17 +191,41 @@ class CommentAnalyzer:
             )
             return []
         songs: list[Song] = []
-        lines = self._song_section_lines(self._normalize_text(text).splitlines())
+        lines, explicit_section = self._song_section_lines(
+            self._normalize_text(text).splitlines()
+        )
+        latest_timestamp_seconds: int | None = None
         for line in lines:
             parsed = self._parse_song_line(line)
             for song in parsed:
+                timestamp_seconds = timestamp_to_seconds(song.timestamp)
+                if (
+                    explicit_section
+                    and len(songs) >= 2
+                    and timestamp_seconds is not None
+                    and latest_timestamp_seconds is not None
+                    and timestamp_seconds
+                    < latest_timestamp_seconds - _TIMESTAMP_REGRESSION_TOLERANCE_SECONDS
+                ):
+                    logger.debug(
+                        "Stopping explicit setlist for video %s at "
+                        "out-of-order timestamp %s",
+                        self.video_id,
+                        song.timestamp,
+                    )
+                    return self._dedupe_songs(songs)
                 if analyzed_by_llm:
                     song.analyzed_by_llm = True
                 songs.append(song)
+                if timestamp_seconds is not None:
+                    latest_timestamp_seconds = max(
+                        latest_timestamp_seconds or 0,
+                        timestamp_seconds,
+                    )
         return self._dedupe_songs(songs)
 
-    @staticmethod
-    def _song_section_lines(lines: list[str]) -> list[str]:
+    @classmethod
+    def _song_section_lines(cls, lines: list[str]) -> tuple[list[str], bool]:
         """Keep an explicit setlist section out of a mixed setlist/chapter post."""
         start: int | None = None
         inline_first_line: str | None = None
@@ -199,15 +238,54 @@ class CommentAnalyzer:
                     inline_first_line = suffix
                 break
         if start is None:
-            return lines
+            return lines, False
 
-        end = len(lines)
+        section: list[str] = []
+        saw_timestamp = inline_first_line is not None
         for index in range(start, len(lines)):
-            if _NON_SETLIST_HEADER_RE.search(lines[index]):
-                end = index
+            line = lines[index]
+            if _NON_SETLIST_HEADER_RE.search(line):
                 break
-        section = lines[start:end]
-        return [inline_first_line, *section] if inline_first_line else section
+            if (
+                saw_timestamp
+                and _SECTION_DIVIDER_RE.fullmatch(line)
+                and cls._divider_ends_song_section(lines, index)
+            ):
+                break
+            section.append(line)
+            if cls._timestamp_matches(line):
+                saw_timestamp = True
+        if inline_first_line:
+            section.insert(0, inline_first_line)
+        return section, True
+
+    @classmethod
+    def _divider_ends_song_section(cls, lines: list[str], index: int) -> bool:
+        """Allow decorative dividers before an encore or more song rows."""
+        for candidate in lines[index + 1 :]:
+            candidate = candidate.strip()
+            if not candidate:
+                continue
+            if _SETLIST_CONTINUATION_HEADER_RE.search(candidate):
+                return False
+            if _SETLIST_HEADER_RE.search(candidate):
+                return False
+            return not cls._line_has_timestamp_title(candidate)
+        return True
+
+    @classmethod
+    def _line_has_timestamp_title(cls, line: str) -> bool:
+        """Cheap look-ahead check used only to classify section dividers."""
+        matches = cls._timestamp_matches(line)
+        if not matches:
+            return False
+        remainder = _NUMBERING_RE.sub("", line, count=1)
+        for match in reversed(cls._timestamp_matches(remainder)):
+            remainder = remainder[: match.start()] + " " + remainder[match.end() :]
+        remainder = _CUSTOM_EMOJI_RE.sub(" ", remainder)
+        remainder = re.sub(r"[\[\]【】（）()「」『』]", " ", remainder)
+        remainder = re.sub(_SEPARATORS, " ", remainder)
+        return bool(_TITLE_CHAR_RE.search(remainder))
 
     def _parse_song_line(self, line: str) -> list[Song]:
         line = line.strip()
@@ -286,6 +364,10 @@ class CommentAnalyzer:
         title = after or before
         if not title:
             return None
+
+        title = _CUSTOM_EMOJI_RE.sub(" ", title)
+        title = re.sub(r"\s+", " ", title).strip()
+        title = re.sub(rf"^{_SEPARATORS}|{_SEPARATORS}$", "", title).strip()
 
         # Reject titles that are only leftover punctuation / separators
         if not _TITLE_CHAR_RE.search(title):
