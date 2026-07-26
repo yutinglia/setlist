@@ -3,6 +3,7 @@ import type { ReactNode } from "react"
 
 import { useUpdaterStatus } from "@/api/hooks"
 import type { UpdaterPhase } from "@/api/types"
+import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
 import { cn } from "@/lib/utils"
 import { requireAdminRoute } from "@/lib/auth-guard"
@@ -92,6 +93,12 @@ function StatusPage() {
 
   return (
     <section className="animate-fade py-10 sm:py-14">
+      <PageMetadata
+        path="/status"
+        title={`${m.status_heading()} | Setlist`}
+        description={m.status_hint()}
+        noIndex
+      />
       <header className="border-b border-border/70 pb-8">
         <p className="eyebrow">{m.home_library_live()}</p>
         <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">

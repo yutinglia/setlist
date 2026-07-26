@@ -8,8 +8,16 @@
       name="description"
       content="Search VTuber karaoke setlists and jump straight to the exact performance on YouTube."
     />
+    <meta
+      name="robots"
+      content="index,follow,max-image-preview:large"
+    />
+    <link rel="canonical" href="__PUBLIC_SITE_URL__/" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Setlist" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="zh_TW" />
     <meta property="og:title" content="Setlist — VTuber Karaoke Search" />
     <meta
       property="og:description"
@@ -28,6 +36,10 @@
     />
     <meta name="twitter:image" content="__PUBLIC_SITE_URL__/og.png" />
     <meta
+      name="twitter:image:alt"
+      content="Setlist — VTuber Karaoke Search"
+    />
+    <meta
       name="theme-color"
       content="#f6f5fa"
       media="(prefers-color-scheme: light)"
@@ -37,7 +49,24 @@
       content="#171525"
       media="(prefers-color-scheme: dark)"
     />
-    <title>Setlist — VTuber Karaoke Index</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Setlist",
+        "url": "__PUBLIC_SITE_URL__/",
+        "description": "Search VTuber karaoke setlists and jump straight to the exact performance on YouTube.",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "__PUBLIC_SITE_URL__/?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+    <title>Setlist — VTuber Karaoke Search</title>
   </head>
   <body>
     <div id="root"></div>

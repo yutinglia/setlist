@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 
 import { useSong } from "@/api/hooks"
+import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -23,9 +24,21 @@ function SongDetailPage() {
   const id = Number(songId)
   const invalidId = !Number.isSafeInteger(id) || id <= 0
   const query = useSong(id)
+  const metadataTitle = query.data
+    ? `${query.data.title} by ${query.data.channel_name} | Setlist`
+    : "Song performance | Setlist"
+  const metadataDescription = query.data
+    ? `Jump to ${query.data.title} in ${query.data.video_title ?? query.data.video_id} on YouTube.`
+    : "Open a song from a VTuber karaoke setlist at its exact YouTube timestamp."
 
   return (
     <section className="animate-fade mx-auto w-full max-w-5xl py-10 sm:py-14">
+      <PageMetadata
+        path={`/songs/${songId}`}
+        title={metadataTitle}
+        description={metadataDescription}
+        noIndex={invalidId || query.isError}
+      />
       <Link
         to="/"
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"

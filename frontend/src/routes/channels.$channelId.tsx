@@ -13,6 +13,7 @@ import { api } from "@/api/client"
 import { useAuthSession, useChannelVideos } from "@/api/hooks"
 import type { ChannelVideoRefresh } from "@/api/types"
 import { PaginationControls } from "@/components/pagination-controls"
+import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
 import { Button } from "@/components/ui/button"
 import { VideoListBadges } from "@/components/video-list-badges"
@@ -75,6 +76,9 @@ function ChannelVideosPage() {
     tab === "karaoke" ? setlistParamToFilter(hasSongListParam) : "all"
   const hasSongList = setlistFilterToQuery(setlistFilter)
   const videoType = TAB_TO_TYPE[tab]
+  const hasFilteredView = Boolean(
+    page || tabParam || hasSongListParam || limitParam,
+  )
   const navigate = Route.useNavigate()
   const queryClient = useQueryClient()
   const auth = useAuthSession()
@@ -191,6 +195,12 @@ function ChannelVideosPage() {
 
   return (
     <section className="animate-fade py-10 sm:py-14">
+      <PageMetadata
+        path={`/channels/${encodeURIComponent(channelId)}`}
+        title={`${channelId} karaoke archive | Setlist`}
+        description={`Browse indexed VTuber karaoke streams, song videos, and setlists from ${channelId}.`}
+        noIndex={hasFilteredView || query.isError}
+      />
       <Link
         to="/channels"
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"

@@ -11,6 +11,15 @@ import { defineConfig, loadEnv } from "vite"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repositoryRoot = path.resolve(__dirname, "..")
+const sitemapPaths = [
+  "/",
+  "/channels",
+  "/summary",
+  "/about",
+  "/terms",
+  "/privacy",
+  "/copyright",
+]
 
 function normalizeVersion(value: string | undefined) {
   const normalized = value?.trim().replace(/^v/, "")
@@ -84,6 +93,68 @@ export default defineConfig(({ mode }) => {
         name: "public-site-url",
         transformIndexHtml: (html) =>
           html.replaceAll("__PUBLIC_SITE_URL__", publicSiteUrl),
+        generateBundle() {
+          const robots = [
+            "User-agent: *",
+            "Allow: /",
+            "Disallow: /admin/",
+            "Disallow: /channels/new",
+            "Disallow: /status",
+            "Disallow: /v1/",
+            `Sitemap: ${publicSiteUrl}/sitemap.xml`,
+            "",
+          ].join("\n")
+          const sitemapEntries = sitemapPaths
+            .map(
+              (pathname) =>
+                `  <url><loc>${publicSiteUrl}${pathname}</loc></url>`,
+            )
+            .join("\n")
+          const sitemap = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+            sitemapEntries,
+            "</urlset>",
+            "",
+          ].join("\n")
+          const manifest = JSON.stringify(
+            {
+              name: "Setlist — VTuber Karaoke Search",
+              short_name: "Setlist",
+              description:
+                "Search VTuber karaoke setlists and jump to exact YouTube timestamps.",
+              start_url: "/",
+              display: "standalone",
+              background_color: "#f6f5fa",
+              theme_color: "#171525",
+              icons: [
+                {
+                  src: "/favicon.svg",
+                  sizes: "any",
+                  type: "image/svg+xml",
+                },
+              ],
+            },
+            null,
+            2,
+          )
+
+          this.emitFile({
+            type: "asset",
+            fileName: "robots.txt",
+            source: robots,
+          })
+          this.emitFile({
+            type: "asset",
+            fileName: "sitemap.xml",
+            source: sitemap,
+          })
+          this.emitFile({
+            type: "asset",
+            fileName: "site.webmanifest",
+            source: `${manifest}\n`,
+          })
+        },
       },
       tanstackRouter({
         target: "react",

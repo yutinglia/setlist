@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 
 import { useSummaryReport } from "@/api/hooks"
+import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
@@ -44,6 +45,11 @@ function SummaryPage() {
 
   return (
     <section className="animate-fade py-10 sm:py-14">
+      <PageMetadata
+        path="/summary"
+        title={`${m.summary_heading()} | Setlist`}
+        description={m.summary_hint()}
+      />
       <header className="flex flex-wrap items-end justify-between gap-5 border-b border-border/70 pb-8">
         <div>
           <p className="eyebrow">{m.home_library_live()}</p>

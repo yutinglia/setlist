@@ -6,6 +6,7 @@ import { ApiError } from "@/api/client"
 import { authSessionQueryOptions, useLogin } from "@/api/hooks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PageMetadata } from "@/components/page-metadata"
 import { loginSearchSchema } from "@/lib/search-schemas"
 import { m } from "@/paraglide/messages"
 
@@ -54,6 +55,12 @@ function AdminLoginPage() {
 
   return (
     <section className="animate-fade mx-auto flex w-full max-w-md flex-1 items-center py-12 sm:py-20">
+      <PageMetadata
+        path="/admin/login"
+        title={`${m.auth_login_heading()} | Setlist`}
+        description={m.auth_login_hint()}
+        noIndex
+      />
       <div className="surface w-full overflow-hidden">
         <div className="border-b border-border/60 bg-secondary/35 px-6 py-6">
           <span className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary">

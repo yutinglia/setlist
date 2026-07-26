@@ -4,6 +4,7 @@ import { useCallback } from "react"
 
 import { PAGE_SIZE, useAuthSession, useChannels } from "@/api/hooks"
 import { PaginationControls } from "@/components/pagination-controls"
+import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
 import { buttonVariants } from "@/components/ui/button"
 import { useClampPage } from "@/hooks/use-clamp-page"
@@ -40,6 +41,12 @@ function ChannelsPage() {
 
   return (
     <section className="animate-fade py-10 sm:py-14">
+      <PageMetadata
+        path="/channels"
+        title={`${m.channels_heading()} | Setlist`}
+        description={m.channels_hint()}
+        noIndex={page > 0}
+      />
       <header className="flex flex-col gap-5 border-b border-border/70 pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="eyebrow">{m.home_explore_title()}</p>
