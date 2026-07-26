@@ -13,6 +13,13 @@ updates:
     directory: /frontend
     schedule:
       interval: weekly
+    ignore:
+      # TypeScript 7 is a native compiler rewrite without the legacy compiler
+      # API. Keep the latest 6.x until the surrounding Vite/TanStack toolchain
+      # has completed its compatibility transition.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
     labels:
       - dependencies
     groups:

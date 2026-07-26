@@ -315,13 +315,60 @@ class TestCommentAnalyzerParsing:
         assert len(songs[0].title) == 500
 
 
-class TestLlmCleanerSkip:
+class TestLlmCleaner:
     @pytest.mark.asyncio
     async def test_disabled_returns_none(self, monkeypatch):
         monkeypatch.setattr("services.analyzer.llm_cleaner.LLM_CLEANING_ENABLED", False)
         from services.analyzer.llm_cleaner import maybe_clean_song_list_comment
 
         assert await maybe_clean_song_list_comment("0:10 A\n0:20 B\n0:30 C") is None
+
+    @pytest.mark.asyncio
+    async def test_httpx2_success_returns_cleaned_text(self, monkeypatch):
+        captured = {}
+
+        class FakeResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {
+                    "choices": [{"message": {"content": "0:10 Song A\n0:20 Song B"}}]
+                }
+
+        class FakeAsyncClient:
+            def __init__(self, *, timeout):
+                captured["timeout"] = timeout
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return False
+
+            async def post(self, url, *, json, headers):
+                captured.update(url=url, json=json, headers=headers)
+                return FakeResponse()
+
+        monkeypatch.setattr("services.analyzer.llm_cleaner.LLM_CLEANING_ENABLED", True)
+        monkeypatch.setattr("services.analyzer.llm_cleaner.LLM_API_KEY", "test-key")
+        monkeypatch.setattr(
+            "services.analyzer.llm_cleaner.LLM_API_URL",
+            "https://llm.invalid/v1/chat/completions",
+        )
+        monkeypatch.setattr(
+            "services.analyzer.llm_cleaner.httpx2.AsyncClient",
+            FakeAsyncClient,
+        )
+        from services.analyzer.llm_cleaner import maybe_clean_song_list_comment
+
+        result = await maybe_clean_song_list_comment("0:10 A\n0:20 B")
+
+        assert result == "0:10 Song A\n0:20 Song B"
+        assert captured["timeout"] > 0
+        assert captured["url"] == "https://llm.invalid/v1/chat/completions"
+        assert captured["headers"]["Authorization"] == "Bearer test-key"
+        assert captured["json"]["messages"][-1]["content"] == "0:10 A\n0:20 B"
 
     @pytest.mark.asyncio
     async def test_enabled_without_key_returns_none(self, monkeypatch):

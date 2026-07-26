@@ -35,7 +35,7 @@ setlist/
 ├── db/
 │   ├── migrations/        # Flyway SQL (V1–V9; schema source of truth)
 │   └── devscript/         # PowerShell one-shot Postgres + sqlacodegen
-├── .devcontainer/         # Dev Container image/config (Python 3.12 + Node 22)
+├── .devcontainer/         # Dev Container image/config (Python 3.14 + Node 26)
 ├── scripts/               # Repository checks, including credential scanning
 ├── docker-compose.yml     # Production frontend + API + Postgres + Flyway
 └── docker-compose.dev.yml # Dev Container workspace + Postgres + Flyway

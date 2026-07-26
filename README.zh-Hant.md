@@ -422,7 +422,7 @@ migration 後的後端測試、正式環境映像建置、第三方授權清單�
 
 ```text
 setlist/
-├── .devcontainer/          # Python 3.12 + Node 22 編輯器環境
+├── .devcontainer/          # Python 3.14 + Node 26 編輯器環境
 ├── .github/workflows/      # CI 與 release image 發佈
 ├── backend/                # FastAPI API、驗證、更新器、爬蟲與測試
 ├── db/migrations/          # Flyway V1–V9 schema 歷史（唯一依據）

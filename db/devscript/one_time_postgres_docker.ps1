@@ -36,7 +36,7 @@ try {
         -e "POSTGRES_USER=$dbUser" `
         -e "POSTGRES_DB=$dbName" `
         -p "127.0.0.1:5432:5432" `
-        -d postgres:18-bookworm | Out-Null
+        -d postgres:18-bookworm@sha256:1961f96e6029a02c3812d7cb329a3b03a3ac2bb067058dec17b0f5596aca9296 | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Could not start PostgreSQL container." }
     $startedContainer = $true
 
@@ -55,7 +55,7 @@ try {
     docker run --rm `
         --network $networkName `
         -v "${migrationsPath}:/flyway/sql:ro" `
-        flyway/flyway:11-alpine `
+        flyway/flyway:13-alpine@sha256:860446d52565c2c898e2853f463bb10dd148142f986b26c2572409ae48d87b3d `
         "-url=jdbc:postgresql://${containerName}:5432/${dbName}" `
         "-user=${dbUser}" `
         "-password=${dbPassword}" `

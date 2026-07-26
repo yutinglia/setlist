@@ -446,7 +446,7 @@ repository.
 
 ```text
 setlist/
-├── .devcontainer/          # Python 3.12 + Node 22 editor environment
+├── .devcontainer/          # Python 3.14 + Node 26 editor environment
 ├── .github/workflows/      # CI and release image publication
 ├── backend/                # FastAPI API, auth, updater, scrapers, tests
 ├── db/migrations/          # Flyway V1–V9 schema history (source of truth)
