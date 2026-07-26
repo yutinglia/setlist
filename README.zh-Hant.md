@@ -109,7 +109,7 @@ Copy-Item .env.production.example .env
 安裝執行期相依套件，再使用互動式工具：
 
 ```bash
-cd data_updater
+cd backend
 python -m pip install -r requirements.txt
 python generate_admin_password_hash.py
 cd ..
@@ -239,7 +239,7 @@ docker compose -f docker-compose.dev.yml up -d db flyway
 請從後端要求的工作目錄啟動 API：
 
 ```bash
-cd data_updater
+cd backend
 python -m pip install -r requirements-dev.txt
 APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false \
   uvicorn main:app --host 0.0.0.0 --port 8000
@@ -248,7 +248,7 @@ APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false \
 PowerShell：
 
 ```powershell
-Set-Location data_updater
+Set-Location backend
 python -m pip install -r requirements-dev.txt
 $env:APP_ENV = "dev"
 $env:BACKGROUND_UPDATER_ENABLED = "false"
@@ -270,7 +270,7 @@ Vite 會將 `/v1` 代理至 `http://127.0.0.1:8000`。前端專用指令請參�
 
 即使 `APP_ENV=dev`，管理功能仍會受到保護。若要測試：
 
-1. 使用 `data_updater/generate_admin_password_hash.py` 產生 Argon2id 雜湊。
+1. 使用 `backend/generate_admin_password_hash.py` 產生 Argon2id 雜湊。
 2. 在已被忽略的根目錄 `.env` 設定 `ADMIN_USERNAME`、
    `ADMIN_PASSWORD_HASH`，以及至少 32 位元組的 `SESSION_SECRET`。
 3. 只有在本機 HTTP 開發期間才可使用 `AUTH_COOKIE_SECURE=false`。
@@ -290,7 +290,7 @@ docker compose -f docker-compose.dev.yml exec -T db \
 若要執行一次和背景服務相同、且有工作量上限的更新流程，而不常駐排程器：
 
 ```bash
-cd data_updater
+cd backend
 python run_updater_once.py
 ```
 
@@ -385,14 +385,14 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
    繞過限制。
 
 詳細設計決策記錄於 [PLAN.md](PLAN.md)，爬蟲資料形狀則記錄於
-[data_updater/NOTE.md](data_updater/NOTE.md)。
+[backend/NOTE.md](backend/NOTE.md)。
 
 ## 測試與 CI
 
 後端：
 
 ```bash
-cd data_updater
+cd backend
 python -m pip install -r requirements-dev.txt
 python -m ruff check .
 python -m ruff format --check .
@@ -424,7 +424,7 @@ migration 後的後端測試、兩個正式環境映像建置、前端 lint，�
 setlist/
 ├── .devcontainer/          # Python 3.12 + Node 22 編輯器環境
 ├── .github/workflows/      # CI 與受控的 homelab 部署
-├── data_updater/           # FastAPI API、驗證、更新器、爬蟲與測試
+├── backend/                # FastAPI API、驗證、更新器、爬蟲與測試
 ├── db/migrations/          # Flyway V1–V9 schema 歷史（唯一依據）
 ├── frontend/               # React UI 與正式環境 nginx 代理
 ├── scripts/                # 倉庫安全檢查

@@ -16,7 +16,7 @@ setlist/
 │   ├── src/stores/        # Zustand UI prefs (locale, recent searches)
 │   ├── messages/          # Paraglide en + zh-hant
 │   └── README.md          # Frontend run / proxy notes
-├── data_updater/          # FastAPI service (run cwd = this dir)
+├── backend/               # FastAPI service (run cwd = this dir)
 │   ├── main.py            # App + background periodic updater
 │   ├── config.py          # Env via python-dotenv
 │   ├── deps.py            # Shared FastAPI deps (session, pagination)
@@ -64,8 +64,8 @@ setlist/
    ```bash
    docker compose -f docker-compose.dev.yml up -d db flyway
    ```
-2. Optional: regenerate ORM with `db/devscript/sqlacodegen.ps1` (overwrites `data_updater/db/models.py`)
-3. From `data_updater/`:
+2. Optional: regenerate ORM with `db/devscript/sqlacodegen.ps1` (overwrites `backend/db/models.py`)
+3. From `backend/`:
    ```bash
    pip install -r requirements-dev.txt
    # APP_ENV=dev enables docs and local CORS origins; admin auth still applies
@@ -83,9 +83,9 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
 
 ## Architecture notes agents must respect
 
-- **Schema source of truth** is Flyway SQL in `db/migrations/`. ORM models in `data_updater/db/models.py` are generated — prefer editing SQL + regenerating over hand-editing generated models unless necessary.
-- **Pydantic models** (`data_updater/models/`) are the API/domain DTOs; repositories map ORM → Pydantic with `model_validate` / `from_attributes`.
-- **Imports assume cwd = `data_updater/`** (e.g. `from config import ...`). Do not introduce package-relative imports without making it a proper installable package.
+- **Schema source of truth** is Flyway SQL in `db/migrations/`. ORM models in `backend/db/models.py` are generated — prefer editing SQL + regenerating over hand-editing generated models unless necessary.
+- **Pydantic models** (`backend/models/`) are the API/domain DTOs; repositories map ORM → Pydantic with `model_validate` / `from_attributes`.
+- **Imports assume cwd = `backend/`** (e.g. `from config import ...`). Do not introduce package-relative imports without making it a proper installable package.
 - **Frontend** lives under `frontend/` with its own cwd; do not mix Python package imports into the UI tree.
 - **yt-dlp scrapers are synchronous and blocking.** If calling them from async FastAPI code, wrap with `asyncio.to_thread` (or similar). Do not block the event loop.
 - **Background updater** lives in `main.py` lifespan and calls `DataUpdater.update()` every `DATA_UPDATE_INTERVAL` (default 5m in every environment). Scraping is opt-in in config; production Compose explicitly enables it. Persisted per-channel due times enforce the 6h steady scan interval. Use `python run_updater_once.py` to test the identical path locally.

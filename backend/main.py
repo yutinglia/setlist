@@ -111,8 +111,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="VTuber Karaoke Search Data Updater API",
-    description="API for updating VTuber karaoke song data",
+    title="Setlist Backend API",
+    description=(
+        "Search, administration, and background updates for VTuber karaoke setlist data"
+    ),
     version="1.0.0",
     lifespan=lifespan,
     docs_url=docs_url,

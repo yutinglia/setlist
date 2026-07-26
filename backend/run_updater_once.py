@@ -1,6 +1,6 @@
 """Run exactly one production-equivalent updater cycle.
 
-Use from ``data_updater/`` after configuring the same environment variables as
+Use from ``backend/`` after configuring the same environment variables as
 the API. This is intentionally the same DataUpdater path used by the background
 worker, making local validation deterministic without shortening production
 cadence or leaving a loop running.

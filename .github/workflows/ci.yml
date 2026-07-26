@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 20
     defaults:
       run:
-        working-directory: data_updater
+        working-directory: backend
     env:
       APP_ENV: test
       DATABASE_URL: postgresql+asyncpg://vks_db_user:vks_db_pwd@localhost:5432/vks_db
@@ -40,8 +40,8 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: |
-            data_updater/requirements.txt
-            data_updater/requirements-dev.txt
+            backend/requirements.txt
+            backend/requirements-dev.txt
 
       - name: Install backend dependencies
         run: python -m pip install -r requirements-dev.txt
@@ -62,7 +62,7 @@ jobs:
 
       - name: Build production runtime image
         working-directory: .
-        run: docker build -f data_updater/Dockerfile --target runtime -t vks-data-updater:ci .
+        run: docker build -f backend/Dockerfile --target runtime -t vks-backend:ci .
 
       - name: Stop test services
         if: always()

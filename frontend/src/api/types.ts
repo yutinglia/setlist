@@ -1,4 +1,4 @@
-/** API DTOs matching `data_updater` v1 responses. */
+/** API DTOs matching backend v1 responses. */
 
 export type Paginated<T> = {
   items: T[]

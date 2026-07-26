@@ -20,7 +20,7 @@ single-administrator operations.
 Terminal 1 — API (from repo root):
 
 ```bash
-cd data_updater
+cd backend
 APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
@@ -76,7 +76,7 @@ status in the background.
 
 `frontend/Dockerfile` is built from the repository root so the final
 unprivileged nginx image includes the top-level MIT license. The container
-proxies `/v1` to `data_updater:8000`, provides SPA route fallback, applies
+proxies `/v1` to `backend:8000`, provides SPA route fallback, applies
 browser security headers, and caches fingerprinted assets. The root production
 Compose stack binds it to
 `127.0.0.1:${FRONTEND_PORT:-8080}` for a host TLS reverse proxy.

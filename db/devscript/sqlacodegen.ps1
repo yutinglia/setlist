@@ -11,7 +11,7 @@ $escapedPassword = [uri]::EscapeDataString($dbPassword)
 $connectionString = "postgresql://${escapedUser}:${escapedPassword}@${dbHost}:${dbPort}/${dbName}"
 
 $projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
-$modelsDir = Join-Path $projectRoot "data_updater\db"
+$modelsDir = Join-Path $projectRoot "backend\db"
 $outputFile = Join-Path $modelsDir "models.py"
 
 Write-Host "Generating models from database schema..."

@@ -115,7 +115,7 @@ blank in `.env`.
 Install the runtime dependencies, then use the interactive helper:
 
 ```bash
-cd data_updater
+cd backend
 python -m pip install -r requirements.txt
 python generate_admin_password_hash.py
 cd ..
@@ -251,7 +251,7 @@ docker compose -f docker-compose.dev.yml up -d db flyway
 Run the API from its required working directory:
 
 ```bash
-cd data_updater
+cd backend
 python -m pip install -r requirements-dev.txt
 APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false \
   uvicorn main:app --host 0.0.0.0 --port 8000
@@ -260,7 +260,7 @@ APP_ENV=dev BACKGROUND_UPDATER_ENABLED=false \
 PowerShell:
 
 ```powershell
-Set-Location data_updater
+Set-Location backend
 python -m pip install -r requirements-dev.txt
 $env:APP_ENV = "dev"
 $env:BACKGROUND_UPDATER_ENABLED = "false"
@@ -283,7 +283,7 @@ Vite proxies `/v1` to `http://127.0.0.1:8000`. See
 Administrator features remain protected in `APP_ENV=dev`. To test them:
 
 1. Generate an Argon2id hash with
-   `data_updater/generate_admin_password_hash.py`.
+   `backend/generate_admin_password_hash.py`.
 2. Set `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, and a 32-byte-or-longer
    `SESSION_SECRET` in the ignored root `.env`.
 3. Keep `AUTH_COOKIE_SECURE=false` only while using local HTTP.
@@ -305,7 +305,7 @@ To exercise the same bounded updater path once without leaving a scheduler
 running:
 
 ```bash
-cd data_updater
+cd backend
 python run_updater_once.py
 ```
 
@@ -402,14 +402,14 @@ The complete list and explanatory comments live in [`.env.example`](.env.example
    a restart cannot bypass it.
 
 Detailed design decisions are recorded in [PLAN.md](PLAN.md) and scraper payload
-notes in [data_updater/NOTE.md](data_updater/NOTE.md).
+notes in [backend/NOTE.md](backend/NOTE.md).
 
 ## Tests and CI
 
 Backend:
 
 ```bash
-cd data_updater
+cd backend
 python -m pip install -r requirements-dev.txt
 python -m ruff check .
 python -m ruff format --check .
@@ -442,7 +442,7 @@ workflow is limited to canonical-repository `main` and version-tag pushes.
 setlist/
 ├── .devcontainer/          # Python 3.12 + Node 22 editor environment
 ├── .github/workflows/      # CI and gated homelab deployment
-├── data_updater/           # FastAPI API, auth, updater, scrapers, tests
+├── backend/                # FastAPI API, auth, updater, scrapers, tests
 ├── db/migrations/          # Flyway V1–V9 schema history (source of truth)
 ├── frontend/               # React UI and production nginx proxy
 ├── scripts/                # Repository security checks

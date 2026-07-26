@@ -27,7 +27,7 @@ Manual setup instructions are in [README.md](README.md#local-development-without
   architecture unless a rewrite has been discussed first.
 - Treat `db/migrations/` as the schema source of truth. Add a new Flyway
   migration instead of rewriting applied migrations.
-- Run backend commands with `data_updater/` as the working directory.
+- Run backend commands with `backend/` as the working directory.
 - Keep blocking yt-dlp calls off the async event loop.
 - Preserve updater-owned transactions and the existing pacing/cooldown rules.
 - Do not weaken administrator authorization, CSRF, trusted-proxy handling,
@@ -38,7 +38,7 @@ Manual setup instructions are in [README.md](README.md#local-development-without
 Backend:
 
 ```bash
-cd data_updater
+cd backend
 python -m pip install -r requirements-dev.txt
 python -m ruff check .
 python -m ruff format --check .
