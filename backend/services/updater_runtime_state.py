@@ -45,8 +45,8 @@ class UpdaterRuntimeSnapshot:
         stale_after_seconds: float,
         now: datetime | None = None,
     ) -> bool:
-        """Return true only for an unfinished cycle with an expired heartbeat."""
-        if self.outcome != UpdaterOutcome.RUNNING.value:
+        """Return true when an initialized worker heartbeat has expired."""
+        if self.outcome == UpdaterOutcome.NEVER.value:
             return False
         if self.heartbeat_at is None:
             return True
@@ -109,7 +109,7 @@ class UpdaterRuntimeStateStore:
             )
 
     async def heartbeat(self, owner_id: str) -> bool:
-        """Refresh only the cycle still owned by this process."""
+        """Refresh only the worker state still owned by this process."""
         now = _utc_now()
         async with self.engine.begin() as connection:
             result = await connection.execute(
@@ -119,7 +119,6 @@ class UpdaterRuntimeStateStore:
                     SET updater_heartbeat_at = :now, updated_at = :now
                     WHERE
                         id = 1
-                        AND updater_outcome = 'running'
                         AND updater_owner_id = :owner_id
                     """
                 ),

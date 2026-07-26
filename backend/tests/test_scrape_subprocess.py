@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import multiprocessing
+import os
 import time
 from functools import partial
 
@@ -39,6 +40,16 @@ async def test_subprocess_propagates_redacted_failure_type():
     with pytest.raises(ScrapeSubprocessError, match="invalid literal"):
         await run_scrape_in_subprocess(
             partial(int, "not-an-integer"),
+            timeout_seconds=5,
+            terminate_grace_seconds=0.5,
+        )
+
+
+@pytest.mark.asyncio
+async def test_abrupt_subprocess_exit_becomes_scrape_error():
+    with pytest.raises(ScrapeSubprocessError, match="exit=17"):
+        await run_scrape_in_subprocess(
+            partial(os._exit, 17),
             timeout_seconds=5,
             terminate_grace_seconds=0.5,
         )

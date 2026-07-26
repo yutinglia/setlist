@@ -169,7 +169,7 @@
   "status_persistent_heartbeat": "持久化心跳",
   "status_last_success": "上次成功週期",
   "status_stalled": "Updater 心跳已逾期",
-  "status_stalled_hint": "資料庫仍將此週期標記為執行中，但已超過 {seconds} 秒沒有心跳。請檢查 backend 容器與日誌。",
+  "status_stalled_hint": "已啟用的背景 worker 超過 {seconds} 秒未寫入持久化心跳。請檢查 backend 容器與日誌。",
   "status_last_error": "最近錯誤",
   "status_phase_idle": "閒置",
   "status_phase_waiting": "等待下一輪",

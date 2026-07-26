@@ -54,11 +54,12 @@ async def test_runtime_store_records_owned_cycle_and_last_success():
         assert finished.cycle_finished_at is not None
         assert finished.last_success_at is not None
         assert finished.is_stalled(stale_after_seconds=1) is False
+        assert await store.heartbeat("test-owner") is True
     finally:
         await engine.dispose()
 
 
-def test_running_snapshot_is_stalled_only_after_heartbeat_deadline():
+def test_initialized_snapshot_is_stalled_only_after_heartbeat_deadline():
     now = datetime.now(UTC).replace(tzinfo=None)
     running = UpdaterRuntimeSnapshot(
         cycle_started_at=now - timedelta(minutes=10),
@@ -72,7 +73,7 @@ def test_running_snapshot_is_stalled_only_after_heartbeat_deadline():
         cycle_started_at=running.cycle_started_at,
         cycle_finished_at=now,
         last_success_at=now,
-        heartbeat_at=running.heartbeat_at,
+        heartbeat_at=now,
         outcome=UpdaterOutcome.SUCCESS.value,
         owner_id="finished-worker",
     )
@@ -80,3 +81,13 @@ def test_running_snapshot_is_stalled_only_after_heartbeat_deadline():
     assert running.is_stalled(stale_after_seconds=120, now=now) is True
     assert running.is_stalled(stale_after_seconds=122, now=now) is False
     assert finished.is_stalled(stale_after_seconds=120, now=now) is False
+
+    never_started = UpdaterRuntimeSnapshot(
+        cycle_started_at=None,
+        cycle_finished_at=None,
+        last_success_at=None,
+        heartbeat_at=None,
+        outcome=UpdaterOutcome.NEVER.value,
+        owner_id=None,
+    )
+    assert never_started.is_stalled(stale_after_seconds=120, now=now) is False

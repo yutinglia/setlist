@@ -81,8 +81,24 @@ async def run_scrape_in_subprocess(
 
     try:
         while True:
-            if receiver.poll():
-                status, payload = await asyncio.to_thread(receiver.recv)
+            try:
+                has_result = receiver.poll()
+            except (BrokenPipeError, OSError) as exc:
+                await asyncio.to_thread(process.join)
+                raise ScrapeSubprocessError(
+                    "Scrape subprocess closed its result pipe unexpectedly "
+                    f"(exit={process.exitcode})"
+                ) from exc
+
+            if has_result:
+                try:
+                    status, payload = await asyncio.to_thread(receiver.recv)
+                except EOFError as exc:
+                    await asyncio.to_thread(process.join)
+                    raise ScrapeSubprocessError(
+                        "Scrape subprocess closed its result pipe unexpectedly "
+                        f"(exit={process.exitcode})"
+                    ) from exc
                 await asyncio.to_thread(process.join, terminate_grace_seconds)
                 if process.is_alive():
                     await _stop_process(process, terminate_grace_seconds)
@@ -113,4 +129,10 @@ async def run_scrape_in_subprocess(
         receiver.close()
         if process.is_alive():
             await _stop_process(process, terminate_grace_seconds)
-        process.close()
+        if process.is_alive():
+            logger.critical(
+                "Scrape subprocess %s remained alive after kill deadline",
+                process.pid,
+            )
+        else:
+            process.close()

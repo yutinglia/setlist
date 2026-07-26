@@ -10,6 +10,7 @@ from config import (
     CORS_ORIGINS,
     DATA_UPDATE_INTERVAL,
     IS_DEV,
+    UPDATER_HEARTBEAT_INTERVAL_SECONDS,
     UPDATER_SHUTDOWN_GRACE_SECONDS,
 )
 from db import async_session_factory, engine
@@ -17,7 +18,11 @@ from repositories import ChannelRepository, SongRepository, VideoRepository
 from routers.v1 import router as v1_router
 from services.data_updater import DataUpdater
 from services.rate_limit import GuestRateLimitMiddleware
-from services.update_cycle_trigger import update_cycle_trigger
+from services.update_cycle_trigger import UpdateCycleRequest, update_cycle_trigger
+from services.updater_runtime_state import (
+    UPDATER_PROCESS_OWNER_ID,
+    UpdaterRuntimeStateStore,
+)
 from services.updater_status import UpdaterPhase, updater_status
 
 logger = logging.getLogger(__name__)
@@ -27,6 +32,34 @@ redoc_url = "/redoc" if IS_DEV else None
 openapi_url = "/openapi.json" if IS_DEV else None
 
 
+async def wait_for_next_update_cycle(
+    runtime_state_store: UpdaterRuntimeStateStore,
+    *,
+    timeout_seconds: float = DATA_UPDATE_INTERVAL,
+    heartbeat_interval_seconds: float = UPDATER_HEARTBEAT_INTERVAL_SECONDS,
+) -> UpdateCycleRequest | None:
+    """Wait for queued work while keeping the idle worker heartbeat fresh."""
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout_seconds
+    while True:
+        remaining = deadline - loop.time()
+        if remaining <= 0:
+            return None
+        request = await update_cycle_trigger.wait(
+            min(remaining, heartbeat_interval_seconds)
+        )
+        if request is not None:
+            return request
+        try:
+            owned = await runtime_state_store.heartbeat(UPDATER_PROCESS_OWNER_ID)
+            if not owned:
+                logger.warning(
+                    "Idle updater heartbeat does not own the durable runtime state"
+                )
+        except Exception:
+            logger.exception("Could not persist idle updater heartbeat")
+
+
 async def run_periodic_data_updater():
     updater_status.set(
         UpdaterPhase.WAITING,
@@ -34,6 +67,7 @@ async def run_periodic_data_updater():
         clear_channel=True,
         clear_video=True,
     )
+    runtime_state_store = UpdaterRuntimeStateStore(engine)
     priority_channel_id: str | None = None
     while True:
         logger.info("Updating song list data...")
@@ -70,7 +104,7 @@ async def run_periodic_data_updater():
                 clear_channel=True,
                 clear_video=True,
             )
-        request = await update_cycle_trigger.wait(DATA_UPDATE_INTERVAL)
+        request = await wait_for_next_update_cycle(runtime_state_store)
         priority_channel_id = (
             request.priority_channel_id if request is not None else None
         )

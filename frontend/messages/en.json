@@ -169,7 +169,7 @@
   "status_persistent_heartbeat": "Durable heartbeat",
   "status_last_success": "Last successful cycle",
   "status_stalled": "Updater heartbeat is stale",
-  "status_stalled_hint": "The database still marks this cycle as running, but no heartbeat has been recorded for more than {seconds} seconds. Check the backend container and logs.",
+  "status_stalled_hint": "The enabled background worker has not recorded a durable heartbeat for more than {seconds} seconds. Check the backend container and logs.",
   "status_last_error": "Last error",
   "status_phase_idle": "Idle",
   "status_phase_waiting": "Waiting for next cycle",

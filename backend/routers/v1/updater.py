@@ -44,9 +44,8 @@ async def get_updater_status(response: Response) -> UpdaterStatusResponse:
         persistent_heartbeat_at=runtime.heartbeat_at,
         persistent_outcome=runtime.outcome,
         persistent_owner_id=runtime.owner_id,
-        is_stalled=runtime.is_stalled(
-            stale_after_seconds=UPDATER_HEARTBEAT_STALE_SECONDS
-        ),
+        is_stalled=BACKGROUND_UPDATER_ENABLED
+        and runtime.is_stalled(stale_after_seconds=UPDATER_HEARTBEAT_STALE_SECONDS),
         heartbeat_stale_seconds=UPDATER_HEARTBEAT_STALE_SECONDS,
         comment_scrape_cap=UPDATE_MAX_COMMENT_SCRAPES,
         background_updater_enabled=BACKGROUND_UPDATER_ENABLED,

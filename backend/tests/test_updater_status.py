@@ -127,3 +127,26 @@ async def test_public_status_redacts_internal_error_details(monkeypatch):
     assert http_response.headers["cache-control"] == "no-store"
     assert http_response.headers["vary"] == "Cookie"
     shared_updater_status.stop(detail="test cleanup")
+
+
+@pytest.mark.asyncio
+async def test_enabled_background_worker_reports_stale_durable_heartbeat(monkeypatch):
+    now = datetime.now(UTC).replace(tzinfo=None)
+    runtime = UpdaterRuntimeSnapshot(
+        cycle_started_at=now,
+        cycle_finished_at=now,
+        last_success_at=now,
+        heartbeat_at=now.replace(year=now.year - 1),
+        outcome=UpdaterOutcome.SUCCESS.value,
+        owner_id="dead-owner",
+    )
+    monkeypatch.setattr(
+        "routers.v1.updater.updater_runtime_state_store",
+        SimpleNamespace(read=AsyncMock(return_value=runtime)),
+    )
+    monkeypatch.setattr("routers.v1.updater.BACKGROUND_UPDATER_ENABLED", True)
+    shared_updater_status.stop(detail="waiting")
+
+    response = await get_updater_status(Response())
+
+    assert response.is_stalled is True

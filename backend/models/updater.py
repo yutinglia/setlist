@@ -40,7 +40,7 @@ class UpdaterStatusResponse(BaseModel):
         description="Process identity that most recently owned the updater lock",
     )
     is_stalled: bool = Field(
-        description="True when a running cycle has exceeded the heartbeat deadline"
+        description="True when the enabled worker has exceeded the heartbeat deadline"
     )
     heartbeat_stale_seconds: float = Field(
         gt=0, description="Heartbeat age that marks a running updater as stalled"

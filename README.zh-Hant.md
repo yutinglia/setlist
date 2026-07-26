@@ -381,7 +381,7 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
 | `YTDLP_OPERATION_TIMEOUT_SECONDS` | `300` | 單次 blocking yt-dlp 操作的硬性期限 |
 | `UPDATER_SHUTDOWN_GRACE_SECONDS` | `20` | 允許取消與 rollback 完成的時間 |
 | `UPDATER_HEARTBEAT_INTERVAL_SECONDS` | `30` | 週期執行中寫入持久化心跳的間隔 |
-| `UPDATER_HEARTBEAT_STALE_SECONDS` | `120` | 執行中週期觸發 stalled 警示的心跳逾期秒數 |
+| `UPDATER_HEARTBEAT_STALE_SECONDS` | `120` | 背景 worker 觸發 stalled 警示的心跳逾期秒數 |
 | `LLM_CLEANING_ENABLED` | `false` | 可選用的正規表示式後處理 |
 
 完整設定與說明請見 [`.env.example`](.env.example)。

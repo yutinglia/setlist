@@ -401,7 +401,7 @@ Important settings:
 | `YTDLP_OPERATION_TIMEOUT_SECONDS` | `300` | Hard deadline for one blocking yt-dlp operation |
 | `UPDATER_SHUTDOWN_GRACE_SECONDS` | `20` | Time allowed for cancellation and rollback |
 | `UPDATER_HEARTBEAT_INTERVAL_SECONDS` | `30` | Durable heartbeat write interval during a cycle |
-| `UPDATER_HEARTBEAT_STALE_SECONDS` | `120` | Running-cycle heartbeat age that triggers a stalled alert |
+| `UPDATER_HEARTBEAT_STALE_SECONDS` | `120` | Worker heartbeat age that triggers a stalled alert |
 | `LLM_CLEANING_ENABLED` | `false` | Optional post-regex cleanup |
 
 The complete list and explanatory comments live in [`.env.example`](.env.example).
