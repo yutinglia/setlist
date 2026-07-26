@@ -159,9 +159,9 @@ curl http://127.0.0.1:8080/v1/health
 [`Build release images`](.github/workflows/release.yml) workflow。流程會先確認
 tag 與 [`VERSION`](VERSION) 相符，且指向受保護 `main` 的目前 commit，再把
 frontend、backend、Flyway 與 PostgreSQL 的版本化 image 發佈至 GHCR、附上
-SBOM／provenance 資料，最後才建立 GitHub Release。Provenance 一律與 image
-一同存放於 GHCR；source repo 公開後，也會同步建立 GitHub attestation storage
-record。
+SBOM／provenance 資料，最後才建立 GitHub Release。BuildKit SBOM 與 provenance
+一律和 image 一同存放於 GHCR；source repo 公開後，也會同步建立 GitHub 的簽章
+attestation。
 
 正式部署刻意由另一個私有 repo 控制。其 self-hosted runner 只會取用已發佈的
 release image，不會 checkout 或執行此公開 repo 的 pull-request 程式碼。

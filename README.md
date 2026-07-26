@@ -168,9 +168,9 @@ self-hosted deployment job. A semantic release tag such as `v0.1.0` runs the
 GitHub-hosted runner. It verifies that the tag matches [`VERSION`](VERSION) and
 the current protected `main` commit, publishes versioned frontend, backend,
 Flyway, and PostgreSQL images to GHCR, attaches SBOM/provenance metadata, and
-only then creates a GitHub Release. Provenance is always stored with each image
-in GHCR; GitHub's additional attestation storage record is enabled when the
-source repository is public.
+only then creates a GitHub Release. BuildKit SBOM and provenance metadata are
+always stored with each image in GHCR; GitHub's additional signed attestation
+is enabled when the source repository is public.
 
 Production deployment is intentionally controlled by a separate private
 repository. Its self-hosted runner consumes published release images; it never
