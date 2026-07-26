@@ -192,19 +192,33 @@ The last fallback keeps a source archive or ordinary
 `docker compose up --build -d` deployment versioned even when Git metadata and
 CI are unavailable.
 
-Create a release from a clean, up-to-date `main` branch:
+Prepare a release pull request from a clean, up-to-date `main` branch:
 
 ```bash
+git switch main
+git pull --ff-only
 node scripts/bump-version.mjs patch
-# Review the generated commit and annotated tag, then use the exact tag printed:
-git push --atomic origin main v0.0.1
+# Follow the printed commands to push release/v0.0.1 and open its pull request.
 ```
 
 The argument may be `major`, `minor`, `patch`, or an explicit higher
 `MAJOR.MINOR.PATCH`. The script synchronizes `VERSION`, the frontend package
-metadata, and the lockfile, then creates the release commit and tag. It never
-pushes on the user's behalf. A main build displays the base version plus its
-short commit SHA; a release-tag build displays the clean release version.
+metadata, and the lockfile, then creates the release commit on a
+`release/vX.Y.Z` branch. It never pushes on the user's behalf.
+
+After the protected pull request is approved and merged, tag the resulting
+`main` commit:
+
+```bash
+git switch main
+git pull --ff-only
+node scripts/bump-version.mjs tag
+# Review the annotated tag, then use the exact tag printed:
+git push origin v0.0.1
+```
+
+A main build displays the base version plus its short commit SHA; a release-tag
+build displays the clean release version.
 
 ### Deployment security checklist
 
