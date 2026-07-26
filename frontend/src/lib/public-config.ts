@@ -18,3 +18,4 @@ export const PUBLIC_SITE_URL =
 
 export const ISSUES_URL = `${SOURCE_URL.replace(/\/+$/, "")}/issues/new`
 export const LICENSE_URL = `${SOURCE_URL.replace(/\/+$/, "")}/blob/main/LICENSE`
+export const THIRD_PARTY_NOTICES_URL = "/THIRD_PARTY_NOTICES.md"

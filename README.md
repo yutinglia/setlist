@@ -162,22 +162,19 @@ Compose refuses to start without `PUBLIC_SITE_URL`, `DB_PASSWORD`,
 
 ### Automated homelab deployment
 
-The deployment workflow follows the local-image pattern used by the homelab
-entry-site repository. A dedicated Linux x64 self-hosted runner carrying the
-`vtuber-karaoke-search` label builds the two application images, reruns Flyway,
-starts the production Compose stack, and verifies the proxied health endpoint.
+This public repository does not contain production host paths, secrets, or a
+self-hosted deployment job. A semantic release tag such as `v0.1.0` runs the
+[`Build release images`](.github/workflows/release.yml) workflow on a
+GitHub-hosted runner. It verifies that the tag matches [`VERSION`](VERSION) and
+the current protected `main` commit, publishes versioned frontend, backend,
+Flyway, and PostgreSQL images to GHCR, attaches SBOM/provenance metadata, and
+only then creates a GitHub Release.
 
-On the runner, keep the production configuration at:
-
-```text
-~/services/vtuber-karaoke-search/.env
-```
-
-Only semantic release tags such as `v0.1.0` trigger the production workflow.
-Branch pushes, pull requests, and manual workflow dispatches cannot deploy. The
-job also refuses to run outside `yutinglia/setlist`. Configure branch
-protection, protected release tags, and protection rules on the `production`
-GitHub Environment before relying on it for an internet-facing service.
+Production deployment is intentionally controlled by a separate private
+repository. Its self-hosted runner consumes published release images; it never
+checks out or executes pull-request code from this public repository. A fork
+can use any deployment system or the local Compose instructions above without
+needing the private control plane.
 
 Production Compose also applies explicit resource ceilings: 128 MiB / 0.25 CPU
 for nginx, 768 MiB / 1 CPU for the API and scraper, 512 MiB / 0.75 CPU for
@@ -212,7 +209,7 @@ metadata, and the lockfile, then creates the release commit on a
 `release/vX.Y.Z` branch. It never pushes on the user's behalf.
 
 After the protected pull request is approved and merged, tag the resulting
-`main` commit:
+current `main` commit:
 
 ```bash
 git switch main
@@ -222,8 +219,10 @@ node scripts/bump-version.mjs tag
 git push origin v0.0.1
 ```
 
-A main build displays the base version plus its short commit SHA; a release-tag
-build displays the clean release version.
+Ordinary source builds display the tracked version (and add a short commit SHA
+when Git metadata is available). Release images display the clean semantic
+version. Branch pushes and pull requests run CI but cannot publish a release or
+deploy production.
 
 ### Deployment security checklist
 
@@ -437,16 +436,18 @@ python scripts/check_secrets.py
 ```
 
 GitHub Actions CI runs the credential scan, Ruff, backend tests against
-PostgreSQL 18 after all Flyway migrations, both production image builds,
-frontend lint, and the production frontend build. The separate deployment
-workflow is limited to canonical-repository `main` and version-tag pushes.
+PostgreSQL 18 after all Flyway migrations, production image builds, third-party
+notice verification, frontend lint, and the production frontend build. The
+release workflow runs only for a matching semantic version tag on the current
+protected `main` commit; production deployment is isolated in a private
+repository.
 
 ## Project layout
 
 ```text
 setlist/
 ├── .devcontainer/          # Python 3.12 + Node 22 editor environment
-├── .github/workflows/      # CI and gated homelab deployment
+├── .github/workflows/      # CI and release image publication
 ├── backend/                # FastAPI API, auth, updater, scrapers, tests
 ├── db/migrations/          # Flyway V1–V9 schema history (source of truth)
 ├── frontend/               # React UI and production nginx proxy
@@ -454,6 +455,7 @@ setlist/
 ├── CONTRIBUTING.md         # Contribution workflow
 ├── SECURITY.md             # Private vulnerability-reporting guidance
 ├── LICENSE                 # MIT license for project-authored code
+├── THIRD_PARTY_NOTICES.md  # Generated frontend dependency notices
 ├── docker-compose.dev.yml  # Development database and Dev Container
 └── docker-compose.yml      # Production homelab stack
 ```
@@ -486,4 +488,6 @@ redistribute, sublicense, or sell copies of the project as long as the
 copyright and license notice is retained.
 
 Third-party packages, fonts, service APIs, linked media, and extracted metadata
-remain subject to their own licenses and terms.
+remain subject to their own licenses and terms. Notices for production frontend
+packages redistributed by the compiled site are recorded in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

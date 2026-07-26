@@ -2,7 +2,11 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { InfoPage, InfoSection } from "@/components/info-page"
 import { PageMetadata } from "@/components/page-metadata"
-import { ISSUES_URL, LICENSE_URL } from "@/lib/public-config"
+import {
+  ISSUES_URL,
+  LICENSE_URL,
+  THIRD_PARTY_NOTICES_URL,
+} from "@/lib/public-config"
 import { m } from "@/paraglide/messages"
 
 export const Route = createFileRoute("/copyright")({
@@ -37,6 +41,15 @@ function CopyrightPage() {
             className="font-medium text-primary underline-offset-2 hover:underline"
           >
             {m.copyright_source_link()}
+          </a>
+          {" · "}
+          <a
+            href={THIRD_PARTY_NOTICES_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
+            {m.copyright_notices_link()}
           </a>
         </p>
       </InfoSection>

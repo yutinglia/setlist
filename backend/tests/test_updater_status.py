@@ -1,6 +1,7 @@
 """Unit tests for process-local updater status tracker."""
 
 import pytest
+from fastapi import Response
 
 from routers.v1.updater import PUBLIC_ERROR_MESSAGE, get_updater_status
 from services.updater_status import UpdaterPhase, UpdaterStatusTracker
@@ -93,9 +94,12 @@ async def test_public_status_redacts_internal_error_details():
         last_error="database URL includes secret",
     )
 
-    response = await get_updater_status()
+    http_response = Response()
+    response = await get_updater_status(http_response)
 
     assert response.detail == PUBLIC_ERROR_MESSAGE
     assert response.last_error == PUBLIC_ERROR_MESSAGE
     assert response.background_updater_enabled is not None
+    assert http_response.headers["cache-control"] == "no-store"
+    assert http_response.headers["vary"] == "Cookie"
     shared_updater_status.stop(detail="test cleanup")

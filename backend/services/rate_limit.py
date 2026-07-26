@@ -14,6 +14,7 @@ from starlette.responses import JSONResponse, Response
 
 import config
 from services.auth import SESSION_COOKIE_NAME, decode_admin_session
+from utils.http_cache import prevent_private_response_caching
 
 IPAddress = IPv4Address | IPv6Address
 
@@ -99,8 +100,7 @@ class GuestRateLimitMiddleware(BaseHTTPMiddleware):
             and admin is not None
         ):
             response = await call_next(request)
-            response.headers["Cache-Control"] = "no-store"
-            response.headers.add_vary_header("Cookie")
+            prevent_private_response_caching(response)
             return response
 
         if (
@@ -130,8 +130,7 @@ class GuestRateLimitMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         response.headers.update(headers)
         if request.url.path.startswith("/v1/auth/"):
-            response.headers["Cache-Control"] = "no-store"
-            response.headers.add_vary_header("Cookie")
+            prevent_private_response_caching(response)
         return response
 
 

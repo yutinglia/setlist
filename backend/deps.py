@@ -3,7 +3,7 @@
 import hmac
 from collections.abc import AsyncGenerator
 
-from fastapi import Depends, Header, HTTPException, Query, Request, status
+from fastapi import Depends, Header, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import config
@@ -13,6 +13,10 @@ from services.auth import (
     AdminSession,
     decode_admin_session,
     is_auth_configured,
+)
+from utils.http_cache import (
+    prevent_private_response_caching,
+    private_response_headers,
 )
 
 DEFAULT_LIMIT = 20
@@ -38,19 +42,21 @@ def optional_admin_session(request: Request) -> AdminSession | None:
     return decode_admin_session(request.cookies.get(SESSION_COOKIE_NAME))
 
 
-def require_admin_session(request: Request) -> AdminSession:
+def require_admin_session(request: Request, response: Response) -> AdminSession:
     """Require a valid administrator session for private read endpoints."""
+    prevent_private_response_caching(response)
     if not is_auth_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Administrator authentication is not configured",
+            headers=private_response_headers(),
         )
     session = optional_admin_session(request)
     if session is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Administrator sign-in required",
-            headers={"WWW-Authenticate": "Session"},
+            headers=private_response_headers({"WWW-Authenticate": "Session"}),
         )
     return session
 
@@ -67,6 +73,7 @@ def require_admin_csrf(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid CSRF token",
+            headers=private_response_headers(),
         )
     return admin
 
@@ -76,5 +83,9 @@ def require_management_admin(
 ) -> AdminSession:
     """Require admin authorization and the management kill switch."""
     if not config.MANAGEMENT_API_ENABLED:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Not found",
+            headers=private_response_headers(),
+        )
     return admin

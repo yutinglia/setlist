@@ -1,0 +1,187 @@
+name: Build release images
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  FRONTEND_IMAGE: ghcr.io/yutinglia/setlist-frontend
+  BACKEND_IMAGE: ghcr.io/yutinglia/setlist-backend
+  MIGRATIONS_IMAGE: ghcr.io/yutinglia/setlist-migrations
+  POSTGRES_IMAGE: ghcr.io/yutinglia/setlist-postgres
+
+jobs:
+  release:
+    name: Build and publish
+    if: github.repository == 'yutinglia/setlist'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate release revision
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          source_version="$(tr -d '\r\n' < VERSION)"
+          if [[ ! "$source_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=VERSION::VERSION must use MAJOR.MINOR.PATCH."
+            exit 1
+          fi
+
+          if [[ "$GITHUB_REF_TYPE" != "tag" ]]; then
+            echo "::error::Releases require a semantic version tag."
+            exit 1
+          fi
+
+          expected_tag="v${source_version}"
+          if [[ "$GITHUB_REF_NAME" != "$expected_tag" ]]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match VERSION (${expected_tag})."
+            exit 1
+          fi
+
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main
+          tagged_commit="$(git rev-parse "${GITHUB_SHA}^{commit}")"
+          main_commit="$(git rev-parse "refs/remotes/origin/main^{commit}")"
+          if [[ "$tagged_commit" != "$main_commit" ]]; then
+            echo "::error::Release tag must point to the current protected main commit."
+            exit 1
+          fi
+
+          echo "APP_VERSION=$source_version" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Sign in to GitHub Container Registry
+        uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.5.1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish frontend
+        id: frontend
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:${{ env.IMAGE_TAG }}
+            ${{ env.FRONTEND_IMAGE }}:latest
+          build-args: |
+            APP_VERSION=${{ env.APP_VERSION }}
+            VITE_SOURCE_URL=https://github.com/yutinglia/setlist
+            VITE_PUBLIC_SITE_URL=https://setlist.yutinglia.com
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+          provenance: false
+          sbom: true
+
+      - name: Build and publish backend
+        id: backend
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: backend/Dockerfile
+          target: runtime
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:${{ env.IMAGE_TAG }}
+            ${{ env.BACKEND_IMAGE }}:latest
+          build-args: APP_VERSION=${{ env.APP_VERSION }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+          provenance: false
+          sbom: true
+
+      - name: Build and publish migrations
+        id: migrations
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: db/Dockerfile
+          push: true
+          tags: |
+            ${{ env.MIGRATIONS_IMAGE }}:${{ env.IMAGE_TAG }}
+            ${{ env.MIGRATIONS_IMAGE }}:latest
+          build-args: APP_VERSION=${{ env.APP_VERSION }}
+          cache-from: type=gha,scope=migrations
+          cache-to: type=gha,scope=migrations,mode=max
+          provenance: false
+          sbom: true
+
+      - name: Build and publish PostgreSQL
+        id: postgres
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: db/Postgres.Dockerfile
+          push: true
+          tags: |
+            ${{ env.POSTGRES_IMAGE }}:${{ env.IMAGE_TAG }}
+            ${{ env.POSTGRES_IMAGE }}:latest
+          build-args: APP_VERSION=${{ env.APP_VERSION }}
+          cache-from: type=gha,scope=postgres
+          cache-to: type=gha,scope=postgres,mode=max
+          provenance: false
+          sbom: true
+
+      - name: Attest frontend image
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ${{ env.FRONTEND_IMAGE }}
+          subject-digest: ${{ steps.frontend.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest backend image
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ${{ env.BACKEND_IMAGE }}
+          subject-digest: ${{ steps.backend.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest migrations image
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ${{ env.MIGRATIONS_IMAGE }}
+          subject-digest: ${{ steps.migrations.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest PostgreSQL image
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ${{ env.POSTGRES_IMAGE }}
+          subject-digest: ${{ steps.postgres.outputs.digest }}
+          push-to-registry: true
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$IMAGE_TAG" \
+            --verify-tag \
+            --generate-notes \
+            --title "Setlist ${IMAGE_TAG}"
