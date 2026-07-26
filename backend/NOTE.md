@@ -21,14 +21,14 @@ bypass updater caps, jitter, block detection, or the persisted cooldown.
 |--------|--------|
 | Dev Container | Python **3.12** (recommended) |
 | Local / conda | Python **3.11–3.12** recommended; avoid bleeding-edge versions unless you need them |
-| Runtime deps | `pip install -r requirements.txt` from `data_updater/` |
+| Runtime deps | `pip install -r requirements.txt` from `backend/` |
 | Dev/test deps | `pip install -r requirements-dev.txt` |
 
 ```bash
 # Local example (conda)
 conda create -n vks-yt-scraper python=3.12 -y
 conda activate vks-yt-scraper
-cd data_updater
+cd backend
 pip install -r requirements-dev.txt
 ```
 
@@ -103,7 +103,7 @@ YouTube extractors break often. The runtime pin is currently maintained in
 failure is extractor-related:
 
 ```bash
-cd data_updater
+cd backend
 pip install -U yt-dlp
 # reproduce the scrape, then pin the verified version in requirements.txt
 python -m pytest

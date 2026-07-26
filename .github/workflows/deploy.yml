@@ -76,7 +76,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          docker compose --env-file "$DEPLOY_ENV_FILE" build --pull frontend data_updater
+          docker compose --env-file "$DEPLOY_ENV_FILE" build --pull frontend backend
           docker tag homelab/vtuber-karaoke-search-frontend:latest \
             "homelab/vtuber-karaoke-search-frontend:${IMAGE_TAG}"
           docker tag homelab/vtuber-karaoke-search-api:latest \

@@ -35,7 +35,7 @@
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",
-        "python.analysis.extraPaths": ["/workspace/data_updater"],
+        "python.analysis.extraPaths": ["/workspace/backend"],
         "terminal.integrated.cwd": "/workspace",
         "files.watcherExclude": {
           "**/frontend/node_modules/**": true

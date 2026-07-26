@@ -1,7 +1,7 @@
 """Manual yt-dlp smoke checks.
 
 This is intentionally not part of pytest because it performs live YouTube calls.
-Run from ``data_updater/`` with ``python services/yt_scraper/test.py``.
+Run from ``backend/`` with ``python services/yt_scraper/test.py``.
 """
 
 from services.analyzer.yt_comment_analyzer import CommentAnalyzer

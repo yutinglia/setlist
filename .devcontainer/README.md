@@ -53,7 +53,7 @@ YouTube.
 Use the one-shot production-equivalent path when testing updater behavior:
 
 ```bash
-cd /workspace/data_updater
+cd /workspace/backend
 python run_updater_once.py
 ```
 
@@ -68,7 +68,7 @@ and session secret, guest search/browse works and login fails closed.
 
 To test admin features:
 
-1. From `data_updater/`, run `python generate_admin_password_hash.py`.
+1. From `backend/`, run `python generate_admin_password_hash.py`.
 2. Create an ignored `/workspace/.env` with `ADMIN_USERNAME`,
    `ADMIN_PASSWORD_HASH`, and a random `SESSION_SECRET` of at least 32 bytes.
 3. Keep `AUTH_COOKIE_SECURE=false` for local HTTP only.

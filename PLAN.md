@@ -24,7 +24,7 @@ scope, with individual work tracked in GitHub issues.
 | Public service limits | Per-IP guest/login limits; admin-only status/mutations |
 | Deployment | Same-origin frontend proxy; API/Postgres private; required secrets; gated self-hosted-runner CD |
 
-| Requirements (`data_updater/requirements.txt`) | Direct deps updated (Jul 2026) |
+| Requirements (`backend/requirements.txt`) | Direct deps updated (Jul 2026) |
 | Dev Container + Compose (Postgres + Flyway) | Done |
 | Public documentation | English + Traditional Chinese README, contribution/security policy |
 | `.env.example` + `DATA_UPDATE_INTERVAL` env | Done |
@@ -43,7 +43,7 @@ scope, with individual work tracked in GitHub issues.
 
 **Why:** Agents and future-you can actually start the stack.
 
-- [x] Fill `README.md`: what it is, how to run Postgres + migrate, how to run `data_updater`, env vars.
+- [x] Fill `README.md`: what it is, how to run Postgres + migrate, how to run `backend`, env vars.
 - [x] Add `.env.example` (`APP_ENV`, `DB_*` / `DATABASE_URL`, optional updater interval).
 - [x] Make `DATA_UPDATE_INTERVAL` configurable via env (remove hardcoded TODO in `config.py`).
 - [x] Document Docker / Dev Container run path (covers Linux; PowerShell scripts remain under `db/devscript/`).
@@ -153,7 +153,7 @@ locally and run `python run_updater_once.py` for one production-equivalent cycle
 - [x] Remove the placeholder example router; keep `/v1/health` and require an
   authenticated administrator for management mutations.
 - [x] Health check pings DB (`SELECT 1`; 503 if unavailable).
-- [x] yt-dlp bump notes in `data_updater/NOTE.md` (keep pin in `requirements.txt` after upgrades).
+- [x] yt-dlp bump notes in `backend/NOTE.md` (keep pin in `requirements.txt` after upgrades).
 - [x] Root `.gitignore`: `.env`, `__pycache__`, venvs, caches, etc.
 
 **Exit:** With required production secrets configured, `docker compose up
