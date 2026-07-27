@@ -68,6 +68,29 @@ class TestCommentAnalyzerDetection:
         )
         assert analyzer.has_song_list_comment() is True
 
+    def test_explicit_setlist_accepts_two_songs(self):
+        text = _setlist(
+            "セトリ [Set list]",
+            "01:00 Song A",
+            "05:00 Song B",
+            "",
+            "配信内容",
+            "00:10 greeting",
+        )
+        analyzer = CommentAnalyzer([_comment(text)], video_id=VIDEO_ID)
+        assert analyzer.has_song_list_comment() is True
+        assert [song.title for song in analyzer.extract_song_list()] == [
+            "Song A",
+            "Song B",
+        ]
+
+    def test_unlabelled_two_song_comment_still_does_not_qualify(self):
+        analyzer = CommentAnalyzer(
+            [_comment("01:00 Song A\n05:00 Song B")],
+            video_id=VIDEO_ID,
+        )
+        assert analyzer.has_song_list_comment() is False
+
     def test_invalid_timestamps_do_not_qualify(self):
         text = "1:99 nope\n2:77 nope\n3:60 nope"
         analyzer = CommentAnalyzer([_comment(text)], video_id=VIDEO_ID)
@@ -197,6 +220,11 @@ class TestCommentAnalyzerParsing:
         assert len(songs) == 1
         assert songs[0].title == "Title"
         assert songs[0].timestamp == "0:12:00"
+
+    def test_numbering_after_timestamp_is_stripped(self):
+        songs = self._songs_from("0:10 1. HINOTORI")
+        assert len(songs) == 1
+        assert songs[0].title == "HINOTORI"
 
     def test_numbered_title_dash_timestamp(self):
         songs = self._songs_from("1) 曲名 - 1:23")
@@ -403,6 +431,34 @@ class TestCommentAnalyzerParsing:
             )
         )
         assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
+
+    def test_wave_dash_separator_is_stripped(self):
+        songs = self._songs_from("0:10 〜 Song A")
+        assert songs[0].title == "Song A"
+
+    def test_wave_dash_at_end_of_song_title_is_preserved(self):
+        songs = self._songs_from("0:10 Crazy Party Night 〜ぱんぷきんの逆襲〜")
+        assert songs[0].title == "Crazy Party Night 〜ぱんぷきんの逆襲〜"
+
+    def test_chapter_only_start_and_end_rows_are_skipped(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set list",
+                "0:10 開始｜sᴛᴀʀᴛ",
+                "1:00 Song A",
+                "2:00 Song B",
+                "3:00 Ending",
+            )
+        )
+        assert [song.title for song in songs] == ["Song A", "Song B"]
+
+    def test_late_song_named_start_is_preserved(self):
+        songs = self._songs_from("25:12 StaRt")
+        assert songs[0].title == "StaRt"
+
+    def test_start_prefix_before_first_song_is_removed(self):
+        songs = self._songs_from("0:10 開始 & 01. Song A")
+        assert songs[0].title == "Song A"
 
     def test_setlist_allows_untimestamped_metadata_continuation_lines(self):
         text = _setlist(
