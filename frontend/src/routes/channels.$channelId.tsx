@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
-import { Link, createFileRoute } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import {
-  ArrowLeft,
   Check,
   ExternalLink,
   RefreshCw,
@@ -11,6 +10,7 @@ import {
 import { api } from "@/api/client"
 import { useAuthSession, useChannel, useChannelVideos } from "@/api/hooks"
 import type { ChannelVideoRefresh } from "@/api/types"
+import { ContextualBackButton } from "@/components/contextual-back-button"
 import { PaginationControls } from "@/components/pagination-controls"
 import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
@@ -201,13 +201,12 @@ function ChannelVideosPage() {
         })}
         noIndex={hasFilteredView || query.isError || channelQuery.isError}
       />
-      <Link
-        to="/channels"
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        {m.nav_channels()}
-      </Link>
+      <ContextualBackButton
+        label={m.back()}
+        onFallback={() =>
+          navigate({ to: "/channels", replace: true })
+        }
+      />
 
       <header className="mt-7 flex flex-col gap-5 border-b border-border/70 pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex min-w-0 items-center gap-4 sm:gap-5">

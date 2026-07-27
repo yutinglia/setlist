@@ -22,6 +22,7 @@ type Props = {
   suggestionFilters?: SongSearchFilters
   autoFocus?: boolean
   variant?: "default" | "hero"
+  hint?: string
 }
 
 export function SearchForm({
@@ -30,6 +31,7 @@ export function SearchForm({
   suggestionFilters,
   autoFocus,
   variant = "default",
+  hint,
 }: Props) {
   const isHero = variant === "hero"
   const [value, setValue] = useState(initialQuery)
@@ -294,7 +296,7 @@ export function SearchForm({
         </Button>
       </div>
       <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-left text-xs text-muted-foreground">
-        <p>{m.search_hint()}</p>
+        <p>{hint ?? m.search_hint()}</p>
         <p className="hidden shrink-0 font-mono lg:block">
           {m.search_shortcut()}
         </p>
