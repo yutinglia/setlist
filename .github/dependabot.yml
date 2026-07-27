@@ -5,14 +5,42 @@ updates:
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Taipei
+    cooldown:
+      # Routine updates wait three days; security updates are never delayed.
+      default-days: 3
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: ci
     labels:
       - dependencies
-      - security
+    groups:
+      automerge-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      automerge-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
 
   - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Asia/Taipei
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps
     ignore:
       # TypeScript 7 is a native compiler rewrite without the legacy compiler
       # API. Keep the latest 6.x until the surrounding Vite/TanStack toolchain
@@ -23,7 +51,15 @@ updates:
     labels:
       - dependencies
     groups:
-      frontend:
+      automerge-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      automerge-security:
+        applies-to: security-updates
         patterns:
           - "*"
 
@@ -31,41 +67,57 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Taipei
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps
     labels:
       - dependencies
     groups:
-      backend:
+      automerge-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      automerge-security:
+        applies-to: security-updates
         patterns:
           - "*"
 
   - package-ecosystem: docker
-    directory: /backend
+    directories:
+      - /backend
+      - /frontend
+      - /db
+      - /.devcontainer
     schedule:
       interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Asia/Taipei
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps
     labels:
       - dependencies
       - containers
-
-  - package-ecosystem: docker
-    directory: /frontend
-    schedule:
-      interval: weekly
-    labels:
-      - dependencies
-      - containers
-
-  - package-ecosystem: docker
-    directory: /db
-    schedule:
-      interval: weekly
-    labels:
-      - dependencies
-      - containers
-
-  - package-ecosystem: docker
-    directory: /.devcontainer
-    schedule:
-      interval: weekly
-    labels:
-      - dependencies
-      - containers
+    groups:
+      automerge-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      automerge-security:
+        applies-to: security-updates
+        patterns:
+          - "*"

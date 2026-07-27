@@ -25,7 +25,31 @@ names, and local filesystem paths.
 The four GHCR packages may be private even though the source repository is
 public. Authenticate to GHCR before pulling or independently verifying them.
 
+## Automated Dependabot release path
+
+After any reviewed and merged Dependabot pull request, the
+[`Prepare dependency release`](../.github/workflows/dependency-release.yml)
+workflow waits for the protected `main` CI run to succeed. It accepts only
+same-repository Dependabot pull requests whose commits are GitHub-verified and
+have a surviving approval. It then:
+
+1. creates or rebases a Patch release pull request containing only `VERSION`,
+   `frontend/package.json`, and `frontend/package-lock.json`;
+2. explicitly dispatches CI for that branch and enables squash auto-merge;
+3. waits for the branch protection rule and an independent maintainer approval;
+4. verifies the merged release pull request, creates its annotated tag on the
+   tested current `main`, and dispatches the normal release workflow.
+
+The privileged workflow never consumes pull-request artifacts or caches.
+Automatic pull requests and workflow dispatches use only the repository
+`GITHUB_TOKEN`, so this path does not introduce a maintainer PAT. If any
+identity, signature, review, version, changed-file, or current-revision check
+fails, it stops without publishing.
+
 ## Before tagging
+
+Use these steps for a manual release. The automated Dependabot path performs the
+equivalent version synchronization, approval, tag, and dispatch checks.
 
 1. Confirm the release pull request is approved, merged, and green.
 2. Update local `main` without rewriting history:

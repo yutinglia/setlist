@@ -1,0 +1,373 @@
+name: Prepare dependency release
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dependency-release
+  cancel-in-progress: false
+
+jobs:
+  dependency-release:
+    name: Prepare or publish dependency release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >-
+      github.repository == 'yutinglia/setlist' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      # Only the tested protected main branch is checked out. No pull-request
+      # artifacts or caches are consumed by this privileged workflow.
+      - name: Check out current main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Confirm the tested revision is still current
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --force --tags origin main
+          local_sha="$(git rev-parse HEAD)"
+          remote_sha="$(gh api "repos/$REPOSITORY/commits/main" --jq .sha)"
+
+          if [[ "$local_sha" != "$TESTED_SHA" || "$remote_sha" != "$TESTED_SHA" ]]; then
+            echo "main advanced after this CI run; the newer run will retry."
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "current=true" >> "$GITHUB_OUTPUT"
+
+      - name: Inspect dependency and release state
+        if: steps.current.outputs.current == 'true'
+        id: state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          write_output() {
+            printf '%s\n' "$1" >> "$GITHUB_OUTPUT"
+          }
+
+          write_output "mode=none"
+
+          version="$(tr -d '\r\n' < VERSION)"
+          if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error file=VERSION::VERSION must use MAJOR.MINOR.PATCH."
+            exit 1
+          fi
+
+          package_version="$(node -p "require('./frontend/package.json').version")"
+          lock_version="$(node -p "require('./frontend/package-lock.json').version")"
+          lock_root_version="$(
+            node -p "require('./frontend/package-lock.json').packages[''].version"
+          )"
+          if [[ "$package_version" != "$version" ||
+                "$lock_version" != "$version" ||
+                "$lock_root_version" != "$version" ]]; then
+            echo "::error::Tracked application versions are not synchronized."
+            exit 1
+          fi
+
+          release_tag="v${version}"
+          if git show-ref --verify --quiet "refs/tags/$release_tag"; then
+            if ! git merge-base --is-ancestor "$release_tag" HEAD; then
+              echo "::error::${release_tag} is not an ancestor of current main."
+              exit 1
+            fi
+
+            pending_prs=()
+            while IFS= read -r commit_sha; do
+              [[ -z "$commit_sha" ]] && continue
+
+              associated_prs="$(
+                gh api "repos/$REPOSITORY/commits/$commit_sha/pulls"
+              )"
+              while IFS=$'\t' read -r pr_number head_ref; do
+                [[ -z "$pr_number" ]] && continue
+
+                commits_json="$(
+                  gh api --paginate \
+                    "repos/$REPOSITORY/pulls/$pr_number/commits?per_page=100" \
+                    --slurp
+                )"
+                if ! jq -e '
+                  [.[][]] |
+                  length > 0 and
+                  all(.[];
+                    .author.login == "dependabot[bot]" and
+                    .commit.verification.verified == true
+                  )
+                ' <<< "$commits_json" > /dev/null; then
+                  echo "Skipping PR #${pr_number}: commits are not exclusively verified Dependabot commits."
+                  continue
+                fi
+
+                reviews_json="$(
+                  gh api --paginate \
+                    "repos/$REPOSITORY/pulls/$pr_number/reviews?per_page=100" \
+                    --slurp
+                )"
+                if ! jq -e '
+                  [.[][]] |
+                  any(.[]; .state == "APPROVED")
+                ' <<< "$reviews_json" > /dev/null; then
+                  echo "Skipping PR #${pr_number}: no surviving approval was found."
+                  continue
+                fi
+
+                pending_prs+=("#${pr_number}")
+                echo "Dependency release includes PR #${pr_number} (${head_ref})."
+              done < <(
+                jq -r --arg sha "$commit_sha" '
+                  .[] |
+                  select(
+                    .merged_at != null and
+                    .merge_commit_sha == $sha and
+                    .base.ref == "main" and
+                    .user.login == "dependabot[bot]" and
+                    (.head.ref | startswith("dependabot/"))
+                  ) |
+                  [.number, .head.ref] |
+                  @tsv
+                ' <<< "$associated_prs"
+              )
+            done < <(git rev-list --reverse "${release_tag}..HEAD")
+
+            if (( ${#pending_prs[@]} > 0 )); then
+              joined="$(IFS=,; echo "${pending_prs[*]}")"
+              write_output "mode=prepare"
+              write_output "pending_prs=$joined"
+            else
+              echo "No verified merged Dependabot PRs need a release."
+            fi
+            exit 0
+          fi
+
+          version_commit="$(git log -1 --format=%H -- VERSION)"
+          release_prs="$(
+            gh api "repos/$REPOSITORY/commits/$version_commit/pulls"
+          )"
+          matching_release_prs="$(
+            jq --arg sha "$version_commit" --arg head "release/$release_tag" '
+              [
+                .[] |
+                select(
+                  .merged_at != null and
+                  .merge_commit_sha == $sha and
+                  .base.ref == "main" and
+                  .head.ref == $head and
+                  .user.login == "github-actions[bot]"
+                )
+              ]
+            ' <<< "$release_prs"
+          )"
+          if [[ "$(jq 'length' <<< "$matching_release_prs")" != "1" ]]; then
+            echo "The untagged version was not created by the dependency release workflow."
+            exit 0
+          fi
+
+          release_pr_number="$(jq -r '.[0].number' <<< "$matching_release_prs")"
+          files_json="$(
+            gh api --paginate \
+              "repos/$REPOSITORY/pulls/$release_pr_number/files?per_page=100" \
+              --slurp
+          )"
+          if ! jq -e '
+            ([.[][] | .filename] | sort) ==
+            ([
+              "VERSION",
+              "frontend/package-lock.json",
+              "frontend/package.json"
+            ] | sort)
+          ' <<< "$files_json" > /dev/null; then
+            echo "::error::Automated release PR changed unexpected files."
+            exit 1
+          fi
+
+          reviews_json="$(
+            gh api --paginate \
+              "repos/$REPOSITORY/pulls/$release_pr_number/reviews?per_page=100" \
+              --slurp
+          )"
+          if ! jq -e '
+            [.[][]] |
+            any(.[];
+              .state == "APPROVED" and
+              .user.login != "github-actions[bot]"
+            )
+          ' <<< "$reviews_json" > /dev/null; then
+            echo "::error::Automated release PR lacks independent approval."
+            exit 1
+          fi
+
+          write_output "mode=publish"
+          write_output "release_tag=$release_tag"
+          write_output "release_pr=$release_pr_number"
+
+      - name: Create or refresh patch release PR
+        if: steps.state.outputs.mode == 'prepare'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PENDING_PRS: ${{ steps.state.outputs.pending_prs }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          open_prs="$(
+            gh api --method GET "repos/$REPOSITORY/pulls" \
+              -f state=open \
+              -f base=main \
+              -f per_page=100
+          )"
+          release_prs="$(
+            jq '[.[] | select(.head.ref | startswith("release/v"))]' <<< "$open_prs"
+          )"
+          release_count="$(jq 'length' <<< "$release_prs")"
+          if (( release_count > 1 )); then
+            echo "::error::More than one release PR is open."
+            exit 1
+          fi
+
+          if (( release_count == 1 )); then
+            release_author="$(jq -r '.[0].user.login' <<< "$release_prs")"
+            release_branch="$(jq -r '.[0].head.ref' <<< "$release_prs")"
+            pr_url="$(jq -r '.[0].html_url' <<< "$release_prs")"
+
+            if [[ "$release_author" != "github-actions[bot]" ]]; then
+              echo "A maintainer-managed release PR is already open: $pr_url"
+              exit 0
+            fi
+
+            git fetch origin \
+              "refs/heads/$release_branch:refs/remotes/origin/$release_branch"
+            git switch --force-create "$release_branch" "origin/$release_branch"
+            git rebase origin/main
+            git push --force-with-lease origin "$release_branch"
+          else
+            node scripts/bump-version.mjs patch
+            release_branch="$(git branch --show-current)"
+            git push --set-upstream origin "$release_branch"
+
+            release_version="$(tr -d '\r\n' < VERSION)"
+            release_tag="v${release_version}"
+            pr_body="$(
+              cat <<EOF
+          ## Summary
+
+          Automated patch release for merged Dependabot updates: ${PENDING_PRS}.
+
+          This PR only synchronizes \`VERSION\`, \`frontend/package.json\`, and
+          \`frontend/package-lock.json\`. It still requires the protected
+          branch checks and an independent maintainer approval. After merge,
+          the tested \`main\` revision is tagged and the existing release image
+          workflow is dispatched automatically.
+          EOF
+            )"
+            pr_url="$(
+              gh pr create \
+                --repo "$REPOSITORY" \
+                --base main \
+                --head "$release_branch" \
+                --title "Release ${release_tag} for dependency updates" \
+                --body "$pr_body"
+            )"
+          fi
+
+          release_version="$(tr -d '\r\n' < VERSION)"
+          release_tag="v${release_version}"
+          if [[ "$release_branch" != "release/$release_tag" ]]; then
+            echo "::error::Release branch and tracked version do not agree."
+            exit 1
+          fi
+
+          package_version="$(node -p "require('./frontend/package.json').version")"
+          lock_version="$(node -p "require('./frontend/package-lock.json').version")"
+          lock_root_version="$(
+            node -p "require('./frontend/package-lock.json').packages[''].version"
+          )"
+          if [[ "$package_version" != "$release_version" ||
+                "$lock_version" != "$release_version" ||
+                "$lock_root_version" != "$release_version" ]]; then
+            echo "::error::Release versions are not synchronized."
+            exit 1
+          fi
+
+          mapfile -t changed_files < <(
+            git diff --name-only origin/main...HEAD | sort
+          )
+          expected_files=(
+            VERSION
+            frontend/package-lock.json
+            frontend/package.json
+          )
+          mapfile -t expected_files < <(printf '%s\n' "${expected_files[@]}" | sort)
+          if [[ "$(printf '%s\n' "${changed_files[@]}")" != \
+                "$(printf '%s\n' "${expected_files[@]}")" ]]; then
+            echo "::error::Release PR contains unexpected file changes."
+            exit 1
+          fi
+
+          gh workflow run ci.yml --repo "$REPOSITORY" --ref "$release_branch"
+
+          auto_merge_enabled="$(
+            gh pr view "$pr_url" --json autoMergeRequest \
+              --jq '.autoMergeRequest != null'
+          )"
+          if [[ "$auto_merge_enabled" != "true" ]]; then
+            gh pr merge --auto --squash "$pr_url"
+          fi
+
+          echo "Prepared $pr_url; waiting for independent approval."
+
+      - name: Tag and dispatch the approved dependency release
+        if: steps.state.outputs.mode == 'publish'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_PR: ${{ steps.state.outputs.release_pr }}
+          RELEASE_TAG: ${{ steps.state.outputs.release_tag }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            echo "$RELEASE_TAG already exists."
+            exit 0
+          fi
+
+          node scripts/bump-version.mjs tag
+          git push origin "refs/tags/$RELEASE_TAG"
+          gh workflow run release.yml --repo "$REPOSITORY" --ref "$RELEASE_TAG"
+          echo "Dispatched $RELEASE_TAG from approved release PR #$RELEASE_PR."
