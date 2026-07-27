@@ -1,5 +1,12 @@
-import { ArrowRight, LoaderCircle, Search, X } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
+import { Link } from "@tanstack/react-router"
+import {
+  ArrowRight,
+  LoaderCircle,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 
 import {
@@ -23,6 +30,7 @@ type Props = {
   autoFocus?: boolean
   variant?: "default" | "hero"
   hint?: string
+  showAdvancedSearchLink?: boolean
 }
 
 export function SearchForm({
@@ -32,6 +40,7 @@ export function SearchForm({
   autoFocus,
   variant = "default",
   hint,
+  showAdvancedSearchLink = false,
 }: Props) {
   const isHero = variant === "hero"
   const [value, setValue] = useState(initialQuery)
@@ -296,7 +305,20 @@ export function SearchForm({
         </Button>
       </div>
       <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-left text-xs text-muted-foreground">
-        <p>{hint ?? m.search_hint()}</p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p>{hint ?? m.search_hint()}</p>
+          {showAdvancedSearchLink ? (
+            <Link
+              to="/search"
+              search={{ q: currentQuery || undefined }}
+              className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              <SlidersHorizontal className="size-3.5" aria-hidden />
+              {m.search_advanced_link()}
+              <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          ) : null}
+        </div>
         <p className="hidden shrink-0 font-mono lg:block">
           {m.search_shortcut()}
         </p>

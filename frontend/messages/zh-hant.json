@@ -47,6 +47,7 @@
   "search_shortcut": "按 / 快速搜尋",
   "search_hint": "輸入至少一個字後送出；輸入兩個字後會顯示建議。可用頻道、影片類型與日期縮小範圍。",
   "home_search_hint": "輸入至少一個字後送出；輸入兩個字後會顯示建議。",
+  "search_advanced_link": "進階搜尋",
   "search_suggestions_label": "歌曲名稱建議",
   "search_suggestions_loading": "正在尋找建議…",
   "search_suggestions_empty": "找不到歌曲名稱建議。",

@@ -47,6 +47,7 @@
   "search_shortcut": "/ キーで検索",
   "search_hint": "1文字以上入力して検索してください。2文字以上で候補が表示され、チャンネル、動画の種類、日付で絞り込めます。",
   "home_search_hint": "1文字以上入力して検索してください。2文字以上で候補が表示されます。",
+  "search_advanced_link": "詳細検索",
   "search_suggestions_label": "曲名の候補",
   "search_suggestions_loading": "候補を検索中…",
   "search_suggestions_empty": "曲名の候補が見つかりません。",

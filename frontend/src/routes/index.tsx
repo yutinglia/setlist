@@ -51,6 +51,7 @@ function HomePage() {
             autoFocus
             variant="hero"
             hint={m.home_search_hint()}
+            showAdvancedSearchLink
           />
         </div>
 
