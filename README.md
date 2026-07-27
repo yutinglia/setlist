@@ -238,6 +238,19 @@ node scripts/bump-version.mjs tag
 git push origin vX.Y.Z
 ```
 
+Merged Dependabot pull requests use the same protected release contract through
+[`Prepare dependency release`](.github/workflows/dependency-release.yml).
+After the tested `main` revision contains one or more verified Dependabot
+updates newer than the current release tag, the workflow creates or refreshes a
+Patch release pull request that changes only the three synchronized version
+files. It dispatches CI explicitly and enables squash auto-merge, but the
+release pull request still requires an independent maintainer approval. After
+that approved pull request merges, the workflow creates the annotated tag and
+dispatches the normal release-image workflow. The private production control
+plane then detects and deploys the complete matching image set through its
+existing polling path. This flow uses the repository `GITHUB_TOKEN`; it does not
+require a personal access token or a cross-repository secret.
+
 Ordinary source builds display the tracked version (and add a short commit SHA
 when Git metadata is available). Release images display the clean semantic
 version. Branch pushes and pull requests run CI but cannot publish a release or

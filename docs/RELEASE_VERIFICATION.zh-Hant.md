@@ -23,7 +23,29 @@
 即使 source repo 已公開，四個 GHCR package 仍可能是私有的。Pull 或自行驗證
 前，請先登入 GHCR。
 
+## Dependabot 自動 release 路徑
+
+任何通過 review 並合併的 Dependabot pull request，都會由
+[`Prepare dependency release`](../.github/workflows/dependency-release.yml)
+workflow 等待受保護 `main` 的 CI 成功。它只接受同 repo、commit 經 GitHub
+驗證且仍有有效核准的 Dependabot pull request，接著會：
+
+1. 建立或 rebase 一個 Patch release pull request，且只包含 `VERSION`、
+   `frontend/package.json` 與 `frontend/package-lock.json`；
+2. 明確 dispatch 該 branch 的 CI，並啟用 squash auto-merge；
+3. 等待 branch protection 與維護者獨立核准；
+4. 再次驗證已合併的 release pull request，於通過測試的目前 `main` 建立
+   annotated tag，並 dispatch 一般 release workflow。
+
+這個特權 workflow 不會取用 pull-request artifact 或 cache。自動 pull request
+與 workflow dispatch 只使用 repo 的 `GITHUB_TOKEN`，不會加入維護者 PAT。
+任何身分、簽章、review、版本、變更檔案或目前 revision 檢查失敗時，都會停止且
+不發布。
+
 ## 建立 tag 前
+
+以下步驟適用於手動 release。Dependabot 自動路徑會執行等效的版本同步、核准、
+tag 與 dispatch 檢查。
 
 1. 確認 release pull request 已通過審核、合併，且所有檢查皆為綠燈。
 2. 更新本機 `main`，不要改寫歷史：

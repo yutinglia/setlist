@@ -225,6 +225,17 @@ node scripts/bump-version.mjs tag
 git push origin vX.Y.Z
 ```
 
+已合併的 Dependabot pull request 會透過
+[`Prepare dependency release`](.github/workflows/dependency-release.yml) 沿用
+同一套受保護 release 規則。當通過測試的 `main` 包含比目前 release tag 更新的
+已驗證 Dependabot 更新時，workflow 會建立或更新一個 Patch release pull
+request，且只變更三個同步版本檔。它會明確 dispatch CI 並啟用 squash
+auto-merge，但 release pull request 仍需維護者獨立核准。核准並合併後，
+workflow 會建立 annotated tag，再 dispatch 既有的 release image workflow；
+私有 production 控制面隨後會透過原有輪詢流程偵測並部署完整且版本一致的 image
+組合。整個流程只使用 repo 的 `GITHUB_TOKEN`，不需要 personal access token 或
+跨 repo secret。
+
 一般 source build 會顯示 repo 內的版本；若有 Git metadata，還會加上短 commit
 SHA。Release image 則顯示乾淨的語意版本。Branch push 與 pull request 只會執行
 CI，不能發佈 release 或部署正式環境。
