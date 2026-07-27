@@ -176,12 +176,13 @@ SBOM／provenance 資料，最後才建立 GitHub Release。BuildKit SBOM 與 pr
 attestation。
 
 正式部署刻意由另一個私有 repo 控制。其 self-hosted runner 只會取用已發佈的
-release image，不會 checkout 或執行原始碼 repo 的 pull-request 程式碼。它每
-10 分鐘檢查四個私有 GHCR image label，只有完整且語意版本一致時才會部署；也可
-手動指定精確 tag。替換服務前會建立 custom-format PostgreSQL 備份；啟動後則
-同時要求 same-origin health endpoint 正常，以及持久化 updater heartbeat 為
-最新狀態。Fork 使用者不需要私有控制面，也能使用上方的本機 Compose 說明或
-自選部署系統。
+release image，不會 checkout 或執行原始碼 repo 的 pull-request 程式碼。GitHub
+Release 建立後，release workflow 會以權限範圍極小的 GitHub App installation
+token，將精確 tag 通知該控制面；部署端仍會獨立驗證四個私有 GHCR image 後才
+使用。每小時的輪詢會保留作為補漏，也可手動指定精確 tag。替換服務前會建立
+custom-format PostgreSQL 備份；啟動後則同時要求 same-origin health endpoint
+正常，以及持久化 updater heartbeat 為最新狀態。Fork 使用者不需要私有控制面，
+也能使用上方的本機 Compose 說明或自選部署系統。
 
 Production Compose 也有明確的資源上限：nginx 為 128 MiB／0.25 CPU、
 API 與 scraper 為 768 MiB／1 CPU、PostgreSQL 為 512 MiB／0.75 CPU，
@@ -232,9 +233,10 @@ git push origin vX.Y.Z
 request，且只變更三個同步版本檔。它會明確 dispatch CI 並啟用 squash
 auto-merge，但 release pull request 仍需維護者獨立核准。核准並合併後，
 workflow 會建立 annotated tag，再 dispatch 既有的 release image workflow；
-私有 production 控制面隨後會透過原有輪詢流程偵測並部署完整且版本一致的 image
-組合。整個流程只使用 repo 的 `GITHUB_TOKEN`，不需要 personal access token 或
-跨 repo secret。
+之後再透過僅限單一 repo 的短效 GitHub App token 通知私有 production 控制面，
+由它部署完整且版本一致的 image 組合。相依套件與 release pull request 自動化
+使用 repo 的 `GITHUB_TOKEN`；跨 repo 通知則使用 release environment 中的 App
+憑證，而非維護者 personal access token。
 
 一般 source build 會顯示 repo 內的版本；若有 Git metadata，還會加上短 commit
 SHA。Release image 則顯示乾淨的語意版本。Branch push 與 pull request 只會執行
