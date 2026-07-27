@@ -1,10 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { ArrowRight, Search } from "lucide-react"
-import { useState } from "react"
+import { Link, createFileRoute } from "@tanstack/react-router"
+import {
+  ArrowRight,
+  Disc3,
+  ListMusic,
+  Sparkles,
+  Users,
+} from "lucide-react"
 
+import { useSummaryReport } from "@/api/hooks"
 import { PageMetadata } from "@/components/page-metadata"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { SearchForm } from "@/components/search-form"
+import { formatInteger } from "@/lib/locale-format"
 import { m } from "@/paraglide/messages"
 
 export const Route = createFileRoute("/")({
@@ -13,9 +19,9 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const navigate = Route.useNavigate()
-  const [query, setQuery] = useState("")
+  const summary = useSummaryReport()
 
-  function submit() {
+  function submit(query: string) {
     const q = query.trim()
     if (!q) return
     void navigate({
@@ -25,7 +31,7 @@ function HomePage() {
   }
 
   return (
-    <section className="grid min-h-[min(760px,78svh)] flex-1 place-items-center py-14 sm:py-20">
+    <section className="grid min-h-[min(820px,82svh)] flex-1 place-items-center py-14 sm:py-20">
       <PageMetadata
         path="/"
         title={m.meta_default_title()}
@@ -39,41 +45,84 @@ function HomePage() {
           {m.home_intro()}
         </p>
 
-        <form
-          className="mx-auto mt-9 flex max-w-3xl gap-2.5 text-left"
-          role="search"
-          onSubmit={(event) => {
-            event.preventDefault()
-            submit()
-          }}
-        >
-          <div className="relative min-w-0 flex-1">
-            <Search
-              className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-primary sm:left-5 sm:size-6"
-              aria-hidden
-            />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={m.search_placeholder()}
-              aria-label={m.search_placeholder()}
-              maxLength={200}
-              autoFocus
-              className="h-16 rounded-2xl border-border bg-card pr-4 pl-12 text-base shadow-[0_28px_80px_-38px_rgba(55,40,150,0.7)] sm:h-18 sm:pl-15 sm:text-lg"
-            />
-          </div>
-          <Button
-            type="submit"
-            size="lg"
-            className="h-16 rounded-2xl px-5 sm:h-18 sm:px-8"
-            disabled={!query.trim()}
-            aria-label={m.search_submit()}
-          >
-            <span className="hidden sm:inline">{m.search_submit()}</span>
-            <ArrowRight aria-hidden />
-          </Button>
-        </form>
+        <div className="mx-auto mt-9 max-w-3xl text-left">
+          <SearchForm
+            onQuerySubmit={submit}
+            autoFocus
+            variant="hero"
+          />
+        </div>
+
+        <LibrarySummary
+          songs={summary.data?.songs.total}
+          setlists={summary.data?.analysis.with_setlist}
+          channels={summary.data?.channels}
+          loading={summary.isLoading}
+        />
       </div>
     </section>
+  )
+}
+
+function LibrarySummary({
+  songs,
+  setlists,
+  channels,
+  loading,
+}: {
+  songs?: number
+  setlists?: number
+  channels?: number
+  loading: boolean
+}) {
+  const metrics = [
+    [ListMusic, songs, m.home_library_songs()],
+    [Disc3, setlists, m.home_library_setlists()],
+    [Users, channels, m.home_library_channels()],
+  ] as const
+
+  return (
+    <aside className="surface animate-rise stagger-3 relative mx-auto mt-7 max-w-3xl overflow-hidden p-4 text-left sm:p-5">
+      <div className="absolute -top-20 -right-16 size-44 rounded-full bg-primary/10 blur-3xl" />
+      <div className="relative">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
+              <Sparkles className="size-4" aria-hidden />
+            </span>
+            <div>
+              <p className="eyebrow">{m.home_library_live()}</p>
+              <h2 className="mt-1 font-display text-lg font-bold">
+                {m.home_library_title()}
+              </h2>
+            </div>
+          </div>
+          <Link
+            to="/summary"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+          >
+            {m.nav_summary()}
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        </div>
+
+        <dl className="mt-4 grid gap-2 sm:grid-cols-3">
+          {metrics.map(([Icon, value, label]) => (
+            <div
+              key={label}
+              className="rounded-xl border border-border/60 bg-secondary/45 px-4 py-3"
+            >
+              <dt className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Icon className="size-3.5 text-primary" aria-hidden />
+                {label}
+              </dt>
+              <dd className="mt-1.5 font-display text-2xl font-bold tabular-nums">
+                {loading || value === undefined ? "—" : formatInteger(value)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </aside>
   )
 }
