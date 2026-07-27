@@ -215,8 +215,38 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
-          gh release create "$IMAGE_TAG" \
-            --verify-tag \
-            --generate-notes \
-            --title "Setlist ${IMAGE_TAG}"
+          set -euo pipefail
+
+          if gh release view "$IMAGE_TAG" > /dev/null 2>&1; then
+            echo "GitHub Release ${IMAGE_TAG} already exists."
+          else
+            gh release create "$IMAGE_TAG" \
+              --verify-tag \
+              --generate-notes \
+              --title "Setlist ${IMAGE_TAG}"
+          fi
+
+      - name: Create deployment dispatch token
+        id: deploy-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.DEPLOY_DISPATCH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DEPLOY_DISPATCH_APP_PRIVATE_KEY }}
+          owner: yutinglia
+          repositories: setlist-deploy
+          permission-contents: write
+
+      - name: Notify deployment control plane
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.deploy-token.outputs.token }}
+          RELEASE_TAG: ${{ env.IMAGE_TAG }}
+        run: |
+          set -euo pipefail
+
+          gh api --method POST \
+            repos/yutinglia/setlist-deploy/dispatches \
+            -f event_type=setlist_release_published \
+            -F "client_payload[release_tag]=$RELEASE_TAG"

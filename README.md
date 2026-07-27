@@ -187,12 +187,14 @@ is enabled when the source repository is public.
 
 Production deployment is intentionally controlled by a separate private
 repository. Its self-hosted runner consumes published release images; it never
-checks out or executes pull-request code from the source repository. It polls
-the four private GHCR image labels every ten minutes and deploys only a complete,
-matching semantic release; exact tags can also be dispatched manually. Before
-replacement it creates a custom-format PostgreSQL backup, and after startup it
-requires both the same-origin health endpoint and a fresh durable updater
-heartbeat. A fork can use any deployment system or the local Compose
+checks out or executes pull-request code from the source repository. After the
+GitHub Release exists, the release workflow uses a narrowly scoped GitHub App
+installation token to notify that control plane of the exact tag. The deployment
+independently verifies all four private GHCR images before using them; an hourly
+poll remains as a fallback, and exact tags can also be dispatched manually.
+Before replacement it creates a custom-format PostgreSQL backup, and after
+startup it requires both the same-origin health endpoint and a fresh durable
+updater heartbeat. A fork can use any deployment system or the local Compose
 instructions above without needing the private control plane.
 
 Production Compose also applies explicit resource ceilings: 128 MiB / 0.25 CPU
@@ -247,9 +249,11 @@ files. It dispatches CI explicitly and enables squash auto-merge, but the
 release pull request still requires an independent maintainer approval. After
 that approved pull request merges, the workflow creates the annotated tag and
 dispatches the normal release-image workflow. The private production control
-plane then detects and deploys the complete matching image set through its
-existing polling path. This flow uses the repository `GITHUB_TOKEN`; it does not
-require a personal access token or a cross-repository secret.
+plane is then notified through a short-lived, single-repository GitHub App token
+and deploys the complete matching image set. The dependency and release pull
+request automation uses the repository `GITHUB_TOKEN`; cross-repository
+notification uses a release-environment App credential instead of a maintainer
+personal access token.
 
 Ordinary source builds display the tracked version (and add a short commit SHA
 when Git metadata is available). Release images display the clean semantic

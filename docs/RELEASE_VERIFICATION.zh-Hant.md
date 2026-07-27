@@ -17,8 +17,10 @@
 - 每個 image 都包含 BuildKit provenance 與 SBOM。Source repo 公開時，
   workflow 還會建立並驗證 GitHub 簽章 artifact attestation，通過後才建立
   GitHub Release。
-- 正式部署由獨立控制面取用已發布的 image。一般 source checkout 也能直接用
-  Docker Compose 建置相同應用程式，不需要私有部署控制面。
+- 正式部署由獨立控制面取用已發布的 image。GitHub Release 發布後，source
+  workflow 會用僅限部署控制面的短效 GitHub App token 傳送精確 tag。一般
+  source checkout 也能直接用 Docker Compose 建置相同應用程式，不需要該私有
+  控制面。
 
 即使 source repo 已公開，四個 GHCR package 仍可能是私有的。Pull 或自行驗證
 前，請先登入 GHCR。
@@ -41,6 +43,10 @@ workflow 等待受保護 `main` 的 CI 成功。它只接受同 repo、commit �
 與 workflow dispatch 只使用 repo 的 `GITHUB_TOKEN`，不會加入維護者 PAT。
 任何身分、簽章、review、版本、變更檔案或目前 revision 檢查失敗時，都會停止且
 不發布。
+
+Release 發布後，跨 repo 的部署通知會使用 release environment 內另一組 GitHub
+App 憑證。該 App 只安裝在部署控制面，僅有 API 所需的 `Contents: write`
+權限；workflow 建立的每個 token 又會進一步限制為該單一 repo 與 permission。
 
 ## 建立 tag 前
 
@@ -106,11 +112,12 @@ Workflow step 顯示成功本身不能取代密碼學驗證；實際驗證由
 
 1. 確認精確 tag 的 `Build release images` run 成功。
 2. 確認 GitHub Release 已建立，且指向該 `main` commit。
-3. 確認四個版本化 image tag 都存在，並具有預期的 OCI version label、SBOM、
+3. 確認精確 tag 的部署通知已被接受。
+4. 確認四個版本化 image tag 都存在，並具有預期的 OCI version label、SBOM、
    provenance 與 attestation。
-4. 確認部署選用一組完整且版本相符的 release，再檢查公開 health endpoint 與
+5. 確認部署選用一組完整且版本相符的 release，再檢查公開 health endpoint 與
   網站 footer 顯示的版本。
-5. 詳細正式環境檢查只留在私有部署控制面；本 repo 僅記錄可重用且不敏感的
+6. 詳細正式環境檢查只留在私有部署控制面；本 repo 僅記錄可重用且不敏感的
    發現。
 
 ## Build context 注意事項

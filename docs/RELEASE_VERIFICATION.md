@@ -19,8 +19,11 @@ names, and local filesystem paths.
   repository is public, the workflow also creates and verifies a signed GitHub
   artifact attestation before it creates the GitHub Release.
 - Production deployment is controlled separately and consumes published
-  images. A source checkout can instead build the same application locally with
-  Docker Compose and does not require the private deployment control plane.
+  images. After publishing the GitHub Release, the source workflow sends the
+  exact tag through a short-lived GitHub App token that is limited to the
+  deployment control plane. A source checkout can instead build the same
+  application locally with Docker Compose and does not require that private
+  control plane.
 
 The four GHCR packages may be private even though the source repository is
 public. Authenticate to GHCR before pulling or independently verifying them.
@@ -45,6 +48,12 @@ Automatic pull requests and workflow dispatches use only the repository
 `GITHUB_TOKEN`, so this path does not introduce a maintainer PAT. If any
 identity, signature, review, version, changed-file, or current-revision check
 fails, it stops without publishing.
+
+After a release is published, its cross-repository deployment notification uses
+a separate GitHub App credential stored in the release environment. The App is
+installed only on the deployment control plane with the API-required
+`Contents: write` permission, and each workflow token is further restricted to
+that single repository and permission.
 
 ## Before tagging
 
@@ -116,11 +125,12 @@ verification.
 
 1. Confirm the `Build release images` run succeeded for the exact tag.
 2. Confirm the GitHub Release exists and targets the tagged `main` commit.
-3. Confirm all four versioned image tags exist and have the expected OCI version
+3. Confirm the exact-tag deployment notification was accepted.
+4. Confirm all four versioned image tags exist and have the expected OCI version
    label, SBOM, provenance, and attestation.
-4. Confirm the deployment selected one complete matching release, then verify
+5. Confirm the deployment selected one complete matching release, then verify
    the public health endpoint and the version displayed in the site footer.
-5. Keep detailed production checks in the private deployment control plane;
+6. Keep detailed production checks in the private deployment control plane;
    record only reusable, non-sensitive findings in this repository.
 
 ## Build-context note
