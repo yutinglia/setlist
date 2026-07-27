@@ -1,8 +1,9 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
-import { ArrowRight, Plus, Radio } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useCallback } from "react"
 
 import { PAGE_SIZE, useAuthSession, useChannels } from "@/api/hooks"
+import { ChannelCard } from "@/components/channel-card"
 import { ChannelRequestNotice } from "@/components/channel-request-notice"
 import { PaginationControls } from "@/components/pagination-controls"
 import { PageMetadata } from "@/components/page-metadata"
@@ -74,10 +75,6 @@ function ChannelsPage() {
         </div>
       </header>
 
-      {!auth.isLoading && !isAdmin ? (
-        <ChannelRequestNotice className="mt-8" />
-      ) : null}
-
       <div className="mt-8">
         <QueryState
           isLoading={query.isLoading}
@@ -85,50 +82,15 @@ function ChannelsPage() {
           isEmpty={query.isSuccess && query.data.items.length === 0}
           emptyMessage={m.channels_empty()}
           onRetry={() => void query.refetch()}
+          loadingLayout="grid"
         >
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="media-grid">
             {query.data?.items.map((channel, index) => (
-              <li
+              <ChannelCard
                 key={channel.id}
-                className={`animate-rise stagger-${Math.min((index % 4) + 1, 4)}`}
-              >
-                <Link
-                  to="/channels/$channelId"
-                  params={{ channelId: channel.id }}
-                  className="surface group flex h-full min-h-32 items-center gap-4 p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30"
-                >
-                  <span className="relative shrink-0">
-                    {channel.thumbnail_url ? (
-                      <img
-                        src={channel.thumbnail_url}
-                        alt=""
-                        className="size-16 rounded-2xl object-cover ring-1 ring-border"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <span className="grid size-16 place-items-center rounded-2xl bg-primary/10 font-display text-xl font-bold text-primary">
-                        {channel.name.slice(0, 1)}
-                      </span>
-                    )}
-                    <span className="absolute -right-1 -bottom-1 grid size-6 place-items-center rounded-lg border-2 border-card bg-accent text-accent-foreground">
-                      <Radio className="size-3" aria-hidden />
-                    </span>
-                  </span>
-
-                  <span className="min-w-0 flex-1 text-left">
-                    <span className="block truncate font-display text-lg font-bold transition-colors group-hover:text-primary">
-                      {channel.name}
-                    </span>
-                    <span className="mt-1 block truncate font-mono text-[0.65rem] text-muted-foreground">
-                      {channel.id}
-                    </span>
-                  </span>
-                  <ArrowRight
-                    className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary"
-                    aria-hidden
-                  />
-                </Link>
-              </li>
+                channel={channel}
+                index={index}
+              />
             ))}
           </ul>
           {query.data ? (
@@ -142,6 +104,10 @@ function ChannelsPage() {
           ) : null}
         </QueryState>
       </div>
+
+      {!auth.isLoading && !isAdmin ? (
+        <ChannelRequestNotice className="mt-12" />
+      ) : null}
     </section>
   )
 }

@@ -363,10 +363,11 @@ BACKGROUND_UPDATER_ENABLED=true
 | 方法 | 路徑 | 用途 |
 |------|------|------|
 | `GET` | `/v1/health` | API 與資料庫健康狀態 |
-| `GET` | `/v1/songs/search?q=` | 搜尋歌曲，可選用頻道／類型／日期篩選 |
-| `GET` | `/v1/songs/suggestions?q=` | 最多 10 個不重複的歌名建議，可選用頻道／類型／日期篩選 |
+| `GET` | `/v1/songs/search?q=` | 搜尋歌曲，可重複指定頻道，並選用類型／日期篩選 |
+| `GET` | `/v1/songs/suggestions?q=` | 最多 10 個不重複的歌名建議，可重複指定頻道，並選用類型／日期篩選 |
 | `GET` | `/v1/songs/{id}` | 歌曲詳情與帶時間戳的 YouTube 連結 |
 | `GET` | `/v1/channels` | 已追蹤頻道 |
+| `GET` | `/v1/channels/{id}` | 單一已追蹤頻道的公開中繼資料 |
 | `GET` | `/v1/channels/{id}/videos` | 指定頻道的影片 |
 | `GET` | `/v1/videos/{id}` | 影片中繼資料 |
 | `GET` | `/v1/videos/{id}/songs` | 從指定影片抽取的歌曲 |
@@ -377,13 +378,14 @@ BACKGROUND_UPDATER_ENABLED=true
 範例：
 
 ```bash
-curl 'http://localhost:8000/v1/songs/search?q=Stellar&type=karaoke'
+curl 'http://localhost:8000/v1/songs/search?q=Stellar&channel_id=UC_FIRST&channel_id=UC_SECOND&type=karaoke'
 ```
 
 搜尋結果會包含類似
 `https://www.youtube.com/watch?v=...&t=300s` 的 `video_url`。
 
 搜尋 UI 會在輸入至少兩個字並停止 500 毫秒後，取得最多八個輕量建議。
+訪客最多可複選 25 個頻道，前端會以重複的 `channel_id` 參數送出。
 完整搜尋只會在訪客送出表單或選取建議時執行。
 
 ### 僅限管理員的端點

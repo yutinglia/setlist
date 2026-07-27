@@ -81,7 +81,7 @@ export function useSummaryReport() {
 }
 
 export type SongSearchFilters = {
-  channelId?: string
+  channelIds?: string[]
   type?: "karaoke" | "song"
   uploadDateFrom?: string
   uploadDateTo?: string
@@ -93,7 +93,7 @@ export function useSongSearch(
   filters: SongSearchFilters = {},
 ) {
   const offset = page * PAGE_SIZE
-  const channelId = filters.channelId
+  const channelIds = filters.channelIds
   const type = filters.type
   const uploadDateFrom = filters.uploadDateFrom
   const uploadDateTo = filters.uploadDateTo
@@ -103,14 +103,14 @@ export function useSongSearch(
       "search",
       q,
       page,
-      channelId ?? null,
+      channelIds ?? null,
       type ?? null,
       uploadDateFrom ?? null,
       uploadDateTo ?? null,
     ],
     queryFn: () =>
       api.searchSongs(q, PAGE_SIZE, offset, {
-        channelId,
+        channelIds,
         type,
         uploadDateFrom,
         uploadDateTo,
@@ -126,7 +126,7 @@ export function useSongSuggestions(
   options?: { enabled?: boolean },
 ) {
   const normalizedQuery = q.trim()
-  const channelId = filters.channelId
+  const channelIds = filters.channelIds
   const type = filters.type
   const uploadDateFrom = filters.uploadDateFrom
   const uploadDateTo = filters.uploadDateTo
@@ -135,7 +135,7 @@ export function useSongSuggestions(
       "songs",
       "suggestions",
       normalizedQuery,
-      channelId ?? null,
+      channelIds ?? null,
       type ?? null,
       uploadDateFrom ?? null,
       uploadDateTo ?? null,
@@ -145,7 +145,7 @@ export function useSongSuggestions(
         normalizedQuery,
         SONG_SUGGESTION_LIMIT,
         {
-          channelId,
+          channelIds,
           type,
           uploadDateFrom,
           uploadDateTo,
@@ -182,6 +182,15 @@ export function useChannels(page: number) {
     queryKey: ["channels", page],
     queryFn: () => api.listChannels(PAGE_SIZE, offset),
     placeholderData: (prev) => prev,
+  })
+}
+
+export function useChannel(channelId: string) {
+  return useQuery({
+    queryKey: ["channels", channelId],
+    queryFn: () => api.getChannel(channelId),
+    enabled: channelId.length > 0,
+    staleTime: 60_000,
   })
 }
 

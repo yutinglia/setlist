@@ -11,6 +11,7 @@ type Props = {
   isEmpty?: boolean
   emptyMessage: string
   onRetry?: () => void
+  loadingLayout?: "rows" | "grid"
   children: ReactNode
 }
 
@@ -20,9 +21,23 @@ export function QueryState({
   isEmpty,
   emptyMessage,
   onRetry,
+  loadingLayout = "rows",
   children,
 }: Props) {
   if (isLoading) {
+    if (loadingLayout === "grid") {
+      return (
+        <div className="media-grid" aria-busy aria-label={m.loading()}>
+          {Array.from({ length: 8 }, (_, index) => (
+            <div key={index}>
+              <Skeleton className="aspect-video w-full rounded-xl bg-muted" />
+              <Skeleton className="mt-3 h-4 w-5/6 rounded-md bg-muted" />
+              <Skeleton className="mt-2 h-3 w-1/2 rounded-md bg-muted" />
+            </div>
+          ))}
+        </div>
+      )
+    }
     return (
       <div className="grid gap-3" aria-busy aria-label={m.loading()}>
         <Skeleton className="h-24 w-full rounded-2xl bg-muted" />

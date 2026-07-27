@@ -73,9 +73,10 @@ async def search_songs(
         max_length=200,
         description="Literal substring match on song title",
     ),
-    channel_id: str | None = Query(
+    channel_id: list[str] | None = Query(
         None,
-        description="Limit results to songs from this channel id",
+        max_length=25,
+        description="Repeat to limit results to any of these channel ids",
     ),
     type: Literal["karaoke", "song"] | None = Query(
         None,
@@ -113,7 +114,7 @@ async def search_songs(
         q,
         limit=limit,
         offset=offset,
-        channel_id=channel_id,
+        channel_ids=channel_id,
         video_type=type,
         upload_date_from=upload_date_from,
         upload_date_to=upload_date_to,
@@ -129,9 +130,10 @@ async def suggest_songs(
         max_length=200,
         description="Literal substring match used for title suggestions",
     ),
-    channel_id: str | None = Query(
+    channel_id: list[str] | None = Query(
         None,
-        description="Limit suggestions to songs from this channel id",
+        max_length=25,
+        description="Repeat to limit suggestions to any of these channel ids",
     ),
     type: Literal["karaoke", "song"] | None = Query(
         None,
@@ -163,7 +165,7 @@ async def suggest_songs(
     return await SongRepository(session).suggest_titles(
         q,
         limit=limit,
-        channel_id=channel_id,
+        channel_ids=channel_id,
         video_type=type,
         upload_date_from=upload_date_from,
         upload_date_to=upload_date_to,
@@ -193,6 +195,18 @@ async def list_channels(
     items = await repo.get_all(limit=limit, offset=offset)
     total = await repo.count_all()
     return Paginated(items=items, total=total, limit=limit, offset=offset)
+
+
+@router.get("/channels/{channel_id}", response_model=ChannelRead)
+async def get_channel(
+    channel_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Return one tracked channel without exposing its raw scraper payload."""
+    channel = await ChannelRepository(session).get_by_id(channel_id)
+    if channel is None:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return channel
 
 
 @router.post(

@@ -47,7 +47,7 @@ function HowToUsePage() {
             />
           </ol>
           <Link
-            to="/"
+            to="/search"
             className={cn(buttonVariants(), "mt-2 inline-flex")}
           >
             <Search aria-hidden />

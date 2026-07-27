@@ -75,11 +75,18 @@ const yyyymmdd = z
   .optional()
   .catch(undefined)
 
-/** Home search query (`?q=&page=&channel_id=&type=&date_from=&date_to=`). */
+const channelIdsSchema = z
+  .string()
+  .trim()
+  .max(6_500)
+  .optional()
+  .catch(undefined)
+
+/** Search-page query (`?q=&page=&channel_ids=&type=&date_from=&date_to=`). */
 export const songSearchSchema = z.object({
   q: z.string().trim().max(200).optional().catch(undefined),
   page: z.coerce.number().int().min(0).max(MAX_PAGE).optional().catch(undefined),
-  channel_id: z.string().trim().min(1).max(255).optional().catch(undefined),
+  channel_ids: channelIdsSchema,
   type: z.enum(["karaoke", "song"]).optional().catch(undefined),
   date_from: yyyymmdd,
   date_to: yyyymmdd,
@@ -87,6 +94,28 @@ export const songSearchSchema = z.object({
 
 export type PageSearch = z.infer<typeof pageSearchSchema>
 export type SongSearch = z.infer<typeof songSearchSchema>
+
+/** Parse the compact comma-separated channel list stored in the page URL. */
+export function parseChannelIds(value: string | undefined): string[] {
+  if (!value) return []
+  return [
+    ...new Set(
+      value
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
+        .slice(0, 25),
+    ),
+  ]
+}
+
+/** Serialize selected channels into a stable, shareable URL value. */
+export function serializeChannelIds(
+  values: string[] | undefined,
+): string | undefined {
+  const unique = [...new Set(values?.map((id) => id.trim()).filter(Boolean))]
+  return unique.length > 0 ? unique.slice(0, 25).join(",") : undefined
+}
 
 /** Convert HTML date input value (`YYYY-MM-DD`) to API/URL `YYYYMMDD`. */
 export function htmlDateToYyyymmdd(value: string): string | undefined {

@@ -272,7 +272,12 @@ export function SearchForm({
             </div>
           ) : null}
         </div>
-        <Button type="submit" className="h-14 px-4 sm:px-6" size="lg">
+        <Button
+          type="submit"
+          className="h-14 px-4 sm:px-6"
+          size="lg"
+          aria-label={m.search_submit()}
+        >
           <span className="hidden sm:inline">{m.search_submit()}</span>
           <ArrowRight aria-hidden />
         </Button>

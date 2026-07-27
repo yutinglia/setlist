@@ -65,7 +65,7 @@ class SongRepository:
         *,
         limit: int,
         offset: int = 0,
-        channel_id: str | None = None,
+        channel_ids: list[str] | None = None,
         video_type: str | None = None,
         upload_date_from: str | None = None,
         upload_date_to: str | None = None,
@@ -92,8 +92,8 @@ class SongRepository:
             .join(Channels, Videos.channel_id == Channels.id)
             .where(Songs.title.ilike(pattern, escape="\\"))
         )
-        if channel_id is not None:
-            base = base.where(Videos.channel_id == channel_id)
+        if channel_ids:
+            base = base.where(Videos.channel_id.in_(channel_ids))
         if video_type is not None:
             base = base.where(Videos.type == video_type)
         if upload_date_from is not None or upload_date_to is not None:
@@ -132,7 +132,7 @@ class SongRepository:
         query: str,
         *,
         limit: int = 8,
-        channel_id: str | None = None,
+        channel_ids: list[str] | None = None,
         video_type: str | None = None,
         upload_date_from: str | None = None,
         upload_date_to: str | None = None,
@@ -157,14 +157,14 @@ class SongRepository:
             .where(Songs.title.ilike(contains_pattern, escape="\\"))
         )
         if (
-            channel_id is not None
+            channel_ids
             or video_type is not None
             or upload_date_from is not None
             or upload_date_to is not None
         ):
             stmt = stmt.join(Videos, Songs.video_id == Videos.id)
-            if channel_id is not None:
-                stmt = stmt.where(Videos.channel_id == channel_id)
+            if channel_ids:
+                stmt = stmt.where(Videos.channel_id.in_(channel_ids))
             if video_type is not None:
                 stmt = stmt.where(Videos.type == video_type)
             if upload_date_from is not None or upload_date_to is not None:
