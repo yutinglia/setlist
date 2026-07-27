@@ -5,6 +5,7 @@ import {
   Check,
   ExternalLink,
   Hash,
+  Info,
   Play,
   Radio,
   RefreshCw,
@@ -221,47 +222,62 @@ function VideoDetailPage() {
                                   song.id ??
                                   `${song.title}-${song.timestamp}-${index}`
                                 }
-                                className={`animate-rise group flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-secondary/60 stagger-${Math.min((index % 4) + 1, 4)}`}
+                                className={`animate-rise flex items-center gap-1 rounded-xl border border-transparent p-1 transition-colors hover:border-border/60 hover:bg-secondary/30 stagger-${Math.min((index % 4) + 1, 4)}`}
                               >
-                                <span className="w-7 shrink-0 text-right font-mono text-xs text-muted-foreground">
-                                  {String(
-                                    page * PAGE_SIZE + index + 1,
-                                  ).padStart(2, "0")}
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                  {song.id != null ? (
-                                    <Link
-                                      to="/songs/$songId"
-                                      params={{ songId: String(song.id) }}
-                                      className="block truncate font-semibold transition-colors group-hover:text-primary"
-                                    >
-                                      {song.title}
-                                    </Link>
-                                  ) : (
-                                    <span className="block truncate font-semibold">
-                                      {song.title}
-                                    </span>
-                                  )}
-                                </span>
-                                {song.timestamp ? (
-                                  <a
-                                    href={youtubeUrlAtTimestamp(
-                                      videoQuery.data.url,
-                                      song.timestamp,
-                                    )}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 font-mono text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
-                                    aria-label={m.play_from_timestamp({
-                                      timestamp: song.timestamp,
-                                    })}
-                                  >
+                                <a
+                                  href={
+                                    song.timestamp
+                                      ? youtubeUrlAtTimestamp(
+                                          videoQuery.data.url,
+                                          song.timestamp,
+                                        )
+                                      : videoQuery.data.url
+                                  }
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="group flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2"
+                                  aria-label={
+                                    song.timestamp
+                                      ? m.play_from_timestamp({
+                                          timestamp: song.timestamp,
+                                        })
+                                      : `${song.title} — ${m.open_youtube()}`
+                                  }
+                                >
+                                  <span className="w-7 shrink-0 text-right font-mono text-xs text-muted-foreground">
+                                    {String(
+                                      page * PAGE_SIZE + index + 1,
+                                    ).padStart(2, "0")}
+                                  </span>
+                                  <span className="min-w-0 flex-1 truncate font-semibold transition-colors group-hover:text-primary">
+                                    {song.title}
+                                  </span>
+                                  <span className="flex w-fit shrink-0 items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 font-mono text-xs font-semibold text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                                     <Play
                                       className="size-3 fill-current"
                                       aria-hidden
                                     />
-                                    {song.timestamp}
-                                  </a>
+                                    {song.timestamp ?? "—"}
+                                  </span>
+                                </a>
+                                {song.id != null ? (
+                                  <Link
+                                    to="/songs/$songId"
+                                    params={{ songId: String(song.id) }}
+                                    className={cn(
+                                      buttonVariants({
+                                        variant: "outline",
+                                        size: "sm",
+                                      }),
+                                      "mr-1 shrink-0",
+                                    )}
+                                    aria-label={`${song.title} — ${m.view_details()}`}
+                                  >
+                                    <Info aria-hidden />
+                                    <span className="hidden sm:inline">
+                                      {m.view_details()}
+                                    </span>
+                                  </Link>
                                 ) : null}
                               </li>
                             ))}

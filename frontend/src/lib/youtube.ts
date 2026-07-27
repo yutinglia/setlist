@@ -21,6 +21,11 @@ export function youtubeThumbnailUrl(videoId: string): string {
   return `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`
 }
 
+/** Canonical YouTube watch URL without a playback timestamp. */
+export function youtubeVideoUrl(videoId: string): string {
+  return `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`
+}
+
 function timestampToSeconds(
   timestamp: string | null | undefined,
 ): number | null {

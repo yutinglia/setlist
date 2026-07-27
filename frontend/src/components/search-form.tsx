@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
 import { useUiStore } from "@/stores/ui-store"
 
@@ -20,6 +21,7 @@ type Props = {
   onQuerySubmit: (q: string) => void
   suggestionFilters?: SongSearchFilters
   autoFocus?: boolean
+  variant?: "default" | "hero"
 }
 
 export function SearchForm({
@@ -27,7 +29,9 @@ export function SearchForm({
   onQuerySubmit,
   suggestionFilters,
   autoFocus,
+  variant = "default",
 }: Props) {
+  const isHero = variant === "hero"
   const [value, setValue] = useState(initialQuery)
   const [isOpen, setIsOpen] = useState(false)
   const [hasEdited, setHasEdited] = useState(false)
@@ -178,7 +182,11 @@ export function SearchForm({
             }}
             placeholder={m.search_placeholder()}
             maxLength={200}
-            className="h-14 rounded-xl border-border/80 bg-card pr-20 pl-12 text-base shadow-[0_18px_50px_-34px_rgba(40,30,100,0.6)]"
+            className={cn(
+              "h-14 rounded-xl border-border/80 bg-card pr-20 pl-12 text-base shadow-[0_18px_50px_-34px_rgba(40,30,100,0.6)]",
+              isHero &&
+                "h-16 rounded-2xl border-border pl-12 shadow-[0_28px_80px_-38px_rgba(55,40,150,0.7)] sm:h-18 sm:pl-15 sm:text-lg",
+            )}
             autoFocus={autoFocus}
             aria-label={m.search_placeholder()}
             role="combobox"
@@ -274,7 +282,10 @@ export function SearchForm({
         </div>
         <Button
           type="submit"
-          className="h-14 px-4 sm:px-6"
+          className={cn(
+            "h-14 px-4 sm:px-6",
+            isHero && "h-16 rounded-2xl px-5 sm:h-18 sm:px-8",
+          )}
           size="lg"
           aria-label={m.search_submit()}
         >
