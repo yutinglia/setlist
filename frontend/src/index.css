@@ -135,6 +135,26 @@
   @apply rounded-2xl border border-border/70 bg-card/80 shadow-[0_24px_70px_-48px_rgba(25,20,70,0.45)] backdrop-blur-sm;
 }
 
+.media-grid {
+  @apply grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+}
+
+.media-card {
+  @apply flex min-w-0 flex-col;
+}
+
+.media-thumbnail {
+  @apply relative block aspect-video overflow-hidden rounded-xl bg-secondary shadow-[0_18px_50px_-35px_rgba(25,20,70,0.65)] outline-none ring-primary/70 transition-[transform,box-shadow,ring] hover:-translate-y-0.5 hover:shadow-[0_24px_58px_-32px_rgba(60,45,150,0.55)] focus-visible:ring-2;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 .eyebrow {
   @apply font-mono text-[0.68rem] font-semibold tracking-[0.18em] text-primary uppercase;
 }

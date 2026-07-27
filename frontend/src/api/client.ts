@@ -111,7 +111,7 @@ export const api = {
     limit: number,
     offset: number,
     filters?: {
-      channelId?: string
+      channelIds?: string[]
       type?: "karaoke" | "song"
       uploadDateFrom?: string
       uploadDateTo?: string
@@ -122,7 +122,9 @@ export const api = {
       limit: String(limit),
       offset: String(offset),
     })
-    if (filters?.channelId) params.set("channel_id", filters.channelId)
+    for (const channelId of filters?.channelIds ?? []) {
+      params.append("channel_id", channelId)
+    }
     if (filters?.type) params.set("type", filters.type)
     if (filters?.uploadDateFrom) {
       params.set("upload_date_from", filters.uploadDateFrom)
@@ -139,7 +141,7 @@ export const api = {
     q: string,
     limit: number,
     filters?: {
-      channelId?: string
+      channelIds?: string[]
       type?: "karaoke" | "song"
       uploadDateFrom?: string
       uploadDateTo?: string
@@ -150,7 +152,9 @@ export const api = {
       q,
       limit: String(limit),
     })
-    if (filters?.channelId) params.set("channel_id", filters.channelId)
+    for (const channelId of filters?.channelIds ?? []) {
+      params.append("channel_id", channelId)
+    }
     if (filters?.type) params.set("type", filters.type)
     if (filters?.uploadDateFrom) {
       params.set("upload_date_from", filters.uploadDateFrom)
@@ -169,6 +173,11 @@ export const api = {
   listChannels: (limit: number, offset: number) =>
     request<Paginated<YouTubeChannel>>(
       `/v1/channels?${pageQuery(limit, offset)}`,
+    ),
+
+  getChannel: (channelId: string) =>
+    request<YouTubeChannel>(
+      `/v1/channels/${encodeURIComponent(channelId)}`,
     ),
 
   createChannel: (url: string) =>

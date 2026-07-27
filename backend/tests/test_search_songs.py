@@ -33,7 +33,7 @@ async def test_search_songs_forwards_filters(monkeypatch):
 
     result = await search.search_songs(
         "Stellar",
-        "UC-test",
+        ["UC-test", "UC-second"],
         "karaoke",
         "20240101",
         "20241231",
@@ -48,7 +48,7 @@ async def test_search_songs_forwards_filters(monkeypatch):
         "Stellar",
         limit=20,
         offset=0,
-        channel_id="UC-test",
+        channel_ids=["UC-test", "UC-second"],
         video_type="karaoke",
         upload_date_from="20240101",
         upload_date_to="20241231",
@@ -76,7 +76,7 @@ async def test_search_songs_omits_unset_filters(monkeypatch):
         "Love",
         limit=20,
         offset=0,
-        channel_id=None,
+        channel_ids=None,
         video_type=None,
         upload_date_from=None,
         upload_date_to=None,
@@ -115,7 +115,7 @@ async def test_suggest_songs_forwards_limit_and_filters(monkeypatch):
 
     result = await search.suggest_songs(
         q="Ste",
-        channel_id="UC-test",
+        channel_id=["UC-test", "UC-second"],
         type="karaoke",
         upload_date_from="20240101",
         upload_date_to="20241231",
@@ -127,7 +127,7 @@ async def test_suggest_songs_forwards_limit_and_filters(monkeypatch):
     song_repo.suggest_titles.assert_awaited_once_with(
         "Ste",
         limit=8,
-        channel_id="UC-test",
+        channel_ids=["UC-test", "UC-second"],
         video_type="karaoke",
         upload_date_from="20240101",
         upload_date_to="20241231",

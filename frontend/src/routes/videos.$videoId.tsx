@@ -16,6 +16,7 @@ import { api } from "@/api/client"
 import {
   PAGE_SIZE,
   useAuthSession,
+  useChannel,
   useVideo,
   useVideoSongs,
 } from "@/api/hooks"
@@ -43,6 +44,7 @@ function VideoDetailPage() {
   const queryClient = useQueryClient()
   const auth = useAuthSession()
   const videoQuery = useVideo(videoId)
+  const channelQuery = useChannel(videoQuery.data?.channel_id ?? "")
   const isSong = (videoQuery.data?.type ?? "").toLowerCase() === "song"
   const isKaraoke = (videoQuery.data?.type ?? "").toLowerCase() === "karaoke"
   const songsQuery = useVideoSongs(videoId, page, {
@@ -131,7 +133,7 @@ function VideoDetailPage() {
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
         >
           <ArrowLeft className="size-4" aria-hidden />
-          {m.channel_videos_heading()}
+          {channelQuery.data?.name ?? m.channel_videos_heading()}
         </Link>
       ) : (
         <Link
@@ -288,9 +290,9 @@ function VideoDetailPage() {
                         <Link
                           to="/channels/$channelId"
                           params={{ channelId: videoQuery.data.channel_id }}
-                          className="break-all font-medium text-primary hover:underline"
+                          className="font-medium text-primary hover:underline"
                         >
-                          {videoQuery.data.channel_id}
+                          {channelQuery.data?.name ?? m.channel_videos_heading()}
                         </Link>
                       }
                     />

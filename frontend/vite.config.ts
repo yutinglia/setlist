@@ -13,6 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repositoryRoot = path.resolve(__dirname, "..")
 const sitemapPaths = [
   "/",
+  "/search",
   "/channels",
   "/summary",
   "/how-to-use",

@@ -160,12 +160,12 @@ async def test_upsert_channel_video_and_replace_songs(session: AsyncSession):
         ],
     )
     percent_hits, percent_total = await song_repo.search_by_title(
-        "%", limit=20, offset=0, channel_id=channel_id
+        "%", limit=20, offset=0, channel_ids=[channel_id]
     )
     assert percent_total == 1
     assert [song.title for song in percent_hits] == ["100% Love"]
     underscore_hits, underscore_total = await song_repo.search_by_title(
-        "_", limit=20, offset=0, channel_id=channel_id
+        "_", limit=20, offset=0, channel_ids=[channel_id]
     )
     assert underscore_total == 1
     assert [song.title for song in underscore_hits] == ["Under_score"]
@@ -514,7 +514,7 @@ async def test_search_by_title_filters_channel_type_and_date(session: AsyncSessi
         unique,
         limit=20,
         offset=0,
-        channel_id=channel_a,
+        channel_ids=[channel_a],
     )
     assert channel_total == 3
     assert {hit.channel_id for hit in channel_hits} == {channel_a}
@@ -556,7 +556,7 @@ async def test_search_by_title_filters_channel_type_and_date(session: AsyncSessi
         "%",
         limit=20,
         offset=0,
-        channel_id=channel_a,
+        channel_ids=[channel_a],
         video_type="karaoke",
     )
     assert percent_total == 1
@@ -658,7 +658,7 @@ async def test_suggest_titles_deduplicates_ranks_and_filters(session: AsyncSessi
     filtered = await song_repo.suggest_titles(
         needle,
         limit=8,
-        channel_id=channel_b,
+        channel_ids=[channel_b],
         video_type="karaoke",
         upload_date_from="20240101",
         upload_date_to="20241231",

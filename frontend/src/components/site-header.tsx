@@ -70,8 +70,8 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto text-sm lg:order-2 lg:w-auto">
-          <NavLink to="/" label={m.nav_search()} icon={Search} exact />
+        <nav className="scrollbar-none order-3 flex w-full items-center gap-1 overflow-x-auto text-sm lg:order-2 lg:w-auto">
+          <NavLink to="/search" label={m.nav_search()} icon={Search} exact />
           <NavLink to="/channels" label={m.nav_channels()} icon={Radio} />
           <NavLink to="/summary" label={m.nav_summary()} icon={BarChart3} />
           <NavLink
@@ -111,7 +111,11 @@ export function SiteHeader() {
             </>
           ) : (
             <Button asChild size="sm" variant="ghost">
-              <Link to="/admin/login">
+              <Link
+                to="/admin/login"
+                aria-label={m.auth_sign_in()}
+                title={m.auth_sign_in()}
+              >
                 <LogIn aria-hidden />
                 <span className="hidden sm:inline">{m.auth_sign_in()}</span>
               </Link>
@@ -202,7 +206,7 @@ function NavLink({
   icon: Icon,
   exact = false,
 }: {
-  to: "/" | "/channels" | "/summary" | "/how-to-use" | "/status"
+  to: "/search" | "/channels" | "/summary" | "/how-to-use" | "/status"
   label: string
   icon: typeof Search
   exact?: boolean

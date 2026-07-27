@@ -94,11 +94,12 @@ proxy.
 
 | Path | API |
 |------|-----|
-| `/` | Submit-only `GET /v1/songs/search`; 500 ms debounced `GET /v1/songs/suggestions` while typing (both support optional channel/type/date filters) |
+| `/` | Focused song-title entry point that routes submitted terms to `/search` |
+| `/search` | Submit-only `GET /v1/songs/search`; 500 ms debounced `GET /v1/songs/suggestions` while typing (both support repeated channel, type, and date filters) |
 | `/songs/$songId` | `GET /v1/songs/{id}` |
 | `/channels` | `GET /v1/channels` |
 | `/channels/new` | Administrator-only `POST /v1/channels` |
-| `/channels/$channelId` | `GET /v1/channels/{id}/videos`; administrator refresh control |
+| `/channels/$channelId` | `GET /v1/channels/{id}` + `/videos`; administrator refresh control |
 | `/videos/$videoId` | `GET /v1/videos/{id}` + `/songs`; administrator reload control |
 | `/admin/login` | `GET /v1/auth/session`; `POST /v1/auth/login` |
 | `/status` | Administrator-only `GET /v1/updater/status` |

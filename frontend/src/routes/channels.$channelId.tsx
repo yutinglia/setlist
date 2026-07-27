@@ -3,20 +3,19 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import {
   ArrowLeft,
-  CalendarDays,
   Check,
-  ChevronRight,
+  ExternalLink,
   RefreshCw,
 } from "lucide-react"
 
 import { api } from "@/api/client"
-import { useAuthSession, useChannelVideos } from "@/api/hooks"
+import { useAuthSession, useChannel, useChannelVideos } from "@/api/hooks"
 import type { ChannelVideoRefresh } from "@/api/types"
 import { PaginationControls } from "@/components/pagination-controls"
 import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
 import { Button } from "@/components/ui/button"
-import { VideoListBadges } from "@/components/video-list-badges"
+import { VideoCard } from "@/components/video-card"
 import { useClampPage } from "@/hooks/use-clamp-page"
 import { CHANNEL_PAGE_SIZES } from "@/lib/pagination"
 import {
@@ -24,11 +23,7 @@ import {
   resolveChannelPageSize,
   toChannelVideosSearch,
 } from "@/lib/search-schemas"
-import {
-  formatUploadDate,
-  sortVideosByUploadDateDesc,
-  uploadDateTimeAttr,
-} from "@/lib/upload-date"
+import { sortVideosByUploadDateDesc } from "@/lib/upload-date"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
 
@@ -82,6 +77,7 @@ function ChannelVideosPage() {
   const navigate = Route.useNavigate()
   const queryClient = useQueryClient()
   const auth = useAuthSession()
+  const channelQuery = useChannel(channelId)
   const canManage =
     auth.data?.authenticated === true &&
     auth.data.role === "admin" &&
@@ -197,9 +193,13 @@ function ChannelVideosPage() {
     <section className="animate-fade py-10 sm:py-14">
       <PageMetadata
         path={`/channels/${encodeURIComponent(channelId)}`}
-        title={m.meta_channel_title({ channel: channelId })}
-        description={m.meta_channel_description({ channel: channelId })}
-        noIndex={hasFilteredView || query.isError}
+        title={m.meta_channel_title({
+          channel: channelQuery.data?.name ?? m.channel_videos_heading(),
+        })}
+        description={m.meta_channel_description({
+          channel: channelQuery.data?.name ?? m.channel_videos_heading(),
+        })}
+        noIndex={hasFilteredView || query.isError || channelQuery.isError}
       />
       <Link
         to="/channels"
@@ -210,17 +210,46 @@ function ChannelVideosPage() {
       </Link>
 
       <header className="mt-7 flex flex-col gap-5 border-b border-border/70 pb-8 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <p className="eyebrow">{m.channel_library_eyebrow()}</p>
-          <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">
-            {m.channel_videos_heading()}
-          </h1>
-          <p className="mt-3 break-all font-mono text-xs text-muted-foreground">
-            {channelId}
-          </p>
+        <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+          {channelQuery.data?.thumbnail_url ? (
+            <img
+              src={channelQuery.data.thumbnail_url}
+              alt=""
+              className="size-18 shrink-0 rounded-full object-cover ring-2 ring-border sm:size-22"
+            />
+          ) : (
+            <span className="grid size-18 shrink-0 place-items-center rounded-full bg-primary/10 font-display text-2xl font-bold text-primary sm:size-22">
+              {channelQuery.data?.name.slice(0, 1) ?? "—"}
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="eyebrow">{m.channel_library_eyebrow()}</p>
+            <h1 className="mt-2 truncate font-display text-3xl font-bold tracking-tight sm:text-5xl">
+              {channelQuery.data?.name ?? m.channel_videos_heading()}
+            </h1>
+            {channelQuery.data ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                <span className="font-medium">{m.channel_id_label()}:</span>{" "}
+                <span className="break-all font-mono">{channelId}</span>
+              </p>
+            ) : null}
+          </div>
         </div>
-        {canManage ? (
-          <div className="flex max-w-sm flex-col items-end gap-1">
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          {channelQuery.data ? (
+            <Button asChild variant="outline" size="sm">
+              <a
+                href={channelQuery.data.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                YouTube
+                <ExternalLink aria-hidden />
+              </a>
+            </Button>
+          ) : null}
+          {canManage ? (
+            <div className="flex max-w-sm flex-col items-start gap-1 sm:items-end">
             <Button
               type="button"
               variant={reloadStatus === "error" ? "destructive" : "outline"}
@@ -251,8 +280,9 @@ function ChannelVideosPage() {
                   ? reloadDetail
                   : m.reload_hint()}
             </p>
-          </div>
-        ) : null}
+            </div>
+          ) : null}
+        </div>
       </header>
 
       <div className="surface mt-7 flex flex-col gap-4 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
@@ -326,6 +356,7 @@ function ChannelVideosPage() {
           isEmpty={query.isSuccess && query.data.items.length === 0}
           emptyMessage={emptyMessage}
           onRetry={() => void query.refetch()}
+          loadingLayout="grid"
         >
           <div
             className={cn(
@@ -334,52 +365,10 @@ function ChannelVideosPage() {
             )}
             aria-busy={isReloading}
           >
-            <ul className="grid gap-3">
-              {videos.map((video, i) => {
-                const formattedDate = formatUploadDate(video.upload_date)
-                const dateLabel =
-                  formattedDate &&
-                  video.upload_date_precision === "approximate"
-                    ? m.video_date_approximate({ date: formattedDate })
-                    : formattedDate
-                return (
-                  <li
-                    key={video.id}
-                    className={`animate-rise stagger-${Math.min((i % 4) + 1, 4)}`}
-                  >
-                    <Link
-                      to="/videos/$videoId"
-                      params={{ videoId: video.id }}
-                      className="surface group flex items-center gap-4 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 sm:p-5"
-                    >
-                      <span className="hidden size-11 shrink-0 place-items-center rounded-xl bg-secondary text-primary sm:grid">
-                        <CalendarDays className="size-4" aria-hidden />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-display text-base font-bold leading-snug transition-colors group-hover:text-primary sm:text-lg">
-                          {video.title}
-                        </span>
-                        <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
-                          <time
-                            dateTime={uploadDateTimeAttr(
-                              video.upload_date,
-                              video.upload_date_precision,
-                            )}
-                            className="font-mono tabular-nums tracking-wide"
-                          >
-                            {dateLabel ?? m.video_date_unknown()}
-                          </time>
-                          <VideoListBadges
-                            type={video.type}
-                            hasSetlist={video.has_song_list_comment}
-                          />
-                        </span>
-                      </span>
-                      <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" aria-hidden />
-                    </Link>
-                  </li>
-                )
-              })}
+            <ul className="media-grid">
+              {videos.map((video, i) => (
+                <VideoCard key={video.id} video={video} index={i} />
+              ))}
             </ul>
           </div>
           {query.data ? (

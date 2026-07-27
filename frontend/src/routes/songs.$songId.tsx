@@ -46,7 +46,7 @@ function SongDetailPage() {
         noIndex={invalidId || query.isError}
       />
       <Link
-        to="/"
+        to="/search"
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
       >
         <ArrowLeft className="size-4" aria-hidden />

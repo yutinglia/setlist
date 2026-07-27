@@ -16,6 +16,11 @@ export function youtubeUrlAtTimestamp(
   }
 }
 
+/** Public YouTube thumbnail for a known video id. */
+export function youtubeThumbnailUrl(videoId: string): string {
+  return `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`
+}
+
 function timestampToSeconds(
   timestamp: string | null | undefined,
 ): number | null {
