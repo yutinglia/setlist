@@ -47,6 +47,7 @@
   "search_shortcut": "Press / to search",
   "search_hint": "Type at least one character and submit. Suggestions appear after two characters. Optional filters narrow the results.",
   "home_search_hint": "Type at least one character and submit. Suggestions appear after two characters.",
+  "search_advanced_link": "Advanced search",
   "search_suggestions_label": "Song title suggestions",
   "search_suggestions_loading": "Finding suggestions…",
   "search_suggestions_empty": "No title suggestions found.",
