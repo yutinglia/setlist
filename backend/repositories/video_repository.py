@@ -78,6 +78,15 @@ class VideoRepository:
         videos = result.scalars().all()
         return [self._to_model(video) for video in videos]
 
+    async def get_with_stored_comments(self) -> list[YouTubeVideo]:
+        """Videos with a reusable object-shaped top-comment snapshot."""
+        result = await self.session.execute(
+            select(Videos)
+            .where(func.jsonb_typeof(Videos.comments_raw_data) == "object")
+            .order_by(Videos.channel_id, Videos.id)
+        )
+        return [self._to_model(video) for video in result.scalars().all()]
+
     async def get_by_id(self, video_id: str) -> YouTubeVideo | None:
         """根據 ID 取得單一影片"""
         result = await self.session.execute(select(Videos).where(Videos.id == video_id))

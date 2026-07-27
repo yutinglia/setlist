@@ -292,6 +292,28 @@ session/rate-limit storage.
 
 ---
 
+## Post-Phase 9 — Production-derived classification and parser quality
+
+- [x] Audit every stored video from title plus persisted duration/live metadata,
+  then cover observed singing-stream variants (`Sing`, conjugated Japanese
+  singing phrases, acoustic/a-cappella streams, Chinese singing titles, and
+  bracketed 3D performances).
+- [x] Recognize bracketed/parenthesized English `Original` and CJK original-song
+  labels without treating generic original animations or long uploads as songs.
+- [x] Ignore trailing creator-role `KARAOKE/Vsinger` boilerplate when the real
+  title explicitly identifies a game, talk, or watchalong stream.
+- [x] Accept an explicit two-song setlist while retaining the three-song
+  threshold for unlabelled timestamp clusters.
+- [x] Strip timestamp-adjacent numbering and leading wave-dash separators, and
+  exclude standalone Start/開始/Ending chapter rows without dropping later
+  songs genuinely titled `StaRt`.
+- [x] Keep raw top-comment observations so analyzer-only upgrades can be
+  dry-run and replayed without another YouTube request. Reclassification from
+  persisted metadata resets newly recognized karaoke archives to the normal
+  paced analysis queue; only records without stored comments require yt-dlp.
+
+---
+
 ## Release and homelab deployment automation
 
 - [x] Track a portable application version outside CI and expose it in the

@@ -315,6 +315,25 @@ cd backend
 python run_updater_once.py
 ```
 
+更新分類器或 regex analyzer 後，可在完全不連線 YouTube 的情況下，先預覽
+新規則套用至既有中繼資料與已保存 top comments 的結果：
+
+```bash
+python reanalyze_stored_data.py
+```
+
+預設會在同一個 transaction 中執行 dry run，並且一律 rollback。檢查統計結果
+並完成資料庫備份後，才明確套用：
+
+```bash
+python reanalyze_stored_data.py --apply
+```
+
+此命令會沿用 updater 的跨程序鎖、重新分類所有既有影片、將新辨識出的
+karaoke archive 排入 queue，並且只在保存的原始留言產生「成功且有變更」的
+歌單時取代歌曲。負面結果不會清除舊成功資料，經 LLM 清理的歌單會跳過；尚未
+保存留言的影片仍交由正常、有限速的 yt-dlp queue 處理。
+
 只有在確定要進行爬取時才啟用長時間背景服務：
 
 ```dotenv

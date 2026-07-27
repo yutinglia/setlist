@@ -20,6 +20,7 @@ _TIMESTAMP_RE = re.compile(
 
 # Separators commonly placed around timestamps in setlist comments
 _SEPARATORS = r"[-~～–—|｜・·／/\s]+"
+_LEADING_SEPARATORS = r"[-~～〜–—|｜・·／/\s]+"
 
 # Leading list numbers: "01. ", "1) ", "1、", "(1) ", "[1] "
 # Do not treat "1:23" as numbering (colon is reserved for timestamps).
@@ -55,6 +56,25 @@ _SETLIST_CONTINUATION_HEADER_RE = re.compile(
 )
 _TITLE_CHAR_RE = re.compile(r"[\w\u3040-\u30ff\u3400-\u9fff]")
 _CUSTOM_EMOJI_RE = re.compile(r":[\w+-]{2,}:")
+_CHAPTER_ONLY_TITLE_RE = re.compile(
+    r"(?:"
+    r"(?:start|sᴛᴀʀᴛ|stream\s+start)"
+    r"(?:\s*[|｜/]\s*(?:開始|配信開始|スタート))?|"
+    r"(?:開始|配信開始|スタート)"
+    r"(?:\s*[|｜/]\s*(?:start|sᴛᴀʀᴛ|stream\s+start))?|"
+    r"ending?|stream\s+end|終了|配信終了"
+    r")",
+    flags=re.IGNORECASE,
+)
+_CHAPTER_PREFIX_RE = re.compile(
+    r"(?:開始|配信開始|start|stream\s+start)\s*[&＆]\s*",
+    flags=re.IGNORECASE,
+)
+_ASCII_START_ONLY_TITLE_RE = re.compile(
+    r"(?:start|sᴛᴀʀᴛ|stream\s+start)",
+    flags=re.IGNORECASE,
+)
+_EARLY_CHAPTER_MAX_SECONDS = 10 * 60
 _TIMESTAMP_REGRESSION_TOLERANCE_SECONDS = 60
 
 
@@ -94,7 +114,16 @@ class CommentAnalyzer:
                 continue
             text = self._comment_text(comment)
             songs = self.extract_from_text(text)
-            if len(songs) < self.minimum_timestamp_count:
+            # Two real songs are enough when the author explicitly labels the
+            # section as a setlist. Unlabelled timestamp clusters keep the
+            # normal (default three-song) threshold to reject chat chapters.
+            explicit_two_song_setlist = (
+                len(songs) >= 2 and _SETLIST_HEADER_RE.search(text) is not None
+            )
+            if (
+                len(songs) < self.minimum_timestamp_count
+                and not explicit_two_song_setlist
+            ):
                 continue
             score = self._score_comment(comment, len(songs))
             if best is None or score > best[0]:
@@ -348,8 +377,8 @@ class CommentAnalyzer:
         before = re.sub(r"[(\[【（]+$", "", before).strip()
         after = re.sub(r"^[)\]】）]+", "", after).strip()
 
-        before = re.sub(rf"^{_SEPARATORS}|{_SEPARATORS}$", "", before).strip()
-        after = re.sub(rf"^{_SEPARATORS}|{_SEPARATORS}$", "", after).strip()
+        before = re.sub(rf"^{_LEADING_SEPARATORS}|{_SEPARATORS}$", "", before).strip()
+        after = re.sub(rf"^{_LEADING_SEPARATORS}|{_SEPARATORS}$", "", after).strip()
         return before, after
 
     def _song_from_timestamp_parts(
@@ -359,6 +388,10 @@ class CommentAnalyzer:
         after: str,
     ) -> Song | None:
         before, after = self._clean_timestamp_parts(before, after)
+        # Numbering appears on either side of a timestamp in real community
+        # comments: ``1. Title 0:10`` and ``0:10 1. Title``.
+        before = _NUMBERING_RE.sub("", before, count=1).strip()
+        after = _NUMBERING_RE.sub("", after, count=1).strip()
         # Prefer title after timestamp; fall back to title before
         # (covers "1:23 Title", "Title - 1:23", "01. Title 0:12:00").
         title = after or before
@@ -366,12 +399,27 @@ class CommentAnalyzer:
             return None
 
         title = _CUSTOM_EMOJI_RE.sub(" ", title)
+        title = _CHAPTER_PREFIX_RE.sub("", title, count=1).strip()
+        title = _NUMBERING_RE.sub("", title, count=1).strip()
         title = re.sub(r"\s+", " ", title).strip()
-        title = re.sub(rf"^{_SEPARATORS}|{_SEPARATORS}$", "", title).strip()
+        title = re.sub(rf"^{_LEADING_SEPARATORS}", "", title).strip()
+        title = re.sub(rf"{_SEPARATORS}$", "", title).strip()
 
         # Reject titles that are only leftover punctuation / separators
         if not _TITLE_CHAR_RE.search(title):
             return None
+        if _CHAPTER_ONLY_TITLE_RE.fullmatch(title):
+            timestamp_seconds = timestamp_to_seconds(timestamp)
+            # Bare ``Start`` is also a real song title. Treat it as a chapter
+            # only near the beginning; bilingual/CJK start and explicit end
+            # labels remain unambiguous chapter rows at any position.
+            is_late_song_named_start = (
+                _ASCII_START_ONLY_TITLE_RE.fullmatch(title) is not None
+                and timestamp_seconds is not None
+                and timestamp_seconds > _EARLY_CHAPTER_MAX_SECONDS
+            )
+            if not is_late_song_named_start:
+                return None
         if len(title) > 500:
             title = title[:500].rstrip()
             if not title:

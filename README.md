@@ -336,6 +336,26 @@ cd backend
 python run_updater_once.py
 ```
 
+After a classifier or regex-analyzer upgrade, preview its effect on existing
+metadata and saved top comments without contacting YouTube:
+
+```bash
+python reanalyze_stored_data.py
+```
+
+The default is an atomic dry run and always rolls back. After reviewing the
+counts and taking a database backup, apply the same pass explicitly:
+
+```bash
+python reanalyze_stored_data.py --apply
+```
+
+The command shares the updater's cross-process lock, reclassifies every stored
+video, queues newly recognized karaoke archives, and replaces songs only when a
+saved raw comment produces a changed successful setlist. It preserves negative
+prior results and skips LLM-cleaned setlists; videos without saved comments
+remain for the normal paced yt-dlp queue.
+
 Enable the long-running worker only when you intend to scrape:
 
 ```dotenv
