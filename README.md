@@ -4,10 +4,10 @@
 
 ![Setlist social preview](frontend/public/og.png)
 
-Setlist is a self-hosted search index for songs performed in VTuber karaoke
-streams. It discovers public YouTube archives, finds timestamped setlist
-comments, extracts song titles, and turns them into searchable links that jump
-to the right moment in the original video.
+Setlist is a self-hosted index of songs performed in VTuber karaoke streams.
+It processes public YouTube archives, extracts song titles from timestamped
+setlist comments, and links each search result to its saved timestamp in the
+original video.
 
 Setlist is maintained as a personal homelab project and is designed for a small
 public deployment. Focused contributions are welcome. Guests can search and
@@ -18,11 +18,12 @@ metadata, reload a video's song list, and view live updater status.
 > index, does not host video or audio, and is not affiliated with YouTube,
 > Google, any VTuber agency, channel, or performer.
 
-## What you get
+## Features
 
-- Fast, paginated song search with channel, content type, and date filters
+- Search-focused home page with title suggestions and a dedicated results page
+- Paginated grid results with one or more channel, content type, and date filters
 - YouTube deep links that open directly at each song's timestamp
-- Channel, video, song-detail, and database-summary browsing
+- Grid-based channel, video, song-detail, and database-summary browsing
 - English, Traditional Chinese, and Japanese UI
 - Pinned/uploader-aware setlist extraction with parsed-song scoring, mixed
   setlist/chapter boundaries, and several timestamp formats

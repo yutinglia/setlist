@@ -94,13 +94,13 @@ proxy.
 
 | Path | API |
 |------|-----|
-| `/` | Focused song-title entry point that routes submitted terms to `/search` |
-| `/search` | Submit-only `GET /v1/songs/search`; 500 ms debounced `GET /v1/songs/suggestions` while typing (both support repeated channel, type, and date filters) |
-| `/songs/$songId` | `GET /v1/songs/{id}` |
-| `/channels` | `GET /v1/channels` |
+| `/` | Search-focused entry point with title suggestions, a compact collection summary, and a route to `/search` |
+| `/search` | Grid results from `GET /v1/songs/search`; 500 ms debounced suggestions while typing; repeated channel, type, and date filters apply to both requests |
+| `/songs/$songId` | `GET /v1/songs/{id}`; contextual back navigation restores the prior search or video page |
+| `/channels` | Grid view from `GET /v1/channels` |
 | `/channels/new` | Administrator-only `POST /v1/channels` |
-| `/channels/$channelId` | `GET /v1/channels/{id}` + `/videos`; administrator refresh control |
-| `/videos/$videoId` | `GET /v1/videos/{id}` + `/songs`; administrator reload control |
+| `/channels/$channelId` | Grid view from `GET /v1/channels/{id}` + `/videos`; cards open details and expose a separate untimestamped YouTube action |
+| `/videos/$videoId` | `GET /v1/videos/{id}` + `/songs`; timestamped setlist rows open YouTube and expose a separate song-detail action |
 | `/admin/login` | `GET /v1/auth/session`; `POST /v1/auth/login` |
 | `/status` | Administrator-only `GET /v1/updater/status` |
 | `/summary` | `GET /v1/report/summary` |
@@ -134,6 +134,9 @@ Source messages live in `messages/en.json`, `messages/zh-hant.json`, and
 - `VITE_PUBLIC_SITE_URL` sets the canonical Open Graph origin.
 - `VITE_APP_VERSION` optionally overrides the footer build version.
 - `public/og.png` is the social preview image.
+
+Keep public metadata and social-preview copy factual and search-focused. Avoid
+standalone campaign slogans that are not used in the interface.
 
 Production Compose maps its required `PUBLIC_SITE_URL` to the frontend build.
 The production build derives canonical URLs, structured data, `robots.txt`,
