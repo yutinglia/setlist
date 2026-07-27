@@ -1,7 +1,6 @@
 {
   "brand_name": "Setlist",
   "brand_full": "setlist",
-  "tagline": "VTuberの歌枠セットリストを検索し、歌唱開始位置へすぐに移動できます。",
   "meta_default_title": "Setlist — VTuber歌枠検索",
   "meta_default_description": "VTuberの歌枠セットリストを検索し、YouTube上の歌唱開始位置へ直接移動できます。",
   "meta_channel_title": "{channel}の歌枠アーカイブ | Setlist",

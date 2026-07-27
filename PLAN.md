@@ -222,8 +222,15 @@ Defer LLM until regex path is useful.
 
 - [x] React (Vite + TypeScript) app under `frontend/`
 - [x] TanStack Router + TanStack Query + Zustand (UI prefs) + Paraglide (`en` / `zh-hant` / `ja`) + Tailwind + shadcn/ui
-- [x] Search page → submit-only `GET /v1/songs/search` with pagination and deep links; 500 ms debounced `GET /v1/songs/suggestions` after two characters; advanced filters apply to both
-- [x] Song detail + channel → videos → video songs browse
+- [x] Search-focused home page with title suggestions and a compact database
+  summary; submitted terms route to the dedicated results page
+- [x] Search page → grid results from `GET /v1/songs/search` with pagination and
+  deep links; 500 ms debounced `GET /v1/songs/suggestions` after two characters;
+  advanced filters, including repeated channel selections, apply to both
+- [x] Grid-based channel → videos → video songs browsing, with primary card
+  actions separated from untimestamped or timestamped YouTube actions
+- [x] Contextual detail-page back navigation restores the prior search/filter
+  state and uses a non-empty hierarchy fallback for direct entries
 - [x] Administrator-only live updater status page →
   `GET /v1/updater/status`; guests do not poll it
 - [x] Dev proxy / `VITE_API_BASE_URL` + CORS notes (`APP_ENV=dev` or `CORS_ORIGINS`)
