@@ -2,7 +2,6 @@ import { useMemo, useState, type FormEvent } from "react"
 import { Link, createFileRoute } from "@tanstack/react-router"
 import {
   AlertTriangle,
-  ArrowLeft,
   CheckCircle2,
   Clock3,
   ListPlus,
@@ -17,6 +16,7 @@ import type {
   ChannelBulkAddResponse,
   ChannelBulkAddStatus,
 } from "@/api/types"
+import { ContextualBackButton } from "@/components/contextual-back-button"
 import { PageMetadata } from "@/components/page-metadata"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,7 @@ export const Route = createFileRoute("/channels/new")({
 })
 
 function AddChannelPage() {
+  const navigate = Route.useNavigate()
   const createChannels = useCreateChannelsBulk()
   const [value, setValue] = useState("")
   const [error, setError] = useState("")
@@ -84,13 +85,12 @@ function AddChannelPage() {
         description={m.channel_add_hint()}
         noIndex
       />
-      <Link
-        to="/channels"
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-      >
-        <ArrowLeft className="size-3.5" aria-hidden />
-        {m.nav_channels()}
-      </Link>
+      <ContextualBackButton
+        label={m.back()}
+        onFallback={() =>
+          navigate({ to: "/channels", replace: true })
+        }
+      />
 
       <p className="eyebrow mt-8">{m.channel_library_eyebrow()}</p>
       <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">

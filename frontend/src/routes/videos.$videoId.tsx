@@ -1,6 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
 import {
-  ArrowLeft,
   CalendarDays,
   Check,
   ExternalLink,
@@ -21,6 +20,7 @@ import {
   useVideo,
   useVideoSongs,
 } from "@/api/hooks"
+import { ContextualBackButton } from "@/components/contextual-back-button"
 import { PaginationControls } from "@/components/pagination-controls"
 import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
@@ -127,24 +127,19 @@ function VideoDetailPage() {
         description={metadataDescription}
         noIndex={videoQuery.isError}
       />
-      {videoQuery.data?.channel_id ? (
-        <Link
-          to="/channels/$channelId"
-          params={{ channelId: videoQuery.data.channel_id }}
-          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          {channelQuery.data?.name ?? m.channel_videos_heading()}
-        </Link>
-      ) : (
-        <Link
-          to="/channels"
-          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          {m.nav_channels()}
-        </Link>
-      )}
+      <ContextualBackButton
+        label={m.back()}
+        onFallback={() => {
+          if (videoQuery.data?.channel_id) {
+            return navigate({
+              to: "/channels/$channelId",
+              params: { channelId: videoQuery.data.channel_id },
+              replace: true,
+            })
+          }
+          return navigate({ to: "/channels", replace: true })
+        }}
+      />
 
       <div className="mt-7">
         <QueryState
@@ -159,8 +154,7 @@ function VideoDetailPage() {
               <header className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 p-6 sm:p-8 lg:p-10">
                 <div className="absolute -top-28 -right-20 size-72 rounded-full bg-primary/12 blur-3xl" />
                 <div className="relative max-w-4xl">
-                  <p className="eyebrow">{m.video_type_label()}</p>
-                  <h1 className="mt-4 font-display text-3xl leading-tight font-bold tracking-tight sm:text-5xl">
+                  <h1 className="font-display text-3xl leading-tight font-bold tracking-tight sm:text-5xl">
                     {videoQuery.data.title}
                   </h1>
                   <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">

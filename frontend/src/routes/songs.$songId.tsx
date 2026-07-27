@@ -1,6 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
 import {
-  ArrowLeft,
   Clock3,
   ExternalLink,
   Play,
@@ -9,6 +8,7 @@ import {
 } from "lucide-react"
 
 import { useSong } from "@/api/hooks"
+import { ContextualBackButton } from "@/components/contextual-back-button"
 import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
 import { buttonVariants } from "@/components/ui/button"
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/songs/$songId")({
 
 function SongDetailPage() {
   const { songId } = Route.useParams()
+  const navigate = Route.useNavigate()
   const id = Number(songId)
   const invalidId = !Number.isSafeInteger(id) || id <= 0
   const query = useSong(id)
@@ -45,13 +46,19 @@ function SongDetailPage() {
         description={metadataDescription}
         noIndex={invalidId || query.isError}
       />
-      <Link
-        to="/search"
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        {m.back_to_search()}
-      </Link>
+      <ContextualBackButton
+        label={m.back()}
+        onFallback={() => {
+          if (query.data) {
+            return navigate({
+              to: "/videos/$videoId",
+              params: { videoId: query.data.video_id },
+              replace: true,
+            })
+          }
+          return navigate({ to: "/", replace: true })
+        }}
+      />
 
       <div className="mt-7">
         <QueryState

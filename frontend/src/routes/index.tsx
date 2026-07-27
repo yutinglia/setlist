@@ -50,6 +50,7 @@ function HomePage() {
             onQuerySubmit={submit}
             autoFocus
             variant="hero"
+            hint={m.home_search_hint()}
           />
         </div>
 
