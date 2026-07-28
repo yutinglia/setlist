@@ -657,4 +657,15 @@ describe("application routes", () => {
     )
     expect(screen.getAllByRole("progressbar")).toHaveLength(2)
   })
+
+  test("renders the localized not-found boundary", async () => {
+    await renderRoute("/missing-page")
+
+    expect(
+      screen.getByRole("heading", { name: m.not_found_heading() }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: m.not_found_home() }),
+    ).toHaveAttribute("href", "/")
+  })
 })

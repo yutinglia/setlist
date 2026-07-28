@@ -124,6 +124,7 @@ Unit tests use injected fakes and do not need Redis/Valkey:
 python -m pytest -q
 python -m ruff check .
 python -m ruff format --check .
+python ../scripts/check_code_quality.py
 ```
 
 PostgreSQL integration tests run when `TEST_DATABASE_URL` points to a migrated
@@ -148,6 +149,7 @@ backend/
 ├── repositories/           # SQL reads and writes; never commit
 ├── routers/v1/             # thin HTTP adapters
 ├── services/               # use cases, policies, ports, and adapters
+│   └── updater/            # focused channel/video updater collaborators
 ├── tests/                  # pytest unit and PostgreSQL integration tests
 ├── run_updater_once.py     # one-shot updater entry point
 └── reanalyze_stored_data.py

@@ -18,6 +18,7 @@ export const Route = createRootRouteWithContext<{
   api: ApiClient
 }>()({
   component: RootLayout,
+  notFoundComponent: NotFoundPage,
 })
 
 function RootLayout() {
@@ -86,5 +87,26 @@ function RootLayout() {
         </div>
       </footer>
     </div>
+  )
+}
+
+function NotFoundPage() {
+  return (
+    <section className="mx-auto grid min-h-[70svh] max-w-xl place-content-center py-20 text-center">
+      <p className="font-mono text-sm font-semibold tracking-[0.24em] text-primary uppercase">
+        {m.not_found_eyebrow()}
+      </p>
+      <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">
+        {m.not_found_heading()}
+      </h1>
+      <p className="mt-4 leading-relaxed text-muted-foreground">
+        {m.not_found_body()}
+      </p>
+      <div className="mt-8">
+        <Link to="/" className={buttonVariants()}>
+          {m.not_found_home()}
+        </Link>
+      </div>
+    </section>
   )
 }

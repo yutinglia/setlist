@@ -42,6 +42,12 @@ class ChannelVideoPageResult:
     playlist_end: int
 
 
+@dataclass(frozen=True)
+class _TabExtract:
+    info: dict | None
+    succeeded: bool
+
+
 def should_exclude_channel_list_entry(
     info: dict, *, incomplete: bool = False
 ) -> str | None:
@@ -263,6 +269,37 @@ class YouTubeChannelVideoScraper:
         playlist_end: int | None,
         use_match_filter: bool,
     ) -> tuple[list[dict], int, bool]:
+        ydl_opts = self._tab_options(
+            playlist_start=playlist_start,
+            playlist_end=playlist_end,
+            use_match_filter=use_match_filter,
+        )
+        logger.info(
+            "Scraping channel video list: %s (playliststart=%s playlistend=%s)",
+            tab_url,
+            ydl_opts.get("playliststart", 1),
+            ydl_opts.get("playlistend", "all"),
+        )
+        extracted = self._download_tab(tab_url, ydl_opts)
+        if extracted.info is None:
+            return [], 0, extracted.succeeded
+
+        entries = extracted.info.get("entries", []) or []
+        tab_name = urlsplit(tab_url).path.rstrip("/").rsplit("/", 1)[-1].casefold()
+        flat, raw_count = self._flatten_tab_entries(
+            entries,
+            tab_name=tab_name,
+            first_position=playlist_start or 1,
+        )
+        return flat, raw_count, True
+
+    def _tab_options(
+        self,
+        *,
+        playlist_start: int | None,
+        playlist_end: int | None,
+        use_match_filter: bool,
+    ) -> dict:
         ydl_opts: dict = {
             "skip_download": True,
             # Flat list is reliable for channel tabs; full tab extract often
@@ -290,13 +327,9 @@ class YouTubeChannelVideoScraper:
             ydl_opts["playliststart"] = playlist_start
         if playlist_end is not None:
             ydl_opts["playlistend"] = playlist_end
+        return ydl_opts
 
-        logger.info(
-            "Scraping channel video list: %s (playliststart=%s playlistend=%s)",
-            tab_url,
-            ydl_opts.get("playliststart", 1),
-            ydl_opts.get("playlistend", "all"),
-        )
+    def _download_tab(self, tab_url: str, ydl_opts: dict) -> _TabExtract:
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(tab_url, download=False)
@@ -304,44 +337,40 @@ class YouTubeChannelVideoScraper:
             raise_if_block_error(exc)
             if self._is_missing_channel_tab_error(exc, tab_url):
                 logger.info("Channel has no %s tab; treating it as empty", tab_url)
-                return [], 0, True
+                return _TabExtract(info=None, succeeded=True)
             logger.exception("Failed scraping tab %s", tab_url)
-            return [], 0, False
+            return _TabExtract(info=None, succeeded=False)
 
         if not isinstance(info, dict) or not info:
             logger.warning("Empty extract for %s", tab_url)
-            return [], 0, False
+            return _TabExtract(info=None, succeeded=False)
+        return _TabExtract(info=info, succeeded=True)
 
-        entries = info.get("entries", []) or []
+    @staticmethod
+    def _flatten_tab_entries(
+        entries: list,
+        *,
+        tab_name: str,
+        first_position: int,
+    ) -> tuple[list[dict], int]:
         flat: list[dict] = []
         raw_count = 0
-        position = playlist_start or 1
-        tab_name = urlsplit(tab_url).path.rstrip("/").rsplit("/", 1)[-1].casefold()
+        position = first_position
         for entry in entries:
-            if not isinstance(entry, dict):
-                # Unavailable/deleted playlist slots still count toward the
-                # requested page window and must not signal early exhaustion.
-                raw_count += 1
+            candidates = (
+                entry.get("entries", []) or []
+                if isinstance(entry, dict) and "entries" in entry
+                else [entry]
+            )
+            raw_count += len(candidates)
+            for candidate in candidates:
+                if isinstance(candidate, dict):
+                    marked = dict(candidate)
+                    marked["_vks_source_tab"] = tab_name
+                    marked["_vks_playlist_position"] = position
+                    flat.append(marked)
                 position += 1
-                continue
-            if "entries" in entry:
-                sub_entries = entry.get("entries", []) or []
-                raw_count += len(sub_entries)
-                for sub_entry in sub_entries:
-                    if isinstance(sub_entry, dict):
-                        marked = dict(sub_entry)
-                        marked["_vks_source_tab"] = tab_name
-                        marked["_vks_playlist_position"] = position
-                        flat.append(marked)
-                    position += 1
-            else:
-                raw_count += 1
-                marked = dict(entry)
-                marked["_vks_source_tab"] = tab_name
-                marked["_vks_playlist_position"] = position
-                flat.append(marked)
-                position += 1
-        return flat, raw_count, True
+        return flat, raw_count
 
     def _entries_to_models(self, all_videos: list[dict]) -> list[YouTubeVideo]:
         # for safety, remove duplicates based on video ID

@@ -59,6 +59,102 @@ async def _stop_process(process: BaseProcess, grace_seconds: float) -> None:
         await asyncio.to_thread(process.join, grace_seconds)
 
 
+def _closed_pipe_error(process: BaseProcess) -> ScrapeSubprocessError:
+    return ScrapeSubprocessError(
+        "Scrape subprocess closed its result pipe unexpectedly "
+        f"(exit={process.exitcode})"
+    )
+
+
+async def _poll_result(
+    receiver: Connection,
+    process: BaseProcess,
+) -> bool:
+    try:
+        return receiver.poll()
+    except (BrokenPipeError, OSError) as exc:
+        await asyncio.to_thread(process.join)
+        raise _closed_pipe_error(process) from exc
+
+
+def _unwrap_result(status: str, payload: Any) -> Any:
+    if status == "ok":
+        return payload
+    message = payload.get("message") or payload.get("type")
+    if payload.get("youtube_blocked"):
+        raise YouTubeAccessBlocked(message)
+    raise ScrapeSubprocessError(message)
+
+
+async def _receive_result(
+    receiver: Connection,
+    process: BaseProcess,
+    *,
+    terminate_grace_seconds: float,
+) -> Any:
+    try:
+        status, payload = await asyncio.to_thread(receiver.recv)
+    except EOFError as exc:
+        await asyncio.to_thread(process.join)
+        raise _closed_pipe_error(process) from exc
+
+    await asyncio.to_thread(process.join, terminate_grace_seconds)
+    if process.is_alive():
+        await _stop_process(process, terminate_grace_seconds)
+    return _unwrap_result(status, payload)
+
+
+async def _raise_if_process_exited(process: BaseProcess) -> None:
+    if process.is_alive():
+        return
+    await asyncio.to_thread(process.join)
+    raise ScrapeSubprocessError(
+        f"Scrape subprocess exited without a result (exit={process.exitcode})"
+    )
+
+
+async def _wait_for_result(
+    receiver: Connection,
+    process: BaseProcess,
+    *,
+    deadline: float,
+    timeout_seconds: float,
+    terminate_grace_seconds: float,
+) -> Any:
+    while True:
+        if await _poll_result(receiver, process):
+            return await _receive_result(
+                receiver,
+                process,
+                terminate_grace_seconds=terminate_grace_seconds,
+            )
+        await _raise_if_process_exited(process)
+        if time.monotonic() >= deadline:
+            await _stop_process(process, terminate_grace_seconds)
+            raise ScrapeOperationTimeout(
+                f"yt-dlp operation exceeded {timeout_seconds:.1f}s"
+            )
+        await asyncio.sleep(0.05)
+
+
+async def _finalize_process(
+    receiver: Connection,
+    process: BaseProcess,
+    *,
+    terminate_grace_seconds: float,
+) -> None:
+    receiver.close()
+    if process.is_alive():
+        await _stop_process(process, terminate_grace_seconds)
+    if process.is_alive():
+        logger.critical(
+            "Scrape subprocess %s remained alive after kill deadline",
+            process.pid,
+        )
+        return
+    process.close()
+
+
 async def run_scrape_in_subprocess(
     operation: Callable[[], Any],
     *,
@@ -80,59 +176,19 @@ async def run_scrape_in_subprocess(
     deadline = time.monotonic() + timeout_seconds
 
     try:
-        while True:
-            try:
-                has_result = receiver.poll()
-            except (BrokenPipeError, OSError) as exc:
-                await asyncio.to_thread(process.join)
-                raise ScrapeSubprocessError(
-                    "Scrape subprocess closed its result pipe unexpectedly "
-                    f"(exit={process.exitcode})"
-                ) from exc
-
-            if has_result:
-                try:
-                    status, payload = await asyncio.to_thread(receiver.recv)
-                except EOFError as exc:
-                    await asyncio.to_thread(process.join)
-                    raise ScrapeSubprocessError(
-                        "Scrape subprocess closed its result pipe unexpectedly "
-                        f"(exit={process.exitcode})"
-                    ) from exc
-                await asyncio.to_thread(process.join, terminate_grace_seconds)
-                if process.is_alive():
-                    await _stop_process(process, terminate_grace_seconds)
-                if status == "ok":
-                    return payload
-                message = payload.get("message") or payload.get("type")
-                if payload.get("youtube_blocked"):
-                    raise YouTubeAccessBlocked(message)
-                raise ScrapeSubprocessError(message)
-
-            if not process.is_alive():
-                await asyncio.to_thread(process.join)
-                raise ScrapeSubprocessError(
-                    "Scrape subprocess exited without a result "
-                    f"(exit={process.exitcode})"
-                )
-
-            if time.monotonic() >= deadline:
-                await _stop_process(process, terminate_grace_seconds)
-                raise ScrapeOperationTimeout(
-                    f"yt-dlp operation exceeded {timeout_seconds:.1f}s"
-                )
-            await asyncio.sleep(0.05)
+        return await _wait_for_result(
+            receiver,
+            process,
+            deadline=deadline,
+            timeout_seconds=timeout_seconds,
+            terminate_grace_seconds=terminate_grace_seconds,
+        )
     except asyncio.CancelledError:
         await _stop_process(process, terminate_grace_seconds)
         raise
     finally:
-        receiver.close()
-        if process.is_alive():
-            await _stop_process(process, terminate_grace_seconds)
-        if process.is_alive():
-            logger.critical(
-                "Scrape subprocess %s remained alive after kill deadline",
-                process.pid,
-            )
-        else:
-            process.close()
+        await _finalize_process(
+            receiver,
+            process,
+            terminate_grace_seconds=terminate_grace_seconds,
+        )
