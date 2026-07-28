@@ -39,6 +39,30 @@ Manual setup instructions are in [README.md](README.md#local-development-without
 
 ## Tests
 
+For routine development, use the focused commands below so installed
+dependencies and local caches can be reused. When changing a workflow,
+Docker/Compose behavior, service containers, or another CI runner assumption,
+[nektos/act](https://github.com/nektos/act) provides a closer local equivalent
+to the pull-request workflow. With Docker running and `act` installed, run all
+safe CI jobs from the repository root:
+
+```bash
+act pull_request -W .github/workflows/ci.yml
+```
+
+The checked-in `.actrc` uses a fuller Ubuntu runner image and runs jobs
+sequentially to avoid Docker resource and port conflicts. To run only the job
+affected by a change, add `-j security`, `-j backend`, or `-j frontend`.
+Coverage summaries are still printed locally, while GitHub artifact upload
+steps are skipped under `act` because its local artifact service is not fully
+compatible with the pinned upload action.
+
+`act` is a local preflight, not a replacement for protected GitHub-hosted CI.
+Do not use it to run the release, dependency automation, or deployment
+workflows: those depend on GitHub permissions, environment protections,
+attestations, repository state, and production secrets that must not be passed
+to a local runner.
+
 Backend:
 
 ```bash
