@@ -13,9 +13,11 @@ from repositories.channel_repository import ChannelRepository
 from repositories.song_repository import SongRepository
 from repositories.video_repository import VideoRepository
 from services.analyzer.yt_comment_analyzer import CommentAnalyzer
+from services.cache import ResponseCache
 from services.youtube_operation_lock import (
+    YouTubeOperationCoordinator,
     YouTubeUpdaterBusyError,
-    youtube_operation_guard,
+    default_youtube_operation_coordinator,
 )
 from utils.video_type import VIDEO_TYPE_KARAOKE
 
@@ -53,15 +55,19 @@ class StoredDataReanalyzer:
         song_repo: SongRepository,
         *,
         max_analysis_attempts: int,
+        operations: YouTubeOperationCoordinator | None = None,
+        cache: ResponseCache | None = None,
     ) -> None:
         self.session = session
         self.channel_repo = channel_repo
         self.video_repo = video_repo
         self.song_repo = song_repo
         self.max_analysis_attempts = max_analysis_attempts
+        self.operations = operations or default_youtube_operation_coordinator
+        self.cache = cache
 
     async def run(self, *, apply: bool = False) -> StoredDataReanalysisResult:
-        async with youtube_operation_guard(self.session) as acquired:
+        async with self.operations.guard(self.session) as acquired:
             if not acquired:
                 raise YouTubeUpdaterBusyError(
                     "Another updater process is currently using scraper data"
@@ -70,6 +76,8 @@ class StoredDataReanalyzer:
                 result = await self._run_without_lock(apply=apply)
                 if apply:
                     await self.session.commit()
+                    if self.cache is not None:
+                        await self.cache.invalidate("catalog", "report")
                 else:
                     await self.session.rollback()
                 return result

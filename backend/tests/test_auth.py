@@ -1,45 +1,61 @@
 """Administrator authentication, session, and CSRF regressions."""
 
+from dataclasses import replace
+
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
 import config
+from config import AuthSettings
+from container import ApplicationContainer
 from deps import require_management_admin
-from routers.v1.auth import router as auth_router
-from services import auth
+from main import create_app
+from services.auth import AuthService, _password_hasher
 
 
-def _configure_admin(monkeypatch) -> None:
-    password_hash = auth._password_hasher.hash("a-strong-test-password")
-    monkeypatch.setattr(config, "ADMIN_USERNAME", "operator")
-    monkeypatch.setattr(config, "ADMIN_PASSWORD_HASH", password_hash)
-    monkeypatch.setattr(config, "SESSION_SECRET", "s" * 48)
-    monkeypatch.setattr(config, "AUTH_SESSION_TTL_SECONDS", 3600)
-    monkeypatch.setattr(config, "AUTH_COOKIE_SECURE", False)
-    monkeypatch.setattr(config, "MANAGEMENT_API_ENABLED", True)
-
-
-def test_signed_session_rejects_tampering_and_password_rotation(monkeypatch):
-    _configure_admin(monkeypatch)
-    token, session = auth.create_admin_session(now=1_000)
-
-    decoded = auth.decode_admin_session(token, now=1_001)
-    assert decoded == session
-    assert auth.decode_admin_session(f"{token}tampered", now=1_001) is None
-    assert auth.decode_admin_session(token, now=session.expires_at) is None
-
-    monkeypatch.setattr(
-        config,
-        "ADMIN_PASSWORD_HASH",
-        auth._password_hasher.hash("a-different-test-password"),
+def _auth_settings(*, configured: bool = True) -> AuthSettings:
+    return AuthSettings(
+        username="operator",
+        password_hash=(
+            _password_hasher.hash("a-strong-test-password") if configured else ""
+        ),
+        session_secret="s" * 48 if configured else "",
+        session_ttl_seconds=3600,
+        cookie_secure=False,
+        management_api_enabled=True,
     )
-    assert auth.decode_admin_session(token, now=1_001) is None
 
 
-def test_login_csrf_and_logout_flow(monkeypatch):
-    _configure_admin(monkeypatch)
-    app = FastAPI()
-    app.include_router(auth_router, prefix="/v1")
+def _app(settings: AuthSettings) -> FastAPI:
+    app_settings = config.get_settings()
+    app_settings = replace(
+        app_settings,
+        auth=settings,
+        rate_limit=replace(app_settings.rate_limit, enabled=False),
+    )
+    return create_app(ApplicationContainer.build(app_settings))
+
+
+def test_signed_session_rejects_tampering_and_password_rotation():
+    auth_service = AuthService(_auth_settings())
+    token, session = auth_service.create_session(now=1_000)
+
+    decoded = auth_service.decode_session(token, now=1_001)
+    assert decoded == session
+    assert auth_service.decode_session(f"{token}tampered", now=1_001) is None
+    assert auth_service.decode_session(token, now=session.expires_at) is None
+
+    rotated = AuthService(
+        replace(
+            _auth_settings(),
+            password_hash=_password_hasher.hash("a-different-test-password"),
+        )
+    )
+    assert rotated.decode_session(token, now=1_001) is None
+
+
+def test_login_csrf_and_logout_flow():
+    app = _app(_auth_settings())
 
     @app.post("/v1/protected")
     async def protected(_=Depends(require_management_admin)):
@@ -98,11 +114,8 @@ def test_login_csrf_and_logout_flow(monkeypatch):
         assert denied.headers["cache-control"] == "no-store"
 
 
-def test_auth_is_fail_closed_when_not_configured(monkeypatch):
-    monkeypatch.setattr(config, "ADMIN_PASSWORD_HASH", "")
-    monkeypatch.setattr(config, "SESSION_SECRET", "")
-    app = FastAPI()
-    app.include_router(auth_router, prefix="/v1")
+def test_auth_is_fail_closed_when_not_configured():
+    app = _app(_auth_settings(configured=False))
 
     with TestClient(app) as client:
         response = client.post(

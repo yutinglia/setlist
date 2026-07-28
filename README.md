@@ -321,7 +321,9 @@ npm run dev
 ```
 
 Vite proxies `/v1` to `http://127.0.0.1:8000`. See
-[frontend/README.md](frontend/README.md) for frontend-specific commands.
+[backend/README.md](backend/README.md) and
+[frontend/README.md](frontend/README.md) contain component-specific commands
+and architecture notes.
 
 ## Administrator setup in development
 
@@ -468,9 +470,25 @@ Important settings:
 | `UPDATER_SHUTDOWN_GRACE_SECONDS` | `20` | Time allowed for cancellation and rollback |
 | `UPDATER_HEARTBEAT_INTERVAL_SECONDS` | `30` | Durable heartbeat write interval during a cycle |
 | `UPDATER_HEARTBEAT_STALE_SECONDS` | `120` | Worker heartbeat age that triggers a stalled alert |
+| `CACHE_URL` | empty | Optional Redis/Valkey URL; empty selects the no-op cache adapter |
+| `CACHE_DEFAULT_TTL_SECONDS` | `60` | Shared public-query response cache lifetime |
 | `LLM_CLEANING_ENABLED` | `false` | Optional post-regex cleanup |
 
 The complete list and explanatory comments live in [`.env.example`](.env.example).
+
+The backend uses an explicit application composition root. FastAPI routes
+receive query/use-case services, and those services receive repositories,
+authentication, scraper strategies, updater state, and cache ports through
+dependency injection. PostgreSQL remains the source of truth. The optional
+cache uses a cache-aside adapter, fails open when unavailable, and is
+invalidated after committed mutations. Start the bundled Valkey profile with:
+
+```bash
+CACHE_URL=redis://cache:6379/0 docker compose --profile cache up -d
+```
+
+Leave `CACHE_URL` empty to run without Redis or Valkey. See
+[`docs/architecture.md`](docs/architecture.md) for the dependency boundaries.
 
 ## How the pipeline behaves
 
@@ -518,6 +536,7 @@ Frontend:
 cd frontend
 npm ci
 npm run lint
+npm test
 npm run build
 ```
 

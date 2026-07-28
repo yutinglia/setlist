@@ -1,5 +1,9 @@
+from dataclasses import replace
+
 import pytest
 
+import config
+from services.analyzer.llm_cleaner import LlmSongListCleaner
 from services.analyzer.yt_comment_analyzer import CommentAnalyzer
 
 VIDEO_ID = "test_video_abc"
@@ -498,14 +502,13 @@ class TestCommentAnalyzerParsing:
 
 class TestLlmCleaner:
     @pytest.mark.asyncio
-    async def test_disabled_returns_none(self, monkeypatch):
-        monkeypatch.setattr("services.analyzer.llm_cleaner.LLM_CLEANING_ENABLED", False)
-        from services.analyzer.llm_cleaner import maybe_clean_song_list_comment
+    async def test_disabled_returns_none(self):
+        cleaner = LlmSongListCleaner(replace(config.get_settings().llm, enabled=False))
 
-        assert await maybe_clean_song_list_comment("0:10 A\n0:20 B\n0:30 C") is None
+        assert await cleaner.clean("0:10 A\n0:20 B\n0:30 C") is None
 
     @pytest.mark.asyncio
-    async def test_httpx2_success_returns_cleaned_text(self, monkeypatch):
+    async def test_httpx2_success_returns_cleaned_text(self):
         captured = {}
 
         class FakeResponse:
@@ -531,19 +534,17 @@ class TestLlmCleaner:
                 captured.update(url=url, json=json, headers=headers)
                 return FakeResponse()
 
-        monkeypatch.setattr("services.analyzer.llm_cleaner.LLM_CLEANING_ENABLED", True)
-        monkeypatch.setattr("services.analyzer.llm_cleaner.LLM_API_KEY", "test-key")
-        monkeypatch.setattr(
-            "services.analyzer.llm_cleaner.LLM_API_URL",
-            "https://llm.invalid/v1/chat/completions",
+        cleaner = LlmSongListCleaner(
+            replace(
+                config.get_settings().llm,
+                enabled=True,
+                api_key="test-key",
+                api_url="https://llm.invalid/v1/chat/completions",
+            ),
+            client_factory=FakeAsyncClient,
         )
-        monkeypatch.setattr(
-            "services.analyzer.llm_cleaner.httpx2.AsyncClient",
-            FakeAsyncClient,
-        )
-        from services.analyzer.llm_cleaner import maybe_clean_song_list_comment
 
-        result = await maybe_clean_song_list_comment("0:10 A\n0:20 B")
+        result = await cleaner.clean("0:10 A\n0:20 B")
 
         assert result == "0:10 Song A\n0:20 Song B"
         assert captured["timeout"] > 0
@@ -552,9 +553,9 @@ class TestLlmCleaner:
         assert captured["json"]["messages"][-1]["content"] == "0:10 A\n0:20 B"
 
     @pytest.mark.asyncio
-    async def test_enabled_without_key_returns_none(self, monkeypatch):
-        monkeypatch.setattr("services.analyzer.llm_cleaner.LLM_CLEANING_ENABLED", True)
-        monkeypatch.setattr("services.analyzer.llm_cleaner.LLM_API_KEY", "")
-        from services.analyzer.llm_cleaner import maybe_clean_song_list_comment
+    async def test_enabled_without_key_returns_none(self):
+        cleaner = LlmSongListCleaner(
+            replace(config.get_settings().llm, enabled=True, api_key="")
+        )
 
-        assert await maybe_clean_song_list_comment("0:10 A\n0:20 B\n0:30 C") is None
+        assert await cleaner.clean("0:10 A\n0:20 B\n0:30 C") is None

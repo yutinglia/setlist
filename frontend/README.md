@@ -73,10 +73,17 @@ status in the background.
 | `npm run dev` | Vite dev server (port 5173); runs `generate:i18n` first via `predev` |
 | `npm run build` | Typecheck + production build |
 | `npm run lint` | Oxlint static checks |
+| `npm test` | Vitest unit tests for injected browser infrastructure |
 | `npm run preview` | Preview production build |
 | `npm run check:i18n` | Verify locale keys and message placeholders stay in sync |
 | `npm run generate:i18n` | Recompile Paraglide from `messages/*.json` into `src/paraglide/` |
 | `npx @tanstack/router-cli generate` | Regenerate `src/routeTree.gen.ts` if needed |
+
+The browser API client is created once in `main.tsx` and injected through both
+React context and TanStack Router context. Hooks and route guards depend on the
+`ApiClient` contract, so tests can provide an isolated client/fetch
+implementation. TanStack Query remains the server-state cache; adding another
+frontend DI container would duplicate React's existing composition boundary.
 
 ## Production container
 

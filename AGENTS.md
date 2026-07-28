@@ -83,6 +83,27 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
 
 ## Architecture notes agents must respect
 
+- **`backend/container.py` is the application composition root.** It is the
+  only application module that should select concrete infrastructure
+  implementations. FastAPI dependencies resolve request-scoped use-case
+  services from this container; domain/application services receive their
+  repositories, clocks/state, scraper factories/executors, authentication, and
+  cache collaborators through constructor injection. Do not add new
+  module-level clients, engines, sessions, mutable service singletons, or
+  service-locator calls in request/business code.
+- **Keep dependency direction inward.** Routers handle HTTP validation and
+  response mapping, use-case/query services coordinate behavior, repositories
+  own persistence queries, and infrastructure adapters implement narrow ports.
+  Use the existing repository, service-layer, factory/strategy, cache-aside,
+  and null-object patterns where they fit; do not add abstraction layers that
+  have no replacement or testing seam.
+- **The optional response cache is dependency-injected.** Application code
+  depends on `ResponseCache`/`CacheBackend`, never directly on a Redis client.
+  An empty `CACHE_URL` selects `NullCacheBackend`; Redis and Valkey use the same
+  async adapter. PostgreSQL remains authoritative, cache failures stay
+  fail-open, and mutation owners invalidate catalog/report namespaces only
+  after a successful commit. Never cache authentication/session-bearing
+  responses or move transaction ownership into the cache.
 - **Schema source of truth** is Flyway SQL in `db/migrations/`. ORM models in `backend/db/models.py` are generated — prefer editing SQL + regenerating over hand-editing generated models unless necessary.
 - **Pydantic models** (`backend/models/`) are the API/domain DTOs; repositories map ORM → Pydantic with `model_validate` / `from_attributes`.
 - **Imports assume cwd = `backend/`** (e.g. `from config import ...`). Do not introduce package-relative imports without making it a proper installable package.
@@ -114,7 +135,11 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
   unrelated chapters/announcements or large timestamp regressions while
   preserving encore sections.
 - **Optional LLM cleaning** is behind `LLM_CLEANING_ENABLED` (default off); uses schema columns `cleaning_attempts`, `cleaned_song_list_comment`, `analyzed_by_llm`. Regex extract remains primary.
-- **Frontend server cache** = TanStack Query; Zustand is for UI prefs only (locale, recent searches).
+- **Frontend dependencies** enter through React/TanStack context. The API client
+  is created with `createApiClient` and injected through `ApiProvider` and the
+  router context so tests can replace transport/base URL without module
+  monkeypatching. TanStack Query owns server state/cache; Zustand remains for UI
+  preferences only (locale, recent searches).
 
 ## Intended data pipeline
 
@@ -132,6 +157,10 @@ Seed channels: `db/devscript/seed_channels.sql` (see README).
 
 - Prefer small, focused modules matching existing folders (`repositories/`, `services/`, `routers/v1/`).
 - New HTTP routes go under `routers/v1/` and are registered in `routers/v1/__init__.py`.
+- New backend tests should inject fakes through constructors, the
+  `ApplicationContainer`, or narrow FastAPI dependency overrides. Avoid
+  monkeypatching process globals when an explicit dependency seam can express
+  the same test.
 - Keep yt-dlp rate limiting (`sleep_interval` / `max_sleep_interval`) when scraping; YouTube blocks aggressive clients.
 - **Phase 2 Tier B (required):** cycle scrape caps, inter-scrape jitter, skip/retry via `analyze_attempts`, block detection → abort remaining YouTube calls + cooldown. No proxies/cookies unless Tier B still fails.
 - Application code uses `logging`. Reserve `print` for interactive command-line

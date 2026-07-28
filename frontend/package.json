@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.4.4",
+  "version": "0.4.5",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
     "dev": "vite",
     "build": "npm run check:i18n && npm run generate:i18n && npm run generate:routes && tsc -b && vite build",
     "lint": "oxlint",
+    "test": "vitest run",
     "preview": "vite preview",
     "check:i18n": "node ./scripts/check-i18n-messages.mjs",
     "generate:notices": "node ../scripts/generate-frontend-third-party-notices.mjs",
@@ -44,6 +45,7 @@
     "oxlint": "^1.71.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "vitest": "^4.1.10"
   }
 }

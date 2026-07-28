@@ -75,7 +75,7 @@ async def test_database_lock_is_released_after_operation_failure():
 
 
 @pytest.mark.asyncio
-async def test_background_cycle_skips_when_cross_process_lock_is_busy(monkeypatch):
+async def test_background_cycle_skips_when_cross_process_lock_is_busy():
     @asynccontextmanager
     async def busy_guard(_session):
         yield False
@@ -86,8 +86,8 @@ async def test_background_cycle_skips_when_cross_process_lock_is_busy(monkeypatc
         SimpleNamespace(get_all=get_all),
         SimpleNamespace(),
         SimpleNamespace(),
+        operations=SimpleNamespace(guard=busy_guard),
     )
-    monkeypatch.setattr("services.data_updater.youtube_operation_guard", busy_guard)
 
     await updater.update()
 
@@ -95,7 +95,7 @@ async def test_background_cycle_skips_when_cross_process_lock_is_busy(monkeypatc
 
 
 @pytest.mark.asyncio
-async def test_manual_operation_fails_fast_when_cross_process_lock_is_busy(monkeypatch):
+async def test_manual_operation_fails_fast_when_cross_process_lock_is_busy():
     @asynccontextmanager
     async def busy_guard(_session):
         yield False
@@ -105,8 +105,8 @@ async def test_manual_operation_fails_fast_when_cross_process_lock_is_busy(monke
         SimpleNamespace(),
         SimpleNamespace(),
         SimpleNamespace(),
+        operations=SimpleNamespace(guard=busy_guard),
     )
-    monkeypatch.setattr("services.data_updater.youtube_operation_guard", busy_guard)
 
     with pytest.raises(YouTubeUpdaterBusyError):
         await updater.refresh_channel_video_list(SimpleNamespace())

@@ -3,9 +3,12 @@ import { RouterProvider, createRouter } from "@tanstack/react-router"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
+import { createApiClient } from "@/api/client"
+import { ApiProvider } from "@/api/provider"
 import { routeTree } from "./routeTree.gen"
 import "./index.css"
 
+const api = createApiClient()
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -17,7 +20,7 @@ const queryClient = new QueryClient({
 
 const router = createRouter({
   routeTree,
-  context: { queryClient },
+  context: { queryClient, api },
   defaultPreload: "intent",
   scrollRestoration: true,
 })
@@ -35,8 +38,10 @@ if (!rootEl) {
 
 createRoot(rootEl).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <ApiProvider client={api}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ApiProvider>
   </StrictMode>,
 )

@@ -121,3 +121,34 @@ updates:
         applies-to: security-updates
         patterns:
           - "*"
+
+  # Docker Compose is a separate Dependabot ecosystem. Keep the root entry so
+  # image tags/digests such as the optional Valkey service are updated in both
+  # production and development Compose files.
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:30"
+      timezone: Asia/Taipei
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies
+      - containers
+    groups:
+      automerge-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      automerge-security:
+        applies-to: security-updates
+        patterns:
+          - "*"

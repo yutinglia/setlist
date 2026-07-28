@@ -6,14 +6,15 @@ from collections.abc import AsyncGenerator
 from fastapi import Depends, Header, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import config
-from db import async_session_factory
+from container import ApplicationContainer
 from services.auth import (
     SESSION_COOKIE_NAME,
     AdminSession,
-    decode_admin_session,
-    is_auth_configured,
+    AuthService,
 )
+from services.channel_creator import ChannelCreator
+from services.data_updater import DataUpdater
+from services.queries import CatalogQueryService, ReportQueryService
 from utils.http_cache import (
     prevent_private_response_caching,
     private_response_headers,
@@ -24,9 +25,19 @@ MAX_LIMIT = 100
 MAX_OFFSET = 1_000_000
 
 
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
+def get_container(request: Request) -> ApplicationContainer:
+    """Resolve the app-scoped composition root."""
+    container = getattr(request.app.state, "container", None)
+    if not isinstance(container, ApplicationContainer):
+        raise RuntimeError("ApplicationContainer is not configured")
+    return container
+
+
+async def get_session(
+    container: ApplicationContainer = Depends(get_container),
+) -> AsyncGenerator[AsyncSession, None]:
     """Yield a request-scoped async session (no auto-commit)."""
-    async with async_session_factory() as session:
+    async with container.session_factory() as session:
         yield session
 
 
@@ -38,20 +49,33 @@ def pagination_params(
     return limit, offset
 
 
-def optional_admin_session(request: Request) -> AdminSession | None:
-    return decode_admin_session(request.cookies.get(SESSION_COOKIE_NAME))
+def get_auth_service(
+    container: ApplicationContainer = Depends(get_container),
+) -> AuthService:
+    return container.auth_service
 
 
-def require_admin_session(request: Request, response: Response) -> AdminSession:
+def optional_admin_session(
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+) -> AdminSession | None:
+    return auth_service.decode_session(request.cookies.get(SESSION_COOKIE_NAME))
+
+
+def require_admin_session(
+    request: Request,
+    response: Response,
+    auth_service: AuthService = Depends(get_auth_service),
+) -> AdminSession:
     """Require a valid administrator session for private read endpoints."""
     prevent_private_response_caching(response)
-    if not is_auth_configured():
+    if not auth_service.is_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Administrator authentication is not configured",
             headers=private_response_headers(),
         )
-    session = optional_admin_session(request)
+    session = auth_service.decode_session(request.cookies.get(SESSION_COOKIE_NAME))
     if session is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -80,12 +104,41 @@ def require_admin_csrf(
 
 def require_management_admin(
     admin: AdminSession = Depends(require_admin_csrf),
+    container: ApplicationContainer = Depends(get_container),
 ) -> AdminSession:
     """Require admin authorization and the management kill switch."""
-    if not config.MANAGEMENT_API_ENABLED:
+    if not container.settings.auth.management_api_enabled:
         raise HTTPException(
             status_code=404,
             detail="Not found",
             headers=private_response_headers(),
         )
     return admin
+
+
+def get_catalog_query_service(
+    session: AsyncSession = Depends(get_session),
+    container: ApplicationContainer = Depends(get_container),
+) -> CatalogQueryService:
+    return container.catalog_queries(session)
+
+
+def get_report_query_service(
+    session: AsyncSession = Depends(get_session),
+    container: ApplicationContainer = Depends(get_container),
+) -> ReportQueryService:
+    return container.report_queries(session)
+
+
+def get_channel_creator(
+    session: AsyncSession = Depends(get_session),
+    container: ApplicationContainer = Depends(get_container),
+) -> ChannelCreator:
+    return container.channel_creator(session)
+
+
+def get_data_updater(
+    session: AsyncSession = Depends(get_session),
+    container: ApplicationContainer = Depends(get_container),
+) -> DataUpdater:
+    return container.data_updater(session)

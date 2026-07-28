@@ -34,7 +34,7 @@ LABEL org.opencontainers.image.source="https://github.com/yutinglia/setlist" \
       org.opencontainers.image.licenses="MIT"
 RUN useradd --create-home --uid 10001 appuser
 COPY LICENSE /usr/share/licenses/vtuber-karaoke-search/LICENSE
-COPY backend/main.py backend/config.py backend/deps.py ./
+COPY backend/main.py backend/config.py backend/container.py backend/deps.py ./
 COPY backend/db ./db
 COPY backend/models ./models
 COPY backend/repositories ./repositories

@@ -102,6 +102,12 @@ services:
       UPDATER_SHUTDOWN_GRACE_SECONDS: ${UPDATER_SHUTDOWN_GRACE_SECONDS:-20}
       UPDATER_HEARTBEAT_INTERVAL_SECONDS: ${UPDATER_HEARTBEAT_INTERVAL_SECONDS:-30}
       UPDATER_HEARTBEAT_STALE_SECONDS: ${UPDATER_HEARTBEAT_STALE_SECONDS:-120}
+      # Empty disables cache. With `--profile cache`, use redis://cache:6379/0.
+      CACHE_URL: ${CACHE_URL:-}
+      CACHE_KEY_PREFIX: ${CACHE_KEY_PREFIX:-setlist}
+      CACHE_DEFAULT_TTL_SECONDS: ${CACHE_DEFAULT_TTL_SECONDS:-60}
+      CACHE_CONNECT_TIMEOUT_SECONDS: ${CACHE_CONNECT_TIMEOUT_SECONDS:-1}
+      CACHE_SOCKET_TIMEOUT_SECONDS: ${CACHE_SOCKET_TIMEOUT_SECONDS:-1}
       XDG_CACHE_HOME: /tmp/.cache
       # Comma-separated browser origins; leave empty if no frontend yet
       CORS_ORIGINS: ${CORS_ORIGINS:-}
@@ -137,6 +143,30 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
+
+  cache:
+    image: valkey/valkey:9.1.1-alpine@sha256:ee91f7a174ac4d6a6b0685b3a60e321f0a9dbbb691f9b0e285be2ba1d1be8328
+    profiles: ["cache"]
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /data:size=64m,uid=999,gid=999,mode=700
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: 0.25
+    mem_limit: 128m
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - vks
 
   db:
     image: homelab/vtuber-karaoke-search-postgres:latest

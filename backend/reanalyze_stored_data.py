@@ -17,10 +17,7 @@ import asyncio
 import logging
 from dataclasses import asdict
 
-from config import SCRAPE_POLICY
-from db import async_session_factory, engine
-from repositories import ChannelRepository, SongRepository, VideoRepository
-from services.stored_data_reanalyzer import StoredDataReanalyzer
+from container import ApplicationContainer
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,28 +30,27 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-async def run(*, apply: bool) -> dict[str, int | bool]:
-    async with async_session_factory() as session:
-        service = StoredDataReanalyzer(
-            session,
-            ChannelRepository(session),
-            VideoRepository(session),
-            SongRepository(session),
-            max_analysis_attempts=SCRAPE_POLICY.max_analysis_attempts,
-        )
+async def run(
+    container: ApplicationContainer,
+    *,
+    apply: bool,
+) -> dict[str, int | bool]:
+    async with container.session_factory() as session:
+        service = container.stored_data_reanalyzer(session)
         return asdict(await service.run(apply=apply))
 
 
 async def main() -> None:
     args = parse_args()
+    container = ApplicationContainer.build()
     try:
-        result = await run(apply=args.apply)
+        result = await run(container, apply=args.apply)
         mode = "APPLIED" if args.apply else "DRY RUN (rolled back)"
         print(mode)
         for key, value in result.items():
             print(f"{key}: {value}")
     finally:
-        await engine.dispose()
+        await container.close()
 
 
 if __name__ == "__main__":

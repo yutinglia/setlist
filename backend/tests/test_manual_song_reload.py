@@ -44,7 +44,6 @@ async def test_manual_song_reload_analyzes_counts_then_commits():
         target.analysis_status = "done"
 
     updater._analyze_video = analyze
-    DataUpdater._youtube_cooldown_until = None
 
     result = await updater.reload_video_song_list(video)
 

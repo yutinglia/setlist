@@ -13,7 +13,8 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.responses import JSONResponse, Response
 
 import config
-from services.auth import SESSION_COOKIE_NAME, decode_admin_session
+from config import RateLimitSettings
+from services.auth import SESSION_COOKIE_NAME, AuthService
 from utils.http_cache import prevent_private_response_caching
 
 IPAddress = IPv4Address | IPv6Address
@@ -77,15 +78,23 @@ class FixedWindowRateLimiter:
 class GuestRateLimitMiddleware(BaseHTTPMiddleware):
     """Limit unauthenticated `/v1` traffic; admin sessions are exempt."""
 
-    def __init__(self, app):
+    def __init__(
+        self,
+        app,
+        *,
+        settings: RateLimitSettings | None = None,
+        auth_service: AuthService | None = None,
+    ):
         super().__init__(app)
+        self.settings = settings or config.get_settings().rate_limit
+        self.auth_service = auth_service or AuthService(config.get_settings().auth)
         self.guest_limiter = FixedWindowRateLimiter(
-            config.GUEST_RATE_LIMIT_REQUESTS,
-            config.GUEST_RATE_LIMIT_WINDOW_SECONDS,
+            self.settings.guest_requests,
+            self.settings.guest_window_seconds,
         )
         self.login_limiter = FixedWindowRateLimiter(
-            config.LOGIN_RATE_LIMIT_REQUESTS,
-            config.LOGIN_RATE_LIMIT_WINDOW_SECONDS,
+            self.settings.login_requests,
+            self.settings.login_window_seconds,
         )
 
     async def dispatch(
@@ -93,7 +102,9 @@ class GuestRateLimitMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: RequestResponseEndpoint,
     ) -> Response:
-        admin = decode_admin_session(request.cookies.get(SESSION_COOKIE_NAME))
+        admin = self.auth_service.decode_session(
+            request.cookies.get(SESSION_COOKIE_NAME)
+        )
         if (
             request.url.path.startswith("/v1")
             and request.method != "OPTIONS"
@@ -104,13 +115,16 @@ class GuestRateLimitMiddleware(BaseHTTPMiddleware):
             return response
 
         if (
-            not config.GUEST_RATE_LIMIT_ENABLED
+            not self.settings.enabled
             or request.method == "OPTIONS"
             or not request.url.path.startswith("/v1")
         ):
             return await call_next(request)
 
-        client_key = resolve_client_ip(request)
+        client_key = resolve_client_ip(
+            request,
+            trusted_proxy_cidrs=self.settings.trusted_proxy_cidrs,
+        )
         limiter = (
             self.login_limiter
             if request.url.path == "/v1/auth/login"
@@ -134,14 +148,23 @@ class GuestRateLimitMiddleware(BaseHTTPMiddleware):
         return response
 
 
-def resolve_client_ip(request: Request) -> str:
+def resolve_client_ip(
+    request: Request,
+    *,
+    trusted_proxy_cidrs: tuple | None = None,
+) -> str:
+    trusted = (
+        config.TRUSTED_PROXY_CIDRS
+        if trusted_proxy_cidrs is None
+        else trusted_proxy_cidrs
+    )
     peer = request.client.host if request.client else "unknown"
     try:
         peer_ip = ip_address(peer)
     except ValueError:
         return peer
 
-    if not _is_trusted_proxy(peer_ip):
+    if not _is_trusted_proxy(peer_ip, trusted):
         return str(peer_ip)
 
     forwarded = request.headers.get("x-forwarded-for", "")
@@ -154,13 +177,13 @@ def resolve_client_ip(request: Request) -> str:
     chain.append(peer_ip)
 
     for candidate in reversed(chain):
-        if not _is_trusted_proxy(candidate):
+        if not _is_trusted_proxy(candidate, trusted):
             return str(candidate)
     return str(chain[0]) if chain else str(peer_ip)
 
 
-def _is_trusted_proxy(address: IPAddress) -> bool:
-    return any(address in network for network in config.TRUSTED_PROXY_CIDRS)
+def _is_trusted_proxy(address: IPAddress, trusted_proxy_cidrs: tuple) -> bool:
+    return any(address in network for network in trusted_proxy_cidrs)
 
 
 def _rate_limit_headers(decision: RateLimitDecision) -> dict[str, str]:

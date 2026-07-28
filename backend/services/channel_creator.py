@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import math
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from functools import partial
@@ -14,17 +15,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import CHANNEL_ADD_COOLDOWN_SECONDS, SCRAPE_POLICY
 from models.channel import VIDEO_BACKFILL_PENDING, YouTubeChannel
 from repositories.channel_repository import ChannelRepository
-from services.data_updater import DataUpdater
-from services.youtube_operation_lock import (
-    YouTubeUpdaterBusyError,
-    youtube_operation_guard,
+from services.cache import ResponseCache
+from services.scrape_policy import ScrapePolicy
+from services.scraping import (
+    DefaultScraperFactory,
+    ScrapeExecutor,
+    ScraperFactory,
 )
-from services.yt_scraper.channel_scraper import YouTubeChannelScraper
+from services.youtube_cooldown import YouTubeCooldown
+from services.youtube_operation_lock import (
+    YouTubeOperationCoordinator,
+    YouTubeUpdaterBusyError,
+    default_youtube_operation_coordinator,
+)
 from services.yt_scraper.errors import (
     YouTubeAccessBlocked,
     is_youtube_block_error,
 )
-from services.yt_scraper.subprocess_runner import run_scrape_in_subprocess
 
 ChannelCreationStatus = Literal[
     "created",
@@ -71,14 +78,28 @@ class ChannelCreator:
         repo: ChannelRepository,
         *,
         add_cooldown_seconds: int = CHANNEL_ADD_COOLDOWN_SECONDS,
+        policy: ScrapePolicy = SCRAPE_POLICY,
+        cooldown: YouTubeCooldown | None = None,
+        operations: YouTubeOperationCoordinator | None = None,
+        scraper_factory: ScraperFactory | None = None,
+        scrape_executor: ScrapeExecutor | None = None,
+        cache: ResponseCache | None = None,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
         self.session = session
         self.repo = repo
         self.add_cooldown_seconds = max(0, add_cooldown_seconds)
+        self.policy = policy
+        self.cooldown = cooldown or YouTubeCooldown(policy.youtube_cooldown_seconds)
+        self.operations = operations or default_youtube_operation_coordinator
+        self.scraper_factory = scraper_factory or DefaultScraperFactory(policy)
+        self.scrape_executor = scrape_executor or ScrapeExecutor(policy)
+        self.cache = cache
+        self.sleep = sleep
 
     async def create(self, channel_url: str) -> ChannelCreationOutcome:
         """Create one channel, returning 429-compatible cooldown information."""
-        async with youtube_operation_guard(self.session) as acquired:
+        async with self.operations.guard(self.session) as acquired:
             if not acquired:
                 raise YouTubeUpdaterBusyError(
                     "Another updater process is currently using YouTube"
@@ -95,7 +116,7 @@ class ChannelCreator:
         channel_urls: list[str],
     ) -> list[ChannelCreationOutcome]:
         """Create a validated batch under one global lock and paced deadline."""
-        async with youtube_operation_guard(self.session) as acquired:
+        async with self.operations.guard(self.session) as acquired:
             if not acquired:
                 raise YouTubeUpdaterBusyError(
                     "Another updater process is currently using YouTube"
@@ -160,29 +181,17 @@ class ChannelCreator:
         if remaining > 0:
             if not wait_for_add_cooldown:
                 raise ChannelAddCooldownActive(remaining)
-            await asyncio.sleep(remaining)
+            await self.sleep(remaining)
 
         self._raise_if_youtube_cooldown()
-        scraper = YouTubeChannelScraper(
-            sleep_interval=SCRAPE_POLICY.ytdlp_list_sleep_interval,
-            max_sleep_interval=SCRAPE_POLICY.ytdlp_list_max_sleep_interval,
-            socket_timeout=SCRAPE_POLICY.ytdlp_socket_timeout_seconds,
-            retries=SCRAPE_POLICY.ytdlp_retries,
-            extractor_retries=SCRAPE_POLICY.ytdlp_extractor_retries,
-        )
+        scraper = self.scraper_factory.channel()
         scrape = partial(scraper.get_channel_info, channel_url)
 
         try:
-            if isinstance(self.session, AsyncSession):
-                scraped = await run_scrape_in_subprocess(
-                    scrape,
-                    timeout_seconds=SCRAPE_POLICY.ytdlp_operation_timeout_seconds,
-                    terminate_grace_seconds=(
-                        SCRAPE_POLICY.ytdlp_terminate_grace_seconds
-                    ),
-                )
-            else:
-                scraped = await asyncio.to_thread(scrape)
+            scraped = await self.scrape_executor.run(
+                scrape,
+                production=isinstance(self.session, AsyncSession),
+            )
         except Exception as exc:
             if isinstance(exc, YouTubeAccessBlocked) or is_youtube_block_error(exc):
                 await self._persist_youtube_block()
@@ -218,7 +227,7 @@ class ChannelCreator:
                 await self.repo.set_channel_add_cooldown_until(
                     self._new_add_cooldown_deadline()
                 )
-                await self.session.commit()
+                await self._commit()
                 return ChannelCreationOutcome(
                     requested_url=channel_url,
                     status="already_exists",
@@ -228,7 +237,7 @@ class ChannelCreator:
             await self.repo.set_channel_add_cooldown_until(
                 self._new_add_cooldown_deadline()
             )
-            await self.session.commit()
+            await self._commit()
         except BaseException:
             await self.session.rollback()
             raise
@@ -245,11 +254,11 @@ class ChannelCreator:
         if persisted is None:
             return
         remaining = (persisted - self._utc_now()).total_seconds()
-        if remaining > DataUpdater.youtube_cooldown_remaining():
-            DataUpdater.set_youtube_cooldown(remaining)
+        if remaining > self._youtube_cooldown_remaining():
+            self._set_youtube_cooldown(remaining)
 
     def _raise_if_youtube_cooldown(self) -> None:
-        remaining = DataUpdater.youtube_cooldown_remaining()
+        remaining = self._youtube_cooldown_remaining()
         if remaining > 0:
             raise YouTubeCooldownActive(remaining)
 
@@ -264,14 +273,14 @@ class ChannelCreator:
             await self.repo.set_channel_add_cooldown_until(
                 self._new_add_cooldown_deadline()
             )
-            await self.session.commit()
+            await self._commit()
         except BaseException:
             await self.session.rollback()
             raise
 
     async def _persist_youtube_block(self) -> None:
         now = self._utc_now()
-        block_seconds = SCRAPE_POLICY.youtube_cooldown_seconds
+        block_seconds = self.policy.youtube_cooldown_seconds
         try:
             await self.repo.set_channel_add_cooldown_until(
                 self._new_add_cooldown_deadline(now)
@@ -279,11 +288,22 @@ class ChannelCreator:
             await self.repo.set_youtube_cooldown_until(
                 now + timedelta(seconds=block_seconds)
             )
-            await self.session.commit()
+            await self._commit()
         except BaseException:
             await self.session.rollback()
             raise
-        DataUpdater.set_youtube_cooldown(block_seconds)
+        self._set_youtube_cooldown(block_seconds)
+
+    def _youtube_cooldown_remaining(self) -> float:
+        return self.cooldown.remaining()
+
+    def _set_youtube_cooldown(self, seconds: float) -> None:
+        self.cooldown.activate(seconds)
+
+    async def _commit(self) -> None:
+        await self.session.commit()
+        if self.cache is not None:
+            await self.cache.invalidate("catalog", "report")
 
     def _new_add_cooldown_deadline(
         self,

@@ -12,7 +12,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query"
 import { useCallback, useEffect, useState } from "react"
 
-import { api } from "@/api/client"
+import { useApi } from "@/api/context"
 import {
   PAGE_SIZE,
   useAuthSession,
@@ -39,6 +39,7 @@ export const Route = createFileRoute("/videos/$videoId")({
 })
 
 function VideoDetailPage() {
+  const api = useApi()
   const { videoId } = Route.useParams()
   const { page = 0 } = Route.useSearch()
   const navigate = Route.useNavigate()

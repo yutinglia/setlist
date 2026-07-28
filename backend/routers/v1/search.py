@@ -3,10 +3,16 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import BACKGROUND_UPDATER_ENABLED, CHANNEL_ADD_COOLDOWN_SECONDS
-from deps import get_session, pagination_params, require_management_admin
+from container import ApplicationContainer
+from deps import (
+    get_catalog_query_service,
+    get_channel_creator,
+    get_container,
+    get_data_updater,
+    pagination_params,
+    require_management_admin,
+)
 from models.channel import (
     MAX_CHANNELS_PER_BULK_ADD,
     ChannelBulkAddItemResult,
@@ -22,7 +28,6 @@ from models.search import (
     VideoRead,
 )
 from models.song import Song
-from repositories import ChannelRepository, SongRepository, VideoRepository
 from services.channel_creator import (
     ChannelAddCooldownActive,
     ChannelCreator,
@@ -30,7 +35,7 @@ from services.channel_creator import (
     YouTubeCooldownActive,
 )
 from services.data_updater import DataUpdater
-from services.update_cycle_trigger import update_cycle_trigger
+from services.queries import CatalogQueryService
 from services.youtube_operation_lock import YouTubeUpdaterBusyError
 from services.yt_scraper.errors import YouTubeAccessBlocked
 
@@ -93,7 +98,7 @@ async def search_songs(
         description="Inclusive upper bound on video upload_date (YYYYMMDD)",
     ),
     pagination: tuple[int, int] = Depends(pagination_params),
-    session: AsyncSession = Depends(get_session),
+    queries: CatalogQueryService = Depends(get_catalog_query_service),
 ):
     """Search songs by title (ILIKE). Optional channel / type / date filters.
 
@@ -109,8 +114,7 @@ async def search_songs(
             detail="upload_date_from must be less than or equal to upload_date_to",
         )
     limit, offset = pagination
-    repo = SongRepository(session)
-    items, total = await repo.search_by_title(
+    return await queries.search_songs(
         q,
         limit=limit,
         offset=offset,
@@ -119,7 +123,6 @@ async def search_songs(
         upload_date_from=upload_date_from,
         upload_date_to=upload_date_to,
     )
-    return Paginated(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/songs/suggestions", response_model=list[SongSuggestion])
@@ -150,7 +153,7 @@ async def suggest_songs(
         description="Inclusive upper bound on video upload_date (YYYYMMDD)",
     ),
     limit: int = Query(8, ge=1, le=10),
-    session: AsyncSession = Depends(get_session),
+    queries: CatalogQueryService = Depends(get_catalog_query_service),
 ):
     """Suggest distinct indexed song titles without running a full search."""
     if (
@@ -162,7 +165,7 @@ async def suggest_songs(
             status_code=422,
             detail="upload_date_from must be less than or equal to upload_date_to",
         )
-    return await SongRepository(session).suggest_titles(
+    return await queries.suggest_songs(
         q,
         limit=limit,
         channel_ids=channel_id,
@@ -175,10 +178,10 @@ async def suggest_songs(
 @router.get("/songs/{song_id}", response_model=SongSearchResult)
 async def get_song(
     song_id: int,
-    session: AsyncSession = Depends(get_session),
+    queries: CatalogQueryService = Depends(get_catalog_query_service),
 ):
     """Song detail with video URL (including ``&t=``) and channel info."""
-    detail = await SongRepository(session).get_detail(song_id)
+    detail = await queries.get_song(song_id)
     if detail is None:
         raise HTTPException(status_code=404, detail="Song not found")
     return detail
@@ -187,23 +190,20 @@ async def get_song(
 @router.get("/channels", response_model=Paginated[ChannelRead])
 async def list_channels(
     pagination: tuple[int, int] = Depends(pagination_params),
-    session: AsyncSession = Depends(get_session),
+    queries: CatalogQueryService = Depends(get_catalog_query_service),
 ):
     """List tracked channels."""
     limit, offset = pagination
-    repo = ChannelRepository(session)
-    items = await repo.get_all(limit=limit, offset=offset)
-    total = await repo.count_all()
-    return Paginated(items=items, total=total, limit=limit, offset=offset)
+    return await queries.list_channels(limit=limit, offset=offset)
 
 
 @router.get("/channels/{channel_id}", response_model=ChannelRead)
 async def get_channel(
     channel_id: str,
-    session: AsyncSession = Depends(get_session),
+    queries: CatalogQueryService = Depends(get_catalog_query_service),
 ):
     """Return one tracked channel without exposing its raw scraper payload."""
-    channel = await ChannelRepository(session).get_by_id(channel_id)
+    channel = await queries.get_channel(channel_id)
     if channel is None:
         raise HTTPException(status_code=404, detail="Channel not found")
     return channel
@@ -217,7 +217,8 @@ async def get_channel(
 async def create_channel(
     body: ChannelCreate,
     _=Depends(require_management_admin),
-    session: AsyncSession = Depends(get_session),
+    creator: ChannelCreator = Depends(get_channel_creator),
+    container: ApplicationContainer = Depends(get_container),
 ):
     """Scrape a YouTube channel URL and add it to the tracked list.
 
@@ -226,8 +227,6 @@ async def create_channel(
     Returns 409 if the channel id is already tracked.
     """
 
-    repo = ChannelRepository(session)
-    creator = ChannelCreator(session, repo)
     try:
         outcome = await creator.create(body.url)
     except YouTubeUpdaterBusyError as busy_exc:
@@ -289,8 +288,8 @@ async def create_channel(
     if created is None:
         raise RuntimeError("Created channel outcome did not include a channel")
 
-    if BACKGROUND_UPDATER_ENABLED:
-        queued = update_cycle_trigger.request(priority_channel_id=created.id)
+    if container.settings.background_updater_enabled:
+        queued = container.update_cycle_trigger.request(priority_channel_id=created.id)
         logger.info(
             "Channel %s committed with pending backfill; updater wake %s",
             created.id,
@@ -312,7 +311,8 @@ async def create_channel(
 async def create_channels_bulk(
     body: ChannelBulkCreate,
     _=Depends(require_management_admin),
-    session: AsyncSession = Depends(get_session),
+    creator: ChannelCreator = Depends(get_channel_creator),
+    container: ApplicationContainer = Depends(get_container),
 ):
     """Add up to ten channels with durable pacing and one updater wake-up."""
     item_results: list[ChannelBulkAddItemResult | None] = [None] * len(body.urls)
@@ -331,7 +331,6 @@ async def create_channels_bulk(
         valid_urls.append(valid.url)
         valid_positions.append(index)
 
-    creator = ChannelCreator(session, ChannelRepository(session))
     try:
         outcomes = await creator.create_bulk(valid_urls) if valid_urls else []
     except YouTubeUpdaterBusyError as busy_exc:
@@ -370,10 +369,10 @@ async def create_channels_bulk(
     if len(completed_items) != len(body.urls):
         raise RuntimeError("Bulk channel creation returned an incomplete result")
 
-    if created_channel_ids and BACKGROUND_UPDATER_ENABLED:
+    if created_channel_ids and container.settings.background_updater_enabled:
         # One coalesced wake is intentional. Pending rows remain durable and the
         # normal per-cycle backfill cap rotates through them every worker tick.
-        update_cycle_trigger.request()
+        container.update_cycle_trigger.request()
         logger.info(
             "Bulk channel add committed %s channel(s); queued one updater wake",
             len(created_channel_ids),
@@ -401,7 +400,7 @@ async def create_channels_bulk(
         failed=counts["invalid"] + counts["failed"],
         skipped=counts["skipped"],
         max_batch_size=MAX_CHANNELS_PER_BULK_ADD,
-        cooldown_seconds=CHANNEL_ADD_COOLDOWN_SECONDS,
+        cooldown_seconds=container.settings.channel_add_cooldown_seconds,
     )
 
 
@@ -417,25 +416,20 @@ async def list_channel_videos(
         None,
         description="Filter by whether a setlist comment was found",
     ),
-    session: AsyncSession = Depends(get_session),
+    queries: CatalogQueryService = Depends(get_catalog_query_service),
 ):
     """List videos for a tracked channel (optional type / setlist filters)."""
-    channel_repo = ChannelRepository(session)
-    if await channel_repo.get_by_id(channel_id) is None:
-        raise HTTPException(status_code=404, detail="Channel not found")
     limit, offset = pagination
-    video_repo = VideoRepository(session)
-    items = await video_repo.get_by_channel_id(
+    result = await queries.list_channel_videos(
         channel_id,
         limit=limit,
         offset=offset,
         video_type=type,
         has_song_list=has_song_list,
     )
-    total = await video_repo.count_by_channel_id(
-        channel_id, video_type=type, has_song_list=has_song_list
-    )
-    return Paginated(items=items, total=total, limit=limit, offset=offset)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return result
 
 
 @router.post(
@@ -445,20 +439,13 @@ async def list_channel_videos(
 async def refresh_channel_videos(
     channel_id: str,
     _=Depends(require_management_admin),
-    session: AsyncSession = Depends(get_session),
+    updater: DataUpdater = Depends(get_data_updater),
 ):
     """Safely refresh recent video metadata without deleting existing setlists."""
-    channel_repo = ChannelRepository(session)
-    channel = await channel_repo.get_by_id(channel_id)
+    channel = await updater.channel_repo.get_by_id(channel_id)
     if channel is None:
         raise HTTPException(status_code=404, detail="Channel not found")
 
-    updater = DataUpdater(
-        session,
-        channel_repo,
-        VideoRepository(session),
-        SongRepository(session),
-    )
     try:
         result = await updater.refresh_channel_video_list(channel)
     except YouTubeUpdaterBusyError as exc:
@@ -496,17 +483,13 @@ async def refresh_channel_videos(
 async def reload_video_song_list(
     video_id: str,
     _=Depends(require_management_admin),
-    session: AsyncSession = Depends(get_session),
+    updater: DataUpdater = Depends(get_data_updater),
 ):
     """Re-fetch top comments and replace a video's songs on successful analysis."""
-    channel_repo = ChannelRepository(session)
-    video_repo = VideoRepository(session)
-    song_repo = SongRepository(session)
-    video = await video_repo.get_by_id(video_id)
+    video = await updater.video_repo.get_by_id(video_id)
     if video is None:
         raise HTTPException(status_code=404, detail="Video not found")
 
-    updater = DataUpdater(session, channel_repo, video_repo, song_repo)
     try:
         result = await updater.reload_video_song_list(video)
     except YouTubeUpdaterBusyError as exc:
@@ -538,10 +521,10 @@ async def reload_video_song_list(
 @router.get("/videos/{video_id}", response_model=VideoRead)
 async def get_video(
     video_id: str,
-    session: AsyncSession = Depends(get_session),
+    queries: CatalogQueryService = Depends(get_catalog_query_service),
 ):
     """Video metadata (title, type, YouTube URL)."""
-    video = await VideoRepository(session).get_by_id(video_id)
+    video = await queries.get_video(video_id)
     if video is None:
         raise HTTPException(status_code=404, detail="Video not found")
     return video
@@ -551,14 +534,15 @@ async def get_video(
 async def list_video_songs(
     video_id: str,
     pagination: tuple[int, int] = Depends(pagination_params),
-    session: AsyncSession = Depends(get_session),
+    queries: CatalogQueryService = Depends(get_catalog_query_service),
 ):
     """List songs extracted for a video."""
-    video_repo = VideoRepository(session)
-    if await video_repo.get_by_id(video_id) is None:
-        raise HTTPException(status_code=404, detail="Video not found")
     limit, offset = pagination
-    song_repo = SongRepository(session)
-    items = await song_repo.get_by_video_id(video_id, limit=limit, offset=offset)
-    total = await song_repo.count_by_video_id(video_id)
-    return Paginated(items=items, total=total, limit=limit, offset=offset)
+    result = await queries.list_video_songs(
+        video_id,
+        limit=limit,
+        offset=offset,
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return result

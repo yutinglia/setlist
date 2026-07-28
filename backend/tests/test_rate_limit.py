@@ -1,5 +1,6 @@
 """Anonymous fixed-window rate limiting and proxy address handling."""
 
+from dataclasses import replace
 from ipaddress import ip_network
 
 import pytest
@@ -8,8 +9,7 @@ from fastapi.testclient import TestClient
 from starlette.requests import Request
 
 import config
-from services import auth
-from services.auth import SESSION_COOKIE_NAME
+from services.auth import SESSION_COOKIE_NAME, AuthService, _password_hasher
 from services.rate_limit import (
     FixedWindowRateLimiter,
     GuestRateLimitMiddleware,
@@ -36,42 +36,50 @@ async def test_fixed_window_limiter_blocks_and_resets():
     assert reset.remaining == 1
 
 
-def test_forwarded_address_is_ignored_from_untrusted_peer(monkeypatch):
-    monkeypatch.setattr(config, "TRUSTED_PROXY_CIDRS", ())
+def test_forwarded_address_is_ignored_from_untrusted_peer():
     request = _request("203.0.113.5", "198.51.100.20")
 
-    assert resolve_client_ip(request) == "203.0.113.5"
+    assert resolve_client_ip(request, trusted_proxy_cidrs=()) == "203.0.113.5"
 
 
-def test_forwarded_chain_is_used_only_behind_trusted_proxy(monkeypatch):
-    monkeypatch.setattr(
-        config,
-        "TRUSTED_PROXY_CIDRS",
-        (ip_network("10.0.0.0/8"),),
-    )
+def test_forwarded_chain_is_used_only_behind_trusted_proxy():
     request = _request("10.0.0.8", "198.51.100.20, 10.0.0.7")
 
-    assert resolve_client_ip(request) == "198.51.100.20"
-
-
-def test_guest_api_limit_headers_and_admin_exemption(monkeypatch):
-    monkeypatch.setattr(config, "GUEST_RATE_LIMIT_ENABLED", True)
-    monkeypatch.setattr(config, "GUEST_RATE_LIMIT_REQUESTS", 2)
-    monkeypatch.setattr(config, "GUEST_RATE_LIMIT_WINDOW_SECONDS", 60)
-    monkeypatch.setattr(config, "LOGIN_RATE_LIMIT_REQUESTS", 5)
-    monkeypatch.setattr(config, "LOGIN_RATE_LIMIT_WINDOW_SECONDS", 300)
-    monkeypatch.setattr(config, "TRUSTED_PROXY_CIDRS", ())
-    monkeypatch.setattr(config, "ADMIN_USERNAME", "operator")
-    monkeypatch.setattr(
-        config,
-        "ADMIN_PASSWORD_HASH",
-        auth._password_hasher.hash("a-strong-test-password"),
+    assert (
+        resolve_client_ip(
+            request,
+            trusted_proxy_cidrs=(ip_network("10.0.0.0/8"),),
+        )
+        == "198.51.100.20"
     )
-    monkeypatch.setattr(config, "SESSION_SECRET", "s" * 48)
-    monkeypatch.setattr(config, "AUTH_SESSION_TTL_SECONDS", 3600)
+
+
+def test_guest_api_limit_headers_and_admin_exemption():
+    app_settings = config.get_settings()
+    rate_settings = replace(
+        app_settings.rate_limit,
+        enabled=True,
+        guest_requests=2,
+        guest_window_seconds=60,
+        login_requests=5,
+        login_window_seconds=300,
+        trusted_proxy_cidrs=(),
+    )
+    auth_settings = replace(
+        app_settings.auth,
+        username="operator",
+        password_hash=_password_hasher.hash("a-strong-test-password"),
+        session_secret="s" * 48,
+        session_ttl_seconds=3600,
+    )
+    auth_service = AuthService(auth_settings)
 
     app = FastAPI()
-    app.add_middleware(GuestRateLimitMiddleware)
+    app.add_middleware(
+        GuestRateLimitMiddleware,
+        settings=rate_settings,
+        auth_service=auth_service,
+    )
 
     @app.get("/v1/ping")
     async def ping():
@@ -88,7 +96,7 @@ def test_guest_api_limit_headers_and_admin_exemption(monkeypatch):
         assert blocked.status_code == 429
         assert blocked.headers["retry-after"]
 
-        token, _ = auth.create_admin_session()
+        token, _ = auth_service.create_session()
         client.cookies.set(SESSION_COOKIE_NAME, token, path="/v1")
         assert client.get("/v1/ping").status_code == 200
 

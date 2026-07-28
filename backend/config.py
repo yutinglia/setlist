@@ -1,5 +1,6 @@
 import math
 import os
+from dataclasses import dataclass
 from ipaddress import ip_network
 
 from dotenv import load_dotenv
@@ -262,3 +263,147 @@ LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 LLM_TIMEOUT_SECONDS = _env_float("LLM_TIMEOUT_SECONDS", 30, minimum=0.1)
 LLM_MAX_CLEANING_ATTEMPTS = _env_int("LLM_MAX_CLEANING_ATTEMPTS", 2, minimum=1)
 LLM_MAX_INPUT_CHARS = _env_int("LLM_MAX_INPUT_CHARS", 20_000, minimum=100)
+
+# Optional shared response cache. Both Redis and Valkey speak the Redis
+# protocol, so the same URL/client configuration works for either server.
+# An empty URL selects the no-op adapter and performs no cache network I/O.
+CACHE_URL = os.getenv("CACHE_URL", "").strip()
+CACHE_KEY_PREFIX = os.getenv("CACHE_KEY_PREFIX", "setlist").strip()
+CACHE_DEFAULT_TTL_SECONDS = _env_int("CACHE_DEFAULT_TTL_SECONDS", 60, minimum=1)
+CACHE_CONNECT_TIMEOUT_SECONDS = _env_float(
+    "CACHE_CONNECT_TIMEOUT_SECONDS", 1, minimum=0.1
+)
+CACHE_SOCKET_TIMEOUT_SECONDS = _env_float(
+    "CACHE_SOCKET_TIMEOUT_SECONDS", 1, minimum=0.1
+)
+if not CACHE_KEY_PREFIX:
+    raise ValueError("CACHE_KEY_PREFIX must not be empty")
+
+
+@dataclass(frozen=True)
+class AuthSettings:
+    """Authentication configuration injected into ``AuthService``."""
+
+    username: str
+    password_hash: str
+    session_secret: str
+    session_ttl_seconds: int
+    cookie_secure: bool
+    management_api_enabled: bool
+
+
+@dataclass(frozen=True)
+class RateLimitSettings:
+    """Anonymous/login rate limits injected into HTTP middleware."""
+
+    enabled: bool
+    guest_requests: int
+    guest_window_seconds: int
+    login_requests: int
+    login_window_seconds: int
+    trusted_proxy_cidrs: tuple
+
+
+@dataclass(frozen=True)
+class CacheSettings:
+    """Optional Redis/Valkey cache adapter configuration."""
+
+    url: str
+    key_prefix: str
+    default_ttl_seconds: int
+    connect_timeout_seconds: float
+    socket_timeout_seconds: float
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.url)
+
+
+@dataclass(frozen=True)
+class LlmSettings:
+    enabled: bool
+    api_url: str
+    api_key: str
+    model: str
+    timeout_seconds: float
+    max_cleaning_attempts: int
+    max_input_chars: int
+
+
+@dataclass(frozen=True)
+class AppSettings:
+    """Immutable application configuration used by the composition root.
+
+    Module-level constants remain as a compatibility layer for small scripts,
+    while application code receives this snapshot through dependency injection.
+    """
+
+    app_env: str
+    is_dev: bool
+    background_updater_enabled: bool
+    cors_origins: tuple[str, ...]
+    database_url: str
+    data_update_interval: int
+    updater_shutdown_grace_seconds: float
+    updater_heartbeat_interval_seconds: float
+    updater_heartbeat_stale_seconds: float
+    channel_add_cooldown_seconds: int
+    scrape_policy: ScrapePolicy
+    auth: AuthSettings
+    rate_limit: RateLimitSettings
+    cache: CacheSettings
+    llm: LlmSettings
+
+
+def get_settings() -> AppSettings:
+    """Build a settings snapshot.
+
+    Keeping construction explicit makes tests able to use ``dataclasses.replace``
+    without mutating process-wide environment variables or module globals.
+    """
+
+    return AppSettings(
+        app_env=APP_ENV,
+        is_dev=IS_DEV,
+        background_updater_enabled=BACKGROUND_UPDATER_ENABLED,
+        cors_origins=tuple(CORS_ORIGINS),
+        database_url=DATABASE_URL,
+        data_update_interval=DATA_UPDATE_INTERVAL,
+        updater_shutdown_grace_seconds=UPDATER_SHUTDOWN_GRACE_SECONDS,
+        updater_heartbeat_interval_seconds=UPDATER_HEARTBEAT_INTERVAL_SECONDS,
+        updater_heartbeat_stale_seconds=UPDATER_HEARTBEAT_STALE_SECONDS,
+        channel_add_cooldown_seconds=CHANNEL_ADD_COOLDOWN_SECONDS,
+        scrape_policy=SCRAPE_POLICY,
+        auth=AuthSettings(
+            username=ADMIN_USERNAME,
+            password_hash=ADMIN_PASSWORD_HASH,
+            session_secret=SESSION_SECRET,
+            session_ttl_seconds=AUTH_SESSION_TTL_SECONDS,
+            cookie_secure=AUTH_COOKIE_SECURE,
+            management_api_enabled=MANAGEMENT_API_ENABLED,
+        ),
+        rate_limit=RateLimitSettings(
+            enabled=GUEST_RATE_LIMIT_ENABLED,
+            guest_requests=GUEST_RATE_LIMIT_REQUESTS,
+            guest_window_seconds=GUEST_RATE_LIMIT_WINDOW_SECONDS,
+            login_requests=LOGIN_RATE_LIMIT_REQUESTS,
+            login_window_seconds=LOGIN_RATE_LIMIT_WINDOW_SECONDS,
+            trusted_proxy_cidrs=TRUSTED_PROXY_CIDRS,
+        ),
+        cache=CacheSettings(
+            url=CACHE_URL,
+            key_prefix=CACHE_KEY_PREFIX,
+            default_ttl_seconds=CACHE_DEFAULT_TTL_SECONDS,
+            connect_timeout_seconds=CACHE_CONNECT_TIMEOUT_SECONDS,
+            socket_timeout_seconds=CACHE_SOCKET_TIMEOUT_SECONDS,
+        ),
+        llm=LlmSettings(
+            enabled=LLM_CLEANING_ENABLED,
+            api_url=LLM_API_URL,
+            api_key=LLM_API_KEY,
+            model=LLM_MODEL,
+            timeout_seconds=LLM_TIMEOUT_SECONDS,
+            max_cleaning_attempts=LLM_MAX_CLEANING_ATTEMPTS,
+            max_input_chars=LLM_MAX_INPUT_CHARS,
+        ),
+    )

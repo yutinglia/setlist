@@ -52,16 +52,12 @@ def test_summary_report_route_is_registered():
 
 
 @pytest.mark.asyncio
-async def test_summary_report_route_returns_repository_result(monkeypatch):
+async def test_summary_report_route_returns_query_service_result():
     expected = _summary()
     get_summary = AsyncMock(return_value=expected)
-    monkeypatch.setattr(
-        report,
-        "ReportRepository",
-        lambda _session: SimpleNamespace(get_summary=get_summary),
-    )
+    queries = SimpleNamespace(get_summary=get_summary)
 
-    result = await report.get_summary_report(SimpleNamespace())
+    result = await report.get_summary_report(queries)
 
     assert result == expected
     get_summary.assert_awaited_once()

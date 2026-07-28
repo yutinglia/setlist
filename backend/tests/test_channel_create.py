@@ -9,7 +9,8 @@ from pydantic import ValidationError
 
 from models.channel import ChannelBulkCreate, ChannelCreate, YouTubeChannel
 from routers.v1 import search
-from services.data_updater import DataUpdater
+from services.channel_creator import ChannelCreator
+from services.youtube_cooldown import YouTubeCooldown
 from services.yt_scraper.errors import YouTubeAccessBlocked
 
 
@@ -37,10 +38,31 @@ def _repo(*, created=None, get_by_id=None):
     )
 
 
+def _creator(session, repo, *, scrape, sleep=None):
+    return ChannelCreator(
+        session,
+        repo,
+        cooldown=YouTubeCooldown(60),
+        scraper_factory=SimpleNamespace(
+            channel=Mock(return_value=SimpleNamespace(get_channel_info=Mock()))
+        ),
+        scrape_executor=SimpleNamespace(run=scrape),
+        sleep=sleep or AsyncMock(),
+    )
+
+
+def _container(trigger, *, enabled=True):
+    return SimpleNamespace(
+        settings=SimpleNamespace(
+            background_updater_enabled=enabled,
+            channel_add_cooldown_seconds=10,
+        ),
+        update_cycle_trigger=trigger,
+    )
+
+
 @pytest.mark.asyncio
-async def test_create_channel_commits_before_requesting_immediate_backfill(
-    monkeypatch,
-):
+async def test_create_channel_commits_before_requesting_immediate_backfill():
     order: list[str] = []
     scraped = _channel()
     persisted = scraped.model_copy(
@@ -54,19 +76,14 @@ async def test_create_channel_commits_before_requesting_immediate_backfill(
     trigger = SimpleNamespace(
         request=Mock(side_effect=lambda **_kwargs: order.append("request") or True)
     )
-    monkeypatch.setattr(search, "ChannelRepository", lambda _session: repo)
-    monkeypatch.setattr(
-        "services.channel_creator.asyncio.to_thread",
-        AsyncMock(return_value=scraped),
-    )
-    monkeypatch.setattr(search, "BACKGROUND_UPDATER_ENABLED", True)
-    monkeypatch.setattr(search, "update_cycle_trigger", trigger)
-    DataUpdater._youtube_cooldown_until = None
+    scrape = AsyncMock(return_value=scraped)
+    creator = _creator(session, repo, scrape=scrape)
 
     created = await search.create_channel(
         ChannelCreate(url=scraped.url),
         None,
-        session,
+        creator,
+        _container(trigger),
     )
 
     assert created.video_backfill_status == "pending"
@@ -77,28 +94,20 @@ async def test_create_channel_commits_before_requesting_immediate_backfill(
 
 
 @pytest.mark.asyncio
-async def test_atomic_create_conflict_commits_cooldown_but_does_not_wake(
-    monkeypatch,
-):
+async def test_atomic_create_conflict_commits_cooldown_but_does_not_wake():
     scraped = _channel()
     repo = _repo(created=None)
     repo.get_by_id = AsyncMock(side_effect=[None, scraped])
     session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
     trigger = SimpleNamespace(request=Mock(return_value=True))
-    monkeypatch.setattr(search, "ChannelRepository", lambda _session: repo)
-    monkeypatch.setattr(
-        "services.channel_creator.asyncio.to_thread",
-        AsyncMock(return_value=scraped),
-    )
-    monkeypatch.setattr(search, "BACKGROUND_UPDATER_ENABLED", True)
-    monkeypatch.setattr(search, "update_cycle_trigger", trigger)
-    DataUpdater._youtube_cooldown_until = None
+    creator = _creator(session, repo, scrape=AsyncMock(return_value=scraped))
 
     with pytest.raises(search.HTTPException) as exc_info:
         await search.create_channel(
             ChannelCreate(url=scraped.url),
             None,
-            session,
+            creator,
+            _container(trigger),
         )
 
     assert exc_info.value.status_code == 409
@@ -108,24 +117,21 @@ async def test_atomic_create_conflict_commits_cooldown_but_does_not_wake(
 
 
 @pytest.mark.asyncio
-async def test_separate_channel_add_is_rejected_during_admin_cooldown(
-    monkeypatch,
-):
+async def test_separate_channel_add_is_rejected_during_admin_cooldown():
     scraped = _channel()
     deadline = datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=8)
     repo = _repo(created=scraped)
     repo.get_channel_add_cooldown_until = AsyncMock(return_value=deadline)
     session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
     scrape = AsyncMock(return_value=scraped)
-    monkeypatch.setattr(search, "ChannelRepository", lambda _session: repo)
-    monkeypatch.setattr("services.channel_creator.asyncio.to_thread", scrape)
-    DataUpdater._youtube_cooldown_until = None
+    creator = _creator(session, repo, scrape=scrape)
 
     with pytest.raises(search.HTTPException) as exc_info:
         await search.create_channel(
             ChannelCreate(url=scraped.url),
             None,
-            session,
+            creator,
+            _container(SimpleNamespace(request=Mock())),
         )
 
     assert exc_info.value.status_code == 429
@@ -135,9 +141,7 @@ async def test_separate_channel_add_is_rejected_during_admin_cooldown(
 
 
 @pytest.mark.asyncio
-async def test_bulk_add_paces_items_and_queues_only_one_general_wake(
-    monkeypatch,
-):
+async def test_bulk_add_paces_items_and_queues_only_one_general_wake():
     first = _channel("UC-one", "one")
     second = _channel("UC-two", "two")
     first_persisted = first.model_copy(update={"video_backfill_status": "pending"})
@@ -152,17 +156,13 @@ async def test_bulk_add_paces_items_and_queues_only_one_general_wake(
     scrape = AsyncMock(side_effect=[first, second])
     sleep = AsyncMock()
 
-    monkeypatch.setattr(search, "ChannelRepository", lambda _session: repo)
-    monkeypatch.setattr("services.channel_creator.asyncio.to_thread", scrape)
-    monkeypatch.setattr("services.channel_creator.asyncio.sleep", sleep)
-    monkeypatch.setattr(search, "BACKGROUND_UPDATER_ENABLED", True)
-    monkeypatch.setattr(search, "update_cycle_trigger", trigger)
-    DataUpdater._youtube_cooldown_until = None
+    creator = _creator(session, repo, scrape=scrape, sleep=sleep)
 
     response = await search.create_channels_bulk(
         ChannelBulkCreate(urls=[first.url, second.url]),
         None,
-        session,
+        creator,
+        _container(trigger),
     )
 
     assert response.created == 2
@@ -175,9 +175,7 @@ async def test_bulk_add_paces_items_and_queues_only_one_general_wake(
 
 
 @pytest.mark.asyncio
-async def test_bulk_add_reports_invalid_item_without_contacting_youtube(
-    monkeypatch,
-):
+async def test_bulk_add_reports_invalid_item_without_contacting_youtube():
     valid = _channel()
     persisted = valid.model_copy(update={"video_backfill_status": "pending"})
     repo = _repo(created=persisted)
@@ -185,16 +183,13 @@ async def test_bulk_add_reports_invalid_item_without_contacting_youtube(
     trigger = SimpleNamespace(request=Mock(return_value=True))
     scrape = AsyncMock(return_value=valid)
 
-    monkeypatch.setattr(search, "ChannelRepository", lambda _session: repo)
-    monkeypatch.setattr("services.channel_creator.asyncio.to_thread", scrape)
-    monkeypatch.setattr(search, "BACKGROUND_UPDATER_ENABLED", True)
-    monkeypatch.setattr(search, "update_cycle_trigger", trigger)
-    DataUpdater._youtube_cooldown_until = None
+    creator = _creator(session, repo, scrape=scrape)
 
     response = await search.create_channels_bulk(
         ChannelBulkCreate(urls=["not-youtube", valid.url]),
         None,
-        session,
+        creator,
+        _container(trigger),
     )
 
     assert response.created == 1
@@ -205,9 +200,7 @@ async def test_bulk_add_reports_invalid_item_without_contacting_youtube(
 
 
 @pytest.mark.asyncio
-async def test_bulk_add_stops_remaining_items_and_persists_block_cooldown(
-    monkeypatch,
-):
+async def test_bulk_add_stops_remaining_items_and_persists_block_cooldown():
     first = _channel("UC-one", "one")
     second = _channel("UC-two", "two")
     repo = _repo()
@@ -215,16 +208,13 @@ async def test_bulk_add_stops_remaining_items_and_persists_block_cooldown(
     trigger = SimpleNamespace(request=Mock(return_value=True))
     scrape = AsyncMock(side_effect=YouTubeAccessBlocked("HTTP Error 429"))
 
-    monkeypatch.setattr(search, "ChannelRepository", lambda _session: repo)
-    monkeypatch.setattr("services.channel_creator.asyncio.to_thread", scrape)
-    monkeypatch.setattr(search, "BACKGROUND_UPDATER_ENABLED", True)
-    monkeypatch.setattr(search, "update_cycle_trigger", trigger)
-    DataUpdater._youtube_cooldown_until = None
+    creator = _creator(session, repo, scrape=scrape)
 
     response = await search.create_channels_bulk(
         ChannelBulkCreate(urls=[first.url, second.url]),
         None,
-        session,
+        creator,
+        _container(trigger),
     )
 
     assert [item.status for item in response.items] == ["failed", "skipped"]
@@ -233,13 +223,10 @@ async def test_bulk_add_stops_remaining_items_and_persists_block_cooldown(
     repo.set_youtube_cooldown_until.assert_awaited_once()
     session.commit.assert_awaited_once()
     trigger.request.assert_not_called()
-    DataUpdater._youtube_cooldown_until = None
 
 
 @pytest.mark.asyncio
-async def test_bulk_add_exact_duplicate_needs_no_youtube_request_or_cooldown(
-    monkeypatch,
-):
+async def test_bulk_add_exact_duplicate_needs_no_youtube_request_or_cooldown():
     existing = _channel()
     repo = _repo()
     repo.get_by_url = AsyncMock(return_value=existing)
@@ -247,16 +234,13 @@ async def test_bulk_add_exact_duplicate_needs_no_youtube_request_or_cooldown(
     trigger = SimpleNamespace(request=Mock(return_value=True))
     scrape = AsyncMock()
 
-    monkeypatch.setattr(search, "ChannelRepository", lambda _session: repo)
-    monkeypatch.setattr("services.channel_creator.asyncio.to_thread", scrape)
-    monkeypatch.setattr(search, "BACKGROUND_UPDATER_ENABLED", True)
-    monkeypatch.setattr(search, "update_cycle_trigger", trigger)
-    DataUpdater._youtube_cooldown_until = None
+    creator = _creator(session, repo, scrape=scrape)
 
     response = await search.create_channels_bulk(
         ChannelBulkCreate(urls=[existing.url]),
         None,
-        session,
+        creator,
+        _container(trigger),
     )
 
     assert response.already_exists == 1

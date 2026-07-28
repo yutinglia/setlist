@@ -10,7 +10,7 @@ from routers.v1 import search
 
 
 @pytest.mark.asyncio
-async def test_get_channel_returns_public_channel(monkeypatch):
+async def test_get_channel_returns_public_channel():
     channel = SimpleNamespace(
         id="UC-test",
         name="Test Channel",
@@ -19,21 +19,19 @@ async def test_get_channel_returns_public_channel(monkeypatch):
         created_at=None,
         updated_at=None,
     )
-    repo = SimpleNamespace(get_by_id=AsyncMock(return_value=channel))
-    monkeypatch.setattr(search, "ChannelRepository", lambda _session: repo)
+    queries = SimpleNamespace(get_channel=AsyncMock(return_value=channel))
 
-    result = await search.get_channel("UC-test", SimpleNamespace())
+    result = await search.get_channel("UC-test", queries)
 
     assert result.name == "Test Channel"
-    repo.get_by_id.assert_awaited_once_with("UC-test")
+    queries.get_channel.assert_awaited_once_with("UC-test")
 
 
 @pytest.mark.asyncio
-async def test_get_channel_404_when_missing(monkeypatch):
-    repo = SimpleNamespace(get_by_id=AsyncMock(return_value=None))
-    monkeypatch.setattr(search, "ChannelRepository", lambda _session: repo)
+async def test_get_channel_404_when_missing():
+    queries = SimpleNamespace(get_channel=AsyncMock(return_value=None))
 
     with pytest.raises(HTTPException) as exc_info:
-        await search.get_channel("UC-missing", SimpleNamespace())
+        await search.get_channel("UC-missing", queries)
 
     assert exc_info.value.status_code == 404
