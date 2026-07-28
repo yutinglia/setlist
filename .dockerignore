@@ -13,4 +13,8 @@
 **/.venv
 **/node_modules
 **/dist
+**/coverage
+**/htmlcov
+**/playwright-report
+**/test-results
 **/*.log

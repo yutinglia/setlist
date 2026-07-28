@@ -61,7 +61,45 @@ jobs:
           python -m ruff format --check .
 
       - name: Backend tests
-        run: python -m pytest
+        run: >-
+          python -m pytest
+          --cov
+          --cov-report=term-missing:skip-covered
+          --cov-report=xml:coverage.xml
+          --cov-report=json:coverage.json
+          --cov-report=html:htmlcov
+
+      - name: Publish backend coverage summary
+        if: always() && hashFiles('backend/coverage.json') != ''
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          totals = json.loads(Path("coverage.json").read_text())["totals"]
+          covered = totals["covered_lines"] + totals["covered_branches"]
+          measured = totals["num_statements"] + totals["num_branches"]
+          print("## Backend coverage")
+          print()
+          print("| Metric | Covered | Total | Coverage |")
+          print("| --- | ---: | ---: | ---: |")
+          print(
+              f"| Statements + branches | {covered} | {measured} | "
+              f"{totals['percent_covered']:.2f}% |"
+          )
+          PY
+
+      - name: Upload backend coverage report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: backend-coverage
+          path: |
+            backend/coverage.xml
+            backend/coverage.json
+            backend/htmlcov
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Build production runtime image
         working-directory: .
@@ -108,7 +146,55 @@ jobs:
         run: npm run lint
 
       - name: Frontend tests
-        run: npm test
+        run: npm run test:coverage
+
+      - name: Publish frontend coverage summary
+        if: always() && hashFiles('frontend/coverage/coverage-summary.json') != ''
+        run: |
+          node --input-type=module <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          import { readFileSync } from "node:fs"
+
+          const totals = JSON.parse(
+            readFileSync("coverage/coverage-summary.json", "utf8"),
+          ).total
+          console.log("## Frontend coverage")
+          console.log("")
+          console.log("| Metric | Covered | Total | Coverage |")
+          console.log("| --- | ---: | ---: | ---: |")
+          for (const key of ["statements", "branches", "functions", "lines"]) {
+            const metric = totals[key]
+            const label = key[0].toUpperCase() + key.slice(1)
+            console.log(
+              `| ${label} | ${metric.covered} | ${metric.total} | ${metric.pct}% |`,
+            )
+          }
+          NODE
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser end-to-end tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-playwright
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload frontend coverage report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Frontend production build
         run: npm run build

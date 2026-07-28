@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
   packages: write
   id-token: write
@@ -78,6 +79,33 @@ jobs:
 
           echo "APP_VERSION=$source_version" >> "$GITHUB_ENV"
           echo "IMAGE_TAG=$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+
+      - name: Verify successful coverage-gated CI
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          tagged_commit="$(git rev-parse "${GITHUB_SHA}^{commit}")"
+          successful_runs="$(
+            gh api --paginate \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${tagged_commit}&status=success&per_page=100" \
+              --slurp
+          )"
+          if ! jq -e --arg sha "$tagged_commit" '
+            [.[] | .workflow_runs[] |
+              select(
+                .head_sha == $sha and
+                .conclusion == "success" and
+                (.event == "push" or .event == "workflow_dispatch")
+              )
+            ] |
+            length > 0
+          ' <<< "$successful_runs" > /dev/null; then
+            echo "::error::Release commit lacks a successful coverage-gated CI run."
+            exit 1
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0

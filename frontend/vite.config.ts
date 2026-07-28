@@ -171,6 +171,28 @@ export default defineConfig(({ mode }) => {
         strategy: ["localStorage", "cookie", "preferredLanguage", "baseLocale"],
       }),
     ],
+    test: {
+      environment: "jsdom",
+      setupFiles: ["./src/test/setup.ts"],
+      exclude: ["e2e/**", "node_modules/**", "dist/**"],
+      coverage: {
+        provider: "v8",
+        include: ["src/**/*.{ts,tsx}"],
+        exclude: [
+          "src/paraglide/**",
+          "src/routeTree.gen.ts",
+          "src/test/**",
+          "src/vite-env.d.ts",
+        ],
+        reporter: ["text", "html", "json-summary", "lcov"],
+        thresholds: {
+          branches: 80,
+          functions: 80,
+          lines: 80,
+          statements: 80,
+        },
+      },
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
