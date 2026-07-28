@@ -5,23 +5,30 @@ import {
   useQueryClient,
 } from "@tanstack/react-query"
 
-import { api } from "@/api/client"
+import type { ApiClient } from "@/api/client"
+import { useApi } from "@/api/context"
 
 export const PAGE_SIZE = 20
 export const SONG_SUGGESTION_LIMIT = 8
 
-export const authSessionQueryOptions = queryOptions({
-  queryKey: ["auth", "session"],
-  queryFn: () => api.authSession(),
-  staleTime: 5 * 60_000,
-  retry: false,
-})
+export const authSessionQueryKey = ["auth", "session"] as const
+
+export function authSessionQueryOptions(api: ApiClient) {
+  return queryOptions({
+    queryKey: authSessionQueryKey,
+    queryFn: () => api.authSession(),
+    staleTime: 5 * 60_000,
+    retry: false,
+  })
+}
 
 export function useAuthSession() {
-  return useQuery(authSessionQueryOptions)
+  const api = useApi()
+  return useQuery(authSessionQueryOptions(api))
 }
 
 export function useLogin() {
+  const api = useApi()
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({
@@ -32,23 +39,25 @@ export function useLogin() {
       password: string
     }) => api.login(username, password),
     onSuccess: (session) => {
-      queryClient.setQueryData(authSessionQueryOptions.queryKey, session)
+      queryClient.setQueryData(authSessionQueryKey, session)
     },
   })
 }
 
 export function useLogout() {
+  const api = useApi()
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => api.logout(),
     onSuccess: (session) => {
-      queryClient.setQueryData(authSessionQueryOptions.queryKey, session)
+      queryClient.setQueryData(authSessionQueryKey, session)
       queryClient.removeQueries({ queryKey: ["updater"] })
     },
   })
 }
 
 export function useHealth() {
+  const api = useApi()
   return useQuery({
     queryKey: ["health"],
     queryFn: () => api.health(),
@@ -58,6 +67,7 @@ export function useHealth() {
 }
 
 export function useUpdaterStatus() {
+  const api = useApi()
   const auth = useAuthSession()
   const isAdmin =
     auth.data?.authenticated === true && auth.data.role === "admin"
@@ -72,6 +82,7 @@ export function useUpdaterStatus() {
 }
 
 export function useSummaryReport() {
+  const api = useApi()
   return useQuery({
     queryKey: ["report", "summary"],
     queryFn: () => api.summaryReport(),
@@ -92,6 +103,7 @@ export function useSongSearch(
   page: number,
   filters: SongSearchFilters = {},
 ) {
+  const api = useApi()
   const offset = page * PAGE_SIZE
   const channelIds = filters.channelIds
   const type = filters.type
@@ -125,6 +137,7 @@ export function useSongSuggestions(
   filters: SongSearchFilters = {},
   options?: { enabled?: boolean },
 ) {
+  const api = useApi()
   const normalizedQuery = q.trim()
   const channelIds = filters.channelIds
   const type = filters.type
@@ -161,6 +174,7 @@ export function useSongSuggestions(
 
 /** Channel options for advanced search (not page-sized browse). */
 export function useChannelOptions() {
+  const api = useApi()
   return useQuery({
     queryKey: ["channels", "options"],
     queryFn: () => api.listChannels(100, 0),
@@ -169,6 +183,7 @@ export function useChannelOptions() {
 }
 
 export function useSong(id: number) {
+  const api = useApi()
   return useQuery({
     queryKey: ["songs", id],
     queryFn: () => api.getSong(id),
@@ -177,6 +192,7 @@ export function useSong(id: number) {
 }
 
 export function useChannels(page: number) {
+  const api = useApi()
   const offset = page * PAGE_SIZE
   return useQuery({
     queryKey: ["channels", page],
@@ -186,6 +202,7 @@ export function useChannels(page: number) {
 }
 
 export function useChannel(channelId: string) {
+  const api = useApi()
   return useQuery({
     queryKey: ["channels", channelId],
     queryFn: () => api.getChannel(channelId),
@@ -195,6 +212,7 @@ export function useChannel(channelId: string) {
 }
 
 export function useCreateChannel() {
+  const api = useApi()
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (url: string) => api.createChannel(url),
@@ -206,6 +224,7 @@ export function useCreateChannel() {
 }
 
 export function useCreateChannelsBulk() {
+  const api = useApi()
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (urls: string[]) => api.createChannelsBulk(urls),
@@ -223,6 +242,7 @@ export function useChannelVideos(
   hasSongList: boolean | undefined,
   limit: number,
 ) {
+  const api = useApi()
   const offset = page * limit
   return useQuery({
     queryKey: [
@@ -242,6 +262,7 @@ export function useChannelVideos(
 }
 
 export function useVideo(videoId: string) {
+  const api = useApi()
   return useQuery({
     queryKey: ["videos", videoId],
     queryFn: () => api.getVideo(videoId),
@@ -254,6 +275,7 @@ export function useVideoSongs(
   page: number,
   options?: { enabled?: boolean },
 ) {
+  const api = useApi()
   const offset = page * PAGE_SIZE
   return useQuery({
     queryKey: ["videos", videoId, "songs", page],

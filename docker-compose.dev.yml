@@ -64,6 +64,11 @@ services:
       UPDATER_SHUTDOWN_GRACE_SECONDS: ${UPDATER_SHUTDOWN_GRACE_SECONDS:-20}
       UPDATER_HEARTBEAT_INTERVAL_SECONDS: ${UPDATER_HEARTBEAT_INTERVAL_SECONDS:-30}
       UPDATER_HEARTBEAT_STALE_SECONDS: ${UPDATER_HEARTBEAT_STALE_SECONDS:-120}
+      CACHE_URL: ${CACHE_URL:-}
+      CACHE_KEY_PREFIX: ${CACHE_KEY_PREFIX:-setlist-dev}
+      CACHE_DEFAULT_TTL_SECONDS: ${CACHE_DEFAULT_TTL_SECONDS:-60}
+      CACHE_CONNECT_TIMEOUT_SECONDS: ${CACHE_CONNECT_TIMEOUT_SECONDS:-1}
+      CACHE_SOCKET_TIMEOUT_SECONDS: ${CACHE_SOCKET_TIMEOUT_SECONDS:-1}
       WATCHFILES_FORCE_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
     depends_on:
@@ -74,6 +79,19 @@ services:
     networks:
       - vks
     stop_grace_period: 30s
+
+  cache:
+    image: valkey/valkey:9.1.1-alpine@sha256:ee91f7a174ac4d6a6b0685b3a60e321f0a9dbbb691f9b0e285be2ba1d1be8328
+    profiles: ["cache"]
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    restart: unless-stopped
+    networks:
+      - vks
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   db:
     image: homelab/vtuber-karaoke-search-postgres:dev

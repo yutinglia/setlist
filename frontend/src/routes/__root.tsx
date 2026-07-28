@@ -7,6 +7,7 @@ import {
 import { ExternalLink } from "lucide-react"
 
 import { SiteHeader } from "@/components/site-header"
+import type { ApiClient } from "@/api/client"
 import { buttonVariants } from "@/components/ui/button"
 import { SOURCE_URL } from "@/lib/public-config"
 import { cn } from "@/lib/utils"
@@ -14,6 +15,7 @@ import { m } from "@/paraglide/messages"
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient
+  api: ApiClient
 }>()({
   component: RootLayout,
 })

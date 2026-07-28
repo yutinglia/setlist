@@ -7,7 +7,7 @@ import {
   RefreshCw,
 } from "lucide-react"
 
-import { api } from "@/api/client"
+import { useApi } from "@/api/context"
 import { useAuthSession, useChannel, useChannelVideos } from "@/api/hooks"
 import type { ChannelVideoRefresh } from "@/api/types"
 import { ContextualBackButton } from "@/components/contextual-back-button"
@@ -58,6 +58,7 @@ function setlistFilterToQuery(
 }
 
 function ChannelVideosPage() {
+  const api = useApi()
   const { channelId } = Route.useParams()
   const {
     page = 0,

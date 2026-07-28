@@ -14,7 +14,7 @@ export const Route = createFileRoute("/admin/login")({
   validateSearch: loginSearchSchema,
   beforeLoad: async ({ context }) => {
     const session = await context.queryClient
-      .ensureQueryData(authSessionQueryOptions)
+      .ensureQueryData(authSessionQueryOptions(context.api))
       .catch(() => null)
     if (session?.authenticated && session.role === "admin") {
       throw redirect({ to: "/status" })

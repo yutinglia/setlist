@@ -4,7 +4,7 @@ import asyncio
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -44,6 +44,21 @@ def _video() -> YouTubeVideo:
         type="karaoke",
         raw_data={"duration": 3600, "live_status": "was_live"},
     )
+
+
+class _InlineScrapeExecutor:
+    async def run(self, operation, *, production):
+        del production
+        return operation()
+
+
+def _comment_scraper_dependencies(scraper):
+    return {
+        "scraper_factory": SimpleNamespace(
+            video_comments=Mock(return_value=scraper),
+        ),
+        "scrape_executor": _InlineScrapeExecutor(),
+    }
 
 
 @pytest.mark.asyncio
@@ -137,18 +152,16 @@ async def test_persisted_cooldown_survives_process_restart():
         SimpleNamespace(),
         SimpleNamespace(),
     )
-    DataUpdater._youtube_cooldown_until = None
 
     await updater.update()
 
     get_all.assert_not_awaited()
-    assert DataUpdater.youtube_cooldown_remaining() > 9 * 60
-    DataUpdater._youtube_cooldown_until = None
+    assert updater.cooldown.remaining() > 9 * 60
     updater_status.stop(detail="test cleanup")
 
 
 @pytest.mark.asyncio
-async def test_negative_reanalysis_preserves_prior_successful_setlist(monkeypatch):
+async def test_negative_reanalysis_preserves_prior_successful_setlist():
     class CommentScraper:
         def __init__(self, *_args, **_kwargs) -> None:
             pass
@@ -156,9 +169,6 @@ async def test_negative_reanalysis_preserves_prior_successful_setlist(monkeypatc
         def get_video_top_comments(self, _max_comments: int) -> list[dict]:
             return [{"text": "Great stream, thank you!"}]
 
-    monkeypatch.setattr(
-        "services.data_updater.YouTubeVideoCommentScraper", CommentScraper
-    )
     song_repo = SimpleNamespace(replace_for_video=AsyncMock(return_value=[]))
     video_repo = SimpleNamespace(update_analysis=AsyncMock())
     updater = DataUpdater(
@@ -166,6 +176,7 @@ async def test_negative_reanalysis_preserves_prior_successful_setlist(monkeypatc
         SimpleNamespace(),
         video_repo,
         song_repo,
+        **_comment_scraper_dependencies(CommentScraper()),
     )
 
     video = _video()
@@ -190,9 +201,7 @@ async def test_negative_reanalysis_preserves_prior_successful_setlist(monkeypatc
 
 
 @pytest.mark.asyncio
-async def test_comment_request_upgrades_approximate_date_without_another_scrape(
-    monkeypatch,
-):
+async def test_comment_request_upgrades_approximate_date_without_another_scrape():
     class CommentScraper:
         def __init__(self, *_args, **_kwargs) -> None:
             self.video_metadata = {
@@ -205,9 +214,6 @@ async def test_comment_request_upgrades_approximate_date_without_another_scrape(
         def get_video_top_comments(self, _max_comments: int) -> list[dict]:
             return []
 
-    monkeypatch.setattr(
-        "services.data_updater.YouTubeVideoCommentScraper", CommentScraper
-    )
     video_repo = SimpleNamespace(
         upsert=AsyncMock(),
         update_analysis=AsyncMock(),
@@ -217,6 +223,7 @@ async def test_comment_request_upgrades_approximate_date_without_another_scrape(
         SimpleNamespace(),
         video_repo,
         SimpleNamespace(replace_for_video=AsyncMock(return_value=[])),
+        **_comment_scraper_dependencies(CommentScraper()),
     )
     video = _video().model_copy(
         update={
@@ -235,9 +242,7 @@ async def test_comment_request_upgrades_approximate_date_without_another_scrape(
 
 
 @pytest.mark.asyncio
-async def test_full_metadata_reclassifies_false_positive_and_keeps_observations(
-    monkeypatch,
-):
+async def test_full_metadata_reclassifies_false_positive_and_keeps_observations():
     class CommentScraper:
         def __init__(self, *_args, **_kwargs) -> None:
             self.video_metadata = {
@@ -249,9 +254,6 @@ async def test_full_metadata_reclassifies_false_positive_and_keeps_observations(
         def get_video_top_comments(self, _max_comments: int) -> list[dict]:
             return [{"text": "Useful raw comment"}]
 
-    monkeypatch.setattr(
-        "services.data_updater.YouTubeVideoCommentScraper", CommentScraper
-    )
     video_repo = SimpleNamespace(
         upsert=AsyncMock(),
         update_analysis=AsyncMock(),
@@ -262,6 +264,7 @@ async def test_full_metadata_reclassifies_false_positive_and_keeps_observations(
         SimpleNamespace(),
         video_repo,
         song_repo,
+        **_comment_scraper_dependencies(CommentScraper()),
     )
     video = _video()
 
@@ -277,7 +280,7 @@ async def test_full_metadata_reclassifies_false_positive_and_keeps_observations(
 
 
 @pytest.mark.asyncio
-async def test_timestamp_only_comment_is_not_persisted_as_a_setlist(monkeypatch):
+async def test_timestamp_only_comment_is_not_persisted_as_a_setlist():
     class CommentScraper:
         def __init__(self, *_args, **_kwargs) -> None:
             pass
@@ -285,9 +288,6 @@ async def test_timestamp_only_comment_is_not_persisted_as_a_setlist(monkeypatch)
         def get_video_top_comments(self, _max_comments: int) -> list[dict]:
             return [{"text": "0:10\n0:20\n0:30"}]
 
-    monkeypatch.setattr(
-        "services.data_updater.YouTubeVideoCommentScraper", CommentScraper
-    )
     song_repo = SimpleNamespace(replace_for_video=AsyncMock(return_value=[]))
     video_repo = SimpleNamespace(update_analysis=AsyncMock())
     updater = DataUpdater(
@@ -295,6 +295,7 @@ async def test_timestamp_only_comment_is_not_persisted_as_a_setlist(monkeypatch)
         SimpleNamespace(),
         video_repo,
         song_repo,
+        **_comment_scraper_dependencies(CommentScraper()),
     )
     video = _video()
 
@@ -308,9 +309,7 @@ async def test_timestamp_only_comment_is_not_persisted_as_a_setlist(monkeypatch)
 
 
 @pytest.mark.asyncio
-async def test_successful_no_setlist_is_delayed_instead_of_immediate_retry(
-    monkeypatch,
-):
+async def test_successful_no_setlist_is_delayed_instead_of_immediate_retry():
     class CommentScraper:
         def __init__(self, *_args, **_kwargs) -> None:
             pass
@@ -318,9 +317,6 @@ async def test_successful_no_setlist_is_delayed_instead_of_immediate_retry(
         def get_video_top_comments(self, _max_comments: int) -> list[dict]:
             return []
 
-    monkeypatch.setattr(
-        "services.data_updater.YouTubeVideoCommentScraper", CommentScraper
-    )
     policy = replace(SCRAPE_POLICY, analysis_recheck_seconds=3600)
     updater = DataUpdater(
         SimpleNamespace(),
@@ -328,6 +324,7 @@ async def test_successful_no_setlist_is_delayed_instead_of_immediate_retry(
         SimpleNamespace(update_analysis=AsyncMock()),
         SimpleNamespace(replace_for_video=AsyncMock(return_value=[])),
         policy=policy,
+        **_comment_scraper_dependencies(CommentScraper()),
     )
     video = _video()
 
@@ -341,7 +338,7 @@ async def test_successful_no_setlist_is_delayed_instead_of_immediate_retry(
 
 
 @pytest.mark.asyncio
-async def test_youtube_block_does_not_exhaust_video_attempt(monkeypatch):
+async def test_youtube_block_does_not_exhaust_video_attempt():
     class BlockedCommentScraper:
         def __init__(self, *_args, **_kwargs) -> None:
             pass
@@ -349,16 +346,13 @@ async def test_youtube_block_does_not_exhaust_video_attempt(monkeypatch):
         def get_video_top_comments(self, _max_comments: int) -> list[dict]:
             raise YouTubeAccessBlocked("HTTP Error 429")
 
-    monkeypatch.setattr(
-        "services.data_updater.YouTubeVideoCommentScraper",
-        BlockedCommentScraper,
-    )
     video_repo = SimpleNamespace(update_analysis=AsyncMock())
     updater = DataUpdater(
         SimpleNamespace(),
         SimpleNamespace(),
         video_repo,
         SimpleNamespace(),
+        **_comment_scraper_dependencies(BlockedCommentScraper()),
     )
     video = _video()
     video.analyze_attempts = 2
@@ -373,7 +367,7 @@ async def test_youtube_block_does_not_exhaust_video_attempt(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_scraper_failure_records_retry_state_with_explicit_exception(monkeypatch):
+async def test_scraper_failure_records_retry_state_with_explicit_exception():
     class FailingCommentScraper:
         def __init__(self, *_args, **_kwargs) -> None:
             pass
@@ -381,16 +375,13 @@ async def test_scraper_failure_records_retry_state_with_explicit_exception(monke
         def get_video_top_comments(self, _max_comments: int) -> list[dict]:
             raise RuntimeError("temporary upstream failure")
 
-    monkeypatch.setattr(
-        "services.data_updater.YouTubeVideoCommentScraper",
-        FailingCommentScraper,
-    )
     video_repo = SimpleNamespace(update_analysis=AsyncMock())
     updater = DataUpdater(
         SimpleNamespace(),
         SimpleNamespace(),
         video_repo,
         SimpleNamespace(),
+        **_comment_scraper_dependencies(FailingCommentScraper()),
     )
     video = _video()
 
@@ -482,14 +473,12 @@ async def test_jitter_applies_across_channel_boundary(monkeypatch):
         def get_video_top_comments(self, _max_comments: int) -> list[dict]:
             return []
 
-    monkeypatch.setattr(
-        "services.data_updater.YouTubeVideoCommentScraper", CommentScraper
-    )
     updater = DataUpdater(
         SimpleNamespace(),
         SimpleNamespace(),
         SimpleNamespace(update_analysis=AsyncMock()),
         SimpleNamespace(replace_for_video=AsyncMock(return_value=[])),
+        **_comment_scraper_dependencies(CommentScraper()),
     )
     updater._comment_scrapes_this_cycle = 1
     jitter = AsyncMock()
@@ -843,7 +832,7 @@ async def test_manual_refresh_preserves_cooldown_status(monkeypatch):
     assert snap["last_error"] != "A manual video metadata refresh failed"
     session.commit.assert_awaited_once()
     session.rollback.assert_not_awaited()
-    DataUpdater._youtube_cooldown_until = None
+    updater.cooldown.clear()
     updater_status.stop(detail="test cleanup")
 
 
@@ -860,11 +849,10 @@ async def test_cooldown_commit_failure_rolls_back_without_local_cache():
         SimpleNamespace(),
         SimpleNamespace(),
     )
-    DataUpdater._youtube_cooldown_until = None
 
     with pytest.raises(RuntimeError, match="database unavailable"):
         await updater._activate_youtube_cooldown()
 
     channel_repo.set_youtube_cooldown_until.assert_awaited_once()
     session.rollback.assert_awaited_once()
-    assert DataUpdater.youtube_cooldown_remaining() == 0
+    assert updater.cooldown.remaining() == 0

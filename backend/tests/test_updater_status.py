@@ -16,6 +16,25 @@ from services.updater_status import UpdaterPhase, UpdaterStatusTracker
 from services.updater_status import updater_status as shared_updater_status
 
 
+def _container(runtime, *, enabled=False):
+    return SimpleNamespace(
+        updater_status=shared_updater_status,
+        runtime_state_store=SimpleNamespace(read=AsyncMock(return_value=runtime)),
+        youtube_cooldown=SimpleNamespace(remaining=lambda: 0),
+        settings=SimpleNamespace(
+            background_updater_enabled=enabled,
+            updater_heartbeat_stale_seconds=120,
+            data_update_interval=300,
+            scrape_policy=SimpleNamespace(
+                comment_scrapes_per_cycle=3,
+                steady_scan_interval_seconds=21600,
+                backfill_page_size=100,
+                backfill_pages_per_cycle=3,
+            ),
+        ),
+    )
+
+
 def test_begin_and_end_cycle():
     status = UpdaterStatusTracker()
     status.begin_cycle()
@@ -95,7 +114,7 @@ def test_stop_closes_active_cycle_and_clears_error():
 
 
 @pytest.mark.asyncio
-async def test_public_status_redacts_internal_error_details(monkeypatch):
+async def test_public_status_redacts_internal_error_details():
     now = datetime.now(UTC).replace(tzinfo=None)
     runtime = UpdaterRuntimeSnapshot(
         cycle_started_at=now,
@@ -105,10 +124,6 @@ async def test_public_status_redacts_internal_error_details(monkeypatch):
         outcome=UpdaterOutcome.RUNNING.value,
         owner_id="test-owner",
     )
-    monkeypatch.setattr(
-        "routers.v1.updater.updater_runtime_state_store",
-        SimpleNamespace(read=AsyncMock(return_value=runtime)),
-    )
     shared_updater_status.set(
         UpdaterPhase.ERROR,
         detail="password=secret",
@@ -116,7 +131,7 @@ async def test_public_status_redacts_internal_error_details(monkeypatch):
     )
 
     http_response = Response()
-    response = await get_updater_status(http_response)
+    response = await get_updater_status(http_response, _container(runtime))
 
     assert response.detail == PUBLIC_ERROR_MESSAGE
     assert response.last_error == PUBLIC_ERROR_MESSAGE
@@ -130,7 +145,7 @@ async def test_public_status_redacts_internal_error_details(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_enabled_background_worker_reports_stale_durable_heartbeat(monkeypatch):
+async def test_enabled_background_worker_reports_stale_durable_heartbeat():
     now = datetime.now(UTC).replace(tzinfo=None)
     runtime = UpdaterRuntimeSnapshot(
         cycle_started_at=now,
@@ -140,13 +155,11 @@ async def test_enabled_background_worker_reports_stale_durable_heartbeat(monkeyp
         outcome=UpdaterOutcome.SUCCESS.value,
         owner_id="dead-owner",
     )
-    monkeypatch.setattr(
-        "routers.v1.updater.updater_runtime_state_store",
-        SimpleNamespace(read=AsyncMock(return_value=runtime)),
-    )
-    monkeypatch.setattr("routers.v1.updater.BACKGROUND_UPDATER_ENABLED", True)
     shared_updater_status.stop(detail="waiting")
 
-    response = await get_updater_status(Response())
+    response = await get_updater_status(
+        Response(),
+        _container(runtime, enabled=True),
+    )
 
     assert response.is_stalled is True

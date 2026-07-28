@@ -24,12 +24,13 @@ def _hit(*, song_id: int = 1, title: str = "Stellar") -> SongSearchResult:
 
 
 @pytest.mark.asyncio
-async def test_search_songs_forwards_filters(monkeypatch):
+async def test_search_songs_forwards_filters():
     items = [_hit()]
-    song_repo = SimpleNamespace(
-        search_by_title=AsyncMock(return_value=(items, 1)),
+    queries = SimpleNamespace(
+        search_songs=AsyncMock(
+            return_value=Paginated(items=items, total=1, limit=20, offset=0)
+        ),
     )
-    monkeypatch.setattr(search, "SongRepository", lambda _session: song_repo)
 
     result = await search.search_songs(
         "Stellar",
@@ -38,13 +39,13 @@ async def test_search_songs_forwards_filters(monkeypatch):
         "20240101",
         "20241231",
         (20, 0),
-        SimpleNamespace(),
+        queries,
     )
 
     assert isinstance(result, Paginated)
     assert result.total == 1
     assert result.items[0].title == "Stellar"
-    song_repo.search_by_title.assert_awaited_once_with(
+    queries.search_songs.assert_awaited_once_with(
         "Stellar",
         limit=20,
         offset=0,
@@ -56,11 +57,12 @@ async def test_search_songs_forwards_filters(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_search_songs_omits_unset_filters(monkeypatch):
-    song_repo = SimpleNamespace(
-        search_by_title=AsyncMock(return_value=([], 0)),
+async def test_search_songs_omits_unset_filters():
+    queries = SimpleNamespace(
+        search_songs=AsyncMock(
+            return_value=Paginated(items=[], total=0, limit=20, offset=0)
+        ),
     )
-    monkeypatch.setattr(search, "SongRepository", lambda _session: song_repo)
 
     await search.search_songs(
         "Love",
@@ -69,10 +71,10 @@ async def test_search_songs_omits_unset_filters(monkeypatch):
         None,
         None,
         (20, 0),
-        SimpleNamespace(),
+        queries,
     )
 
-    song_repo.search_by_title.assert_awaited_once_with(
+    queries.search_songs.assert_awaited_once_with(
         "Love",
         limit=20,
         offset=0,
@@ -84,11 +86,8 @@ async def test_search_songs_omits_unset_filters(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_search_songs_rejects_inverted_date_range(monkeypatch):
-    song_repo = SimpleNamespace(
-        search_by_title=AsyncMock(return_value=([], 0)),
-    )
-    monkeypatch.setattr(search, "SongRepository", lambda _session: song_repo)
+async def test_search_songs_rejects_inverted_date_range():
+    queries = SimpleNamespace(search_songs=AsyncMock())
 
     with pytest.raises(HTTPException) as exc_info:
         await search.search_songs(
@@ -98,20 +97,19 @@ async def test_search_songs_rejects_inverted_date_range(monkeypatch):
             "20241231",
             "20240101",
             (20, 0),
-            SimpleNamespace(),
+            queries,
         )
 
     assert exc_info.value.status_code == 422
-    song_repo.search_by_title.assert_not_awaited()
+    queries.search_songs.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_suggest_songs_forwards_limit_and_filters(monkeypatch):
+async def test_suggest_songs_forwards_limit_and_filters():
     suggestions = [SongSuggestion(title="Stellar", occurrences=3)]
-    song_repo = SimpleNamespace(
-        suggest_titles=AsyncMock(return_value=suggestions),
+    queries = SimpleNamespace(
+        suggest_songs=AsyncMock(return_value=suggestions),
     )
-    monkeypatch.setattr(search, "SongRepository", lambda _session: song_repo)
 
     result = await search.suggest_songs(
         q="Ste",
@@ -120,11 +118,11 @@ async def test_suggest_songs_forwards_limit_and_filters(monkeypatch):
         upload_date_from="20240101",
         upload_date_to="20241231",
         limit=8,
-        session=SimpleNamespace(),
+        queries=queries,
     )
 
     assert result == suggestions
-    song_repo.suggest_titles.assert_awaited_once_with(
+    queries.suggest_songs.assert_awaited_once_with(
         "Ste",
         limit=8,
         channel_ids=["UC-test", "UC-second"],
@@ -135,11 +133,8 @@ async def test_suggest_songs_forwards_limit_and_filters(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_suggest_songs_rejects_inverted_date_range(monkeypatch):
-    song_repo = SimpleNamespace(
-        suggest_titles=AsyncMock(return_value=[]),
-    )
-    monkeypatch.setattr(search, "SongRepository", lambda _session: song_repo)
+async def test_suggest_songs_rejects_inverted_date_range():
+    queries = SimpleNamespace(suggest_songs=AsyncMock())
 
     with pytest.raises(HTTPException) as exc_info:
         await search.suggest_songs(
@@ -149,8 +144,8 @@ async def test_suggest_songs_rejects_inverted_date_range(monkeypatch):
             upload_date_from="20241231",
             upload_date_to="20240101",
             limit=8,
-            session=SimpleNamespace(),
+            queries=queries,
         )
 
     assert exc_info.value.status_code == 422
-    song_repo.suggest_titles.assert_not_awaited()
+    queries.suggest_songs.assert_not_awaited()

@@ -11,27 +11,20 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from db import async_session_factory, engine
-from repositories import ChannelRepository, SongRepository, VideoRepository
-from services.data_updater import DataUpdater
+from container import ApplicationContainer
 
 
-async def run_once() -> None:
-    async with async_session_factory() as session:
-        updater = DataUpdater(
-            session,
-            ChannelRepository(session),
-            VideoRepository(session),
-            SongRepository(session),
-        )
-        await updater.update()
+async def run_once(container: ApplicationContainer) -> None:
+    async with container.session_factory() as session:
+        await container.data_updater(session).update()
 
 
 async def main() -> None:
+    container = ApplicationContainer.build()
     try:
-        await run_once()
+        await run_once(container)
     finally:
-        await engine.dispose()
+        await container.close()
 
 
 if __name__ == "__main__":

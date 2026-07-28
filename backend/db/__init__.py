@@ -1,9 +1,6 @@
-from db.db import (
-    async_session_factory,
-    engine,
-)
+from db.db import DatabaseResources, create_database_resources
 
 __all__ = [
-    "async_session_factory",
-    "engine",
+    "DatabaseResources",
+    "create_database_resources",
 ]

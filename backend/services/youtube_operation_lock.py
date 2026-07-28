@@ -15,10 +15,6 @@ logger = logging.getLogger(__name__)
 # ASCII-ish "VTKARAOK", kept below PostgreSQL's signed BIGINT maximum.
 YOUTUBE_OPERATION_ADVISORY_LOCK_ID = 0x56544B4152414F4B
 
-# Fast same-process serialization. The database lock below protects separate
-# Uvicorn workers, overlapping deployments, one-shot jobs, and future replicas.
-youtube_operation_lock = asyncio.Lock()
-
 
 class YouTubeUpdaterBusyError(RuntimeError):
     """Another database-connected process currently owns the scraper lock."""
@@ -89,12 +85,27 @@ async def postgres_youtube_operation_lock(
                 logger.exception("Could not explicitly release YouTube advisory lock")
 
 
+class YouTubeOperationCoordinator:
+    """Injectable process-local + PostgreSQL operation coordinator."""
+
+    def __init__(self) -> None:
+        self._process_lock = asyncio.Lock()
+
+    @asynccontextmanager
+    async def guard(self, session: AsyncSession) -> AsyncIterator[bool]:
+        async with self._process_lock:
+            async with postgres_youtube_operation_lock(session) as acquired:
+                yield acquired
+
+
+# Compatibility default for direct service construction and small CLI helpers.
+default_youtube_operation_coordinator = YouTubeOperationCoordinator()
+youtube_operation_lock = default_youtube_operation_coordinator._process_lock
+
+
 @asynccontextmanager
 async def youtube_operation_guard(
     session: AsyncSession,
 ) -> AsyncIterator[bool]:
-    """Serialize locally, then try the cross-process PostgreSQL lock."""
-
-    async with youtube_operation_lock:
-        async with postgres_youtube_operation_lock(session) as acquired:
-            yield acquired
+    async with default_youtube_operation_coordinator.guard(session) as acquired:
+        yield acquired

@@ -19,12 +19,10 @@ import type {
  * - Dev: empty → Vite proxies `/v1` to FastAPI (`127.0.0.1:8000`).
  * - Prod / custom: set `VITE_API_BASE_URL` (e.g. `http://localhost:8000`).
  */
-const API_BASE =
+const DEFAULT_API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)
     ?.trim()
     .replace(/\/+$/, "") ?? ""
-
-let csrfToken: string | null = null
 
 export class ApiError extends Error {
   status: number
@@ -36,46 +34,59 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const method = (init?.method ?? "GET").toUpperCase()
-  const headers = new Headers(init?.headers)
-  headers.set("Accept", "application/json")
-  if (!["GET", "HEAD", "OPTIONS"].includes(method) && csrfToken) {
-    headers.set("X-CSRF-Token", csrfToken)
-  }
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    credentials: "include",
-    headers,
-  })
-  if (!res.ok) {
-    let detail = res.statusText
-    try {
-      const body = (await res.json()) as { detail?: unknown }
-      if (typeof body.detail === "string") {
-        detail = body.detail
-      } else if (Array.isArray(body.detail)) {
-        detail = body.detail
-          .map((item) =>
-            typeof item === "object" && item && "msg" in item
-              ? String((item as { msg: unknown }).msg)
-              : String(item),
-          )
-          .join("; ")
-      }
-    } catch {
-      /* ignore non-JSON error bodies */
-    }
-    throw new ApiError(res.status, detail)
-  }
-  return (await res.json()) as T
-}
-
 function pageQuery(limit: number, offset: number): string {
   return `limit=${limit}&offset=${offset}`
 }
 
-export const api = {
+export type ApiClientOptions = {
+  baseUrl?: string
+  fetch?: typeof globalThis.fetch
+}
+
+export function createApiClient(options: ApiClientOptions = {}) {
+  const apiBase = (options.baseUrl ?? DEFAULT_API_BASE).replace(/\/+$/, "")
+  const fetchImplementation =
+    options.fetch ??
+    ((input: RequestInfo | URL, init?: RequestInit) =>
+      globalThis.fetch(input, init))
+  let csrfToken: string | null = null
+
+  async function request<T>(path: string, init?: RequestInit): Promise<T> {
+    const method = (init?.method ?? "GET").toUpperCase()
+    const headers = new Headers(init?.headers)
+    headers.set("Accept", "application/json")
+    if (!["GET", "HEAD", "OPTIONS"].includes(method) && csrfToken) {
+      headers.set("X-CSRF-Token", csrfToken)
+    }
+    const res = await fetchImplementation(`${apiBase}${path}`, {
+      ...init,
+      credentials: "include",
+      headers,
+    })
+    if (!res.ok) {
+      let detail = res.statusText
+      try {
+        const body = (await res.json()) as { detail?: unknown }
+        if (typeof body.detail === "string") {
+          detail = body.detail
+        } else if (Array.isArray(body.detail)) {
+          detail = body.detail
+            .map((item) =>
+              typeof item === "object" && item && "msg" in item
+                ? String((item as { msg: unknown }).msg)
+                : String(item),
+            )
+            .join("; ")
+        }
+      } catch {
+        /* ignore non-JSON error bodies */
+      }
+      throw new ApiError(res.status, detail)
+    }
+    return (await res.json()) as T
+  }
+
+  return {
   health: () => request<HealthResponse>("/v1/health"),
 
   authSession: async () => {
@@ -230,4 +241,7 @@ export const api = {
 
   getVideo: (videoId: string) =>
     request<YouTubeVideo>(`/v1/videos/${encodeURIComponent(videoId)}`),
+  }
 }
+
+export type ApiClient = ReturnType<typeof createApiClient>

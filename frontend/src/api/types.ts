@@ -85,6 +85,7 @@ export type HealthResponse = {
   status: string
   version?: string
   database?: string
+  cache?: "disabled" | "ok" | "unavailable"
 }
 
 export type AuthSession = {

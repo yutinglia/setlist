@@ -1,18 +1,19 @@
 import type { QueryClient } from "@tanstack/react-query"
 import { redirect } from "@tanstack/react-router"
 
+import type { ApiClient } from "@/api/client"
 import { authSessionQueryOptions } from "@/api/hooks"
 
 export async function requireAdminRoute({
   context,
   location,
 }: {
-  context: { queryClient: QueryClient }
+  context: { queryClient: QueryClient; api: ApiClient }
   location: { href: string }
 }) {
   try {
     const session = await context.queryClient.ensureQueryData(
-      authSessionQueryOptions,
+      authSessionQueryOptions(context.api),
     )
     if (session.authenticated && session.role === "admin") {
       return
@@ -31,7 +32,7 @@ export async function requireManagementRoute(
   args: Parameters<typeof requireAdminRoute>[0],
 ) {
   const session = await args.context.queryClient
-    .ensureQueryData(authSessionQueryOptions)
+    .ensureQueryData(authSessionQueryOptions(args.context.api))
     .catch(() => null)
   if (
     session?.authenticated &&

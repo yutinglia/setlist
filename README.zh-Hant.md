@@ -299,7 +299,8 @@ npm run dev
 ```
 
 Vite 會將 `/v1` 代理至 `http://127.0.0.1:8000`。前端專用指令請參考
-[frontend/README.md](frontend/README.md)。
+[backend/README.zh-Hant.md](backend/README.zh-Hant.md) 與
+[frontend/README.md](frontend/README.md) 提供各元件專用指令及架構說明。
 
 ## 在開發環境設定管理員
 
@@ -439,9 +440,24 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&channel_id=UC_FIRST&channe
 | `UPDATER_SHUTDOWN_GRACE_SECONDS` | `20` | 允許取消與 rollback 完成的時間 |
 | `UPDATER_HEARTBEAT_INTERVAL_SECONDS` | `30` | 週期執行中寫入持久化心跳的間隔 |
 | `UPDATER_HEARTBEAT_STALE_SECONDS` | `120` | 背景 worker 觸發 stalled 警示的心跳逾期秒數 |
+| `CACHE_URL` | 空白 | 可選的 Redis／Valkey URL；空白時注入 no-op 快取 adapter |
+| `CACHE_DEFAULT_TTL_SECONDS` | `60` | 共用公開查詢回應的快取期限 |
 | `LLM_CLEANING_ENABLED` | `false` | 可選用的正規表示式後處理 |
 
 完整設定與說明請見 [`.env.example`](.env.example)。
+
+後端使用明確的 application composition root。FastAPI route 透過依賴注入取得
+查詢／use-case service，而 service 再取得 repository、驗證、爬蟲策略、
+updater state 與 cache port。PostgreSQL 仍是唯一真實來源；可選快取採
+cache-aside，快取服務失效時會 fail-open，且已提交的異動會使相關快取失效。
+若要啟用內建 Valkey profile：
+
+```bash
+CACHE_URL=redis://cache:6379/0 docker compose --profile cache up -d
+```
+
+保持 `CACHE_URL` 空白即可完全不使用 Redis／Valkey。依賴邊界詳見
+[`docs/architecture.zh-Hant.md`](docs/architecture.zh-Hant.md)。
 
 ## 資料流程如何運作
 
@@ -484,6 +500,7 @@ python -m pytest
 cd frontend
 npm ci
 npm run lint
+npm test
 npm run build
 ```
 
