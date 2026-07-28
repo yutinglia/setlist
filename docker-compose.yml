@@ -105,7 +105,11 @@ services:
       # Empty disables cache. With `--profile cache`, use redis://cache:6379/0.
       CACHE_URL: ${CACHE_URL:-}
       CACHE_KEY_PREFIX: ${CACHE_KEY_PREFIX:-setlist}
-      CACHE_DEFAULT_TTL_SECONDS: ${CACHE_DEFAULT_TTL_SECONDS:-60}
+      CACHE_DEFAULT_TTL_SECONDS: ${CACHE_DEFAULT_TTL_SECONDS:-900}
+      CACHE_SEARCH_TTL_SECONDS: ${CACHE_SEARCH_TTL_SECONDS:-900}
+      CACHE_CATALOG_TTL_SECONDS: ${CACHE_CATALOG_TTL_SECONDS:-3600}
+      CACHE_REPORT_TTL_SECONDS: ${CACHE_REPORT_TTL_SECONDS:-300}
+      CACHE_FAILURE_BACKOFF_SECONDS: ${CACHE_FAILURE_BACKOFF_SECONDS:-5}
       CACHE_CONNECT_TIMEOUT_SECONDS: ${CACHE_CONNECT_TIMEOUT_SECONDS:-1}
       CACHE_SOCKET_TIMEOUT_SECONDS: ${CACHE_SOCKET_TIMEOUT_SECONDS:-1}
       XDG_CACHE_HOME: /tmp/.cache
@@ -147,7 +151,20 @@ services:
   cache:
     image: valkey/valkey:9.1.1-alpine@sha256:ee91f7a174ac4d6a6b0685b3a60e321f0a9dbbb691f9b0e285be2ba1d1be8328
     profiles: ["cache"]
-    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    command:
+      [
+        "valkey-server",
+        "--save",
+        "",
+        "--appendonly",
+        "no",
+        "--maxmemory",
+        "${CACHE_MAXMEMORY:-80mb}",
+        "--maxmemory-policy",
+        "${CACHE_MAXMEMORY_POLICY:-allkeys-lru}",
+        "--maxmemory-clients",
+        "${CACHE_MAXMEMORY_CLIENTS:-5%}",
+      ]
     restart: unless-stopped
     init: true
     read_only: true
@@ -159,6 +176,7 @@ services:
       - no-new-privileges:true
     cpus: 0.25
     mem_limit: 128m
+    memswap_limit: 128m
     pids_limit: 64
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]

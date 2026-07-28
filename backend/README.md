@@ -94,13 +94,20 @@ docker compose --profile cache up -d
 ```
 
 The cache service is internal-only and has persistence disabled because it
-stores derived responses. The application:
+stores derived responses. The bundled 128 MiB container gives Valkey an 80 MiB
+internal data limit, uses `allkeys-lru`, and reserves headroom for allocator
+fragmentation and client buffers instead of relying on swap. The application:
 
-- caches public catalog and summary query results;
+- caches public search, catalog, and summary query results;
 - validates cached JSON back into Pydantic DTOs;
-- invalidates catalog/report namespaces after successful mutations;
+- uses 15-minute search, 1-hour catalog, and 5-minute report TTLs as stale-data
+  safety bounds;
+- invalidates search/catalog/report namespaces only after commits that can
+  change public data;
 - continues against PostgreSQL if cache reads, writes, invalidation, or health
-  checks fail;
+  checks fail, with a short bypass window after an operational failure;
+- keeps a namespace bypassed after failed invalidation until cleanup succeeds,
+  and clears shared response namespaces when the API process starts;
 - reports `disabled`, `ok`, or `unavailable` in `/v1/health`.
 
 Relevant settings:
@@ -109,9 +116,16 @@ Relevant settings:
 | --- | --- | --- |
 | `CACHE_URL` | empty | Redis-compatible URL; empty disables caching |
 | `CACHE_KEY_PREFIX` | `setlist` | Deployment-specific key namespace |
-| `CACHE_DEFAULT_TTL_SECONDS` | `60` | Public response TTL |
+| `CACHE_DEFAULT_TTL_SECONDS` | `900` | Fallback public-response TTL |
+| `CACHE_SEARCH_TTL_SECONDS` | `900` | Search and suggestion TTL |
+| `CACHE_CATALOG_TTL_SECONDS` | `3600` | Stable browse/detail TTL |
+| `CACHE_REPORT_TTL_SECONDS` | `300` | Summary-report TTL |
+| `CACHE_FAILURE_BACKOFF_SECONDS` | `5` | Direct-to-PostgreSQL window after a cache failure |
 | `CACHE_CONNECT_TIMEOUT_SECONDS` | `1` | Initial connection timeout |
 | `CACHE_SOCKET_TIMEOUT_SECONDS` | `1` | Cache operation timeout |
+| `CACHE_MAXMEMORY` | `80mb` | Bundled Valkey internal memory limit |
+| `CACHE_MAXMEMORY_POLICY` | `allkeys-lru` | Bundled Valkey eviction policy |
+| `CACHE_MAXMEMORY_CLIENTS` | `5%` | Bundled Valkey aggregate client-memory limit |
 
 Do not cache authenticated responses. They must remain `Cache-Control:
 no-store`.

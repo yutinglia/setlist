@@ -269,7 +269,13 @@ LLM_MAX_INPUT_CHARS = _env_int("LLM_MAX_INPUT_CHARS", 20_000, minimum=100)
 # An empty URL selects the no-op adapter and performs no cache network I/O.
 CACHE_URL = os.getenv("CACHE_URL", "").strip()
 CACHE_KEY_PREFIX = os.getenv("CACHE_KEY_PREFIX", "setlist").strip()
-CACHE_DEFAULT_TTL_SECONDS = _env_int("CACHE_DEFAULT_TTL_SECONDS", 60, minimum=1)
+CACHE_DEFAULT_TTL_SECONDS = _env_int("CACHE_DEFAULT_TTL_SECONDS", 900, minimum=1)
+CACHE_SEARCH_TTL_SECONDS = _env_int("CACHE_SEARCH_TTL_SECONDS", 900, minimum=1)
+CACHE_CATALOG_TTL_SECONDS = _env_int("CACHE_CATALOG_TTL_SECONDS", 3600, minimum=1)
+CACHE_REPORT_TTL_SECONDS = _env_int("CACHE_REPORT_TTL_SECONDS", 300, minimum=1)
+CACHE_FAILURE_BACKOFF_SECONDS = _env_float(
+    "CACHE_FAILURE_BACKOFF_SECONDS", 5, minimum=0.1
+)
 CACHE_CONNECT_TIMEOUT_SECONDS = _env_float(
     "CACHE_CONNECT_TIMEOUT_SECONDS", 1, minimum=0.1
 )
@@ -311,6 +317,10 @@ class CacheSettings:
     url: str
     key_prefix: str
     default_ttl_seconds: int
+    search_ttl_seconds: int
+    catalog_ttl_seconds: int
+    report_ttl_seconds: int
+    failure_backoff_seconds: float
     connect_timeout_seconds: float
     socket_timeout_seconds: float
 
@@ -394,6 +404,10 @@ def get_settings() -> AppSettings:
             url=CACHE_URL,
             key_prefix=CACHE_KEY_PREFIX,
             default_ttl_seconds=CACHE_DEFAULT_TTL_SECONDS,
+            search_ttl_seconds=CACHE_SEARCH_TTL_SECONDS,
+            catalog_ttl_seconds=CACHE_CATALOG_TTL_SECONDS,
+            report_ttl_seconds=CACHE_REPORT_TTL_SECONDS,
+            failure_backoff_seconds=CACHE_FAILURE_BACKOFF_SECONDS,
             connect_timeout_seconds=CACHE_CONNECT_TIMEOUT_SECONDS,
             socket_timeout_seconds=CACHE_SOCKET_TIMEOUT_SECONDS,
         ),

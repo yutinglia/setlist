@@ -15,7 +15,7 @@ from repositories.song_repository import SongRepository
 from repositories.video_repository import VideoRepository
 from services.analyzer.comment_attribution import apply_setlist_comment_attribution
 from services.analyzer.yt_comment_analyzer import CommentAnalyzer
-from services.cache import ResponseCache
+from services.cache import PUBLIC_CACHE_NAMESPACES, ResponseCache
 from services.youtube_operation_lock import (
     YouTubeOperationCoordinator,
     YouTubeUpdaterBusyError,
@@ -106,7 +106,7 @@ class StoredDataReanalyzer:
                 if apply:
                     await self.session.commit()
                     if self.cache is not None:
-                        await self.cache.invalidate("catalog", "report")
+                        await self.cache.invalidate(*PUBLIC_CACHE_NAMESPACES)
                 else:
                     await self.session.rollback()
                 return result

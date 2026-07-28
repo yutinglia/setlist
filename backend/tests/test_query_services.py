@@ -13,8 +13,29 @@ from models.search import SetlistContributor, SongSearchResult, SongSuggestion
 from models.song import Song
 from models.video import YouTubeVideo
 from routers.v1.health import health_check
-from services.cache import NullCacheBackend, ResponseCache
+from services.cache import (
+    CATALOG_CACHE_NAMESPACE,
+    PUBLIC_CACHE_NAMESPACES,
+    REPORT_CACHE_NAMESPACE,
+    SEARCH_CACHE_NAMESPACE,
+    NullCacheBackend,
+    ResponseCache,
+)
 from services.queries import CatalogQueryService, ReportQueryService
+
+
+class _RecordingCache:
+    def __init__(self):
+        self.remembered: list[tuple[str, str]] = []
+        self.invalidated: tuple[str, ...] = ()
+
+    async def remember(self, namespace, parameters, response_type, loader):
+        del response_type
+        self.remembered.append((namespace, parameters["operation"]))
+        return await loader()
+
+    async def invalidate(self, *namespaces):
+        self.invalidated = namespaces
 
 
 def _cache():
@@ -110,7 +131,8 @@ async def test_catalog_query_service_loads_every_public_projection():
         get_by_video_id=AsyncMock(return_value=[song]),
         count_by_video_id=AsyncMock(return_value=1),
     )
-    service = CatalogQueryService(channel_repo, video_repo, song_repo, _cache())
+    cache = _RecordingCache()
+    service = CatalogQueryService(channel_repo, video_repo, song_repo, cache)
 
     search = await service.search_songs(
         "Song",
@@ -153,6 +175,18 @@ async def test_catalog_query_service_loads_every_public_projection():
     assert songs.items == [song]
     song_repo.search_by_title.assert_awaited_once()
     song_repo.suggest_titles.assert_awaited_once()
+    assert cache.remembered == [
+        (SEARCH_CACHE_NAMESPACE, "search_songs"),
+        (SEARCH_CACHE_NAMESPACE, "suggest_songs"),
+        (CATALOG_CACHE_NAMESPACE, "get_song"),
+        (CATALOG_CACHE_NAMESPACE, "list_setlist_contributors"),
+        (CATALOG_CACHE_NAMESPACE, "list_channels"),
+        (CATALOG_CACHE_NAMESPACE, "get_channel"),
+        (CATALOG_CACHE_NAMESPACE, "list_channel_videos"),
+        (CATALOG_CACHE_NAMESPACE, "get_video"),
+        (CATALOG_CACHE_NAMESPACE, "list_video_songs"),
+    ]
+    assert cache.invalidated == PUBLIC_CACHE_NAMESPACES
 
 
 @pytest.mark.asyncio
@@ -181,7 +215,9 @@ async def test_catalog_query_service_returns_none_for_missing_relations():
 async def test_report_query_service_and_health_paths():
     expected = _summary()
     repo = SimpleNamespace(get_summary=AsyncMock(return_value=expected))
-    assert await ReportQueryService(repo, _cache()).get_summary() == expected
+    cache = _RecordingCache()
+    assert await ReportQueryService(repo, cache).get_summary() == expected
+    assert cache.remembered == [(REPORT_CACHE_NAMESPACE, "summary")]
 
     healthy_response = Response()
     healthy_session = SimpleNamespace(execute=AsyncMock(return_value=None))

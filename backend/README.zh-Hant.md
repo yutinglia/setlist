@@ -88,12 +88,21 @@ docker compose --profile cache up -d
 ```
 
 Cache service 只存在於內部網路，且因只保存可重建的衍生回應而停用持久化。
+內建容器上限為 128 MiB，Valkey 內部資料上限為 80 MiB，採
+`allkeys-lru`，不使用 swap，並替 allocator fragmentation 與 client
+buffer 保留空間。
 應用程式會：
 
-- 快取公開 catalog 與 summary query；
+- 快取公開 search、catalog 與 summary query；
 - 將快取 JSON 重新驗證成 Pydantic DTO；
-- mutation 成功 commit 後使 catalog/report namespace 失效；
-- cache 讀、寫、失效或健康檢查失敗時，繼續由 PostgreSQL 提供資料；
+- 搜尋、穩定 catalog、report 的 TTL 分別為 15 分鐘、1 小時、5 分鐘，
+  作為 invalidation 失敗時的資料過期上限；
+- 只有可能改變公開資料的 commit 才使 search/catalog/report namespace
+  失效；
+- cache 讀、寫、失效或健康檢查失敗時，短暫 bypass cache 並繼續由
+  PostgreSQL 提供資料；
+- invalidation 失敗後維持該 namespace bypass，直到清除成功；API process
+  啟動時也會清除共用 response namespace；
 - 在 `/v1/health` 回報 `disabled`、`ok` 或 `unavailable`。
 
 相關設定：
@@ -102,9 +111,16 @@ Cache service 只存在於內部網路，且因只保存可重建的衍生回應
 | --- | --- | --- |
 | `CACHE_URL` | 空白 | Redis-compatible URL；空白即停用 |
 | `CACHE_KEY_PREFIX` | `setlist` | 各 deployment 的 key namespace |
-| `CACHE_DEFAULT_TTL_SECONDS` | `60` | 公開回應 TTL |
+| `CACHE_DEFAULT_TTL_SECONDS` | `900` | 公開回應的 fallback TTL |
+| `CACHE_SEARCH_TTL_SECONDS` | `900` | 搜尋與建議 TTL |
+| `CACHE_CATALOG_TTL_SECONDS` | `3600` | 穩定瀏覽／詳細資料 TTL |
+| `CACHE_REPORT_TTL_SECONDS` | `300` | Summary report TTL |
+| `CACHE_FAILURE_BACKOFF_SECONDS` | `5` | Cache 失敗後直接查 PostgreSQL 的時間 |
 | `CACHE_CONNECT_TIMEOUT_SECONDS` | `1` | 初次連線 timeout |
 | `CACHE_SOCKET_TIMEOUT_SECONDS` | `1` | Cache operation timeout |
+| `CACHE_MAXMEMORY` | `80mb` | 內建 Valkey 的內部記憶體上限 |
+| `CACHE_MAXMEMORY_POLICY` | `allkeys-lru` | 內建 Valkey 的淘汰策略 |
+| `CACHE_MAXMEMORY_CLIENTS` | `5%` | 內建 Valkey 的 client 總記憶體上限 |
 
 不得快取 authenticated response；這些回應必須維持 `Cache-Control: no-store`。
 

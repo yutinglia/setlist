@@ -24,7 +24,7 @@ from repositories.channel_repository import ChannelRepository
 from repositories.song_repository import SongRepository
 from repositories.video_repository import VideoRepository
 from services.analyzer.llm_cleaner import LlmSongListCleaner, SongListCleaner
-from services.cache import ResponseCache
+from services.cache import PUBLIC_CACHE_NAMESPACES, ResponseCache
 from services.scrape_policy import ScrapePolicy
 from services.scraping import (
     DefaultScraperFactory,
@@ -143,7 +143,7 @@ class DataUpdater:
             self.policy,
             self.status,
             self._progress,
-            commit=lambda: self._commit(),
+            commit=lambda: self._commit(invalidate_cache=True),
             list_pause=lambda: self._list_jitter_sleep(),
             backfill_page=lambda channel: self._backfill_channel_video_page(channel),
         )
@@ -199,11 +199,11 @@ class DataUpdater:
             production=isinstance(self.session, AsyncSession),
         )
 
-    async def _commit(self) -> None:
+    async def _commit(self, *, invalidate_cache: bool = True) -> None:
         """Commit owned work, then invalidate shared read models."""
         await self.session.commit()
-        if self.cache is not None:
-            await self.cache.invalidate("catalog", "report")
+        if invalidate_cache and self.cache is not None:
+            await self.cache.invalidate(*PUBLIC_CACHE_NAMESPACES)
 
     async def _update_without_lock(
         self,
@@ -306,7 +306,7 @@ class DataUpdater:
         channel: YouTubeChannel,
     ) -> bool:
         try:
-            await self._process_channel(channel)
+            public_data_changed = await self._process_channel(channel)
             self.status.set(
                 UpdaterPhase.COMMITTING,
                 detail=f"Committing updates for {channel.name}",
@@ -314,7 +314,7 @@ class DataUpdater:
                 channel_name=channel.name,
                 clear_video=True,
             )
-            await self._commit()
+            await self._commit(invalidate_cache=bool(public_data_changed))
             logger.info("Committed updates for channel %s", channel.id)
             return True
         except YouTubeAccessBlocked as exc:
@@ -532,7 +532,7 @@ class DataUpdater:
         try:
             if setter is not None:
                 await setter(self._utc_now() + timedelta(seconds=seconds))
-            await self._commit()
+            await self._commit(invalidate_cache=False)
         except BaseException:
             await self.session.rollback()
             raise
@@ -610,8 +610,8 @@ class DataUpdater:
             ),
         )
 
-    async def _process_channel(self, channel: YouTubeChannel) -> None:
-        await self._channel_cycle.process(channel)
+    async def _process_channel(self, channel: YouTubeChannel) -> bool:
+        return await self._channel_cycle.process(channel)
 
     async def _process_analysis_queue(self) -> None:
         """Analyze a global, due queue independently from channel discovery."""

@@ -52,7 +52,8 @@ class ChannelCycleService:
         self.list_pause = list_pause
         self.backfill_page = backfill_page
 
-    async def process(self, channel: YouTubeChannel) -> None:
+    async def process(self, channel: YouTubeChannel) -> bool:
+        """Process one channel and report uncommitted public-data changes."""
         logger.info("Processing channel %s (%s)", channel.name, channel.id)
         self.status.set(
             UpdaterPhase.REFRESHING_CHANNEL,
@@ -62,64 +63,68 @@ class ChannelCycleService:
             clear_video=True,
             comment_scrapes_this_cycle=self.progress.comment_scrapes,
         )
-        channel = await self._refresh_if_needed(channel)
+        channel, public_data_changed = await self._refresh_if_needed(channel)
         if channel.video_backfill_status in VIDEO_BACKFILL_ACTIVE:
-            await self._process_backfill_pages(channel)
-            return
+            committed = await self._process_backfill_pages(channel)
+            return public_data_changed and not committed
 
-        videos = await self._process_steady_scan(channel)
+        videos, scan_changed_public_data = await self._process_steady_scan(channel)
         if videos:
             await self.channel_videos.reclassify_and_clear(
                 channel,
                 [video.id for video in videos],
             )
+        return public_data_changed or scan_changed_public_data
 
     async def _refresh_if_needed(
         self,
         channel: YouTubeChannel,
-    ) -> YouTubeChannel:
+    ) -> tuple[YouTubeChannel, bool]:
         if channel.raw_data is not None:
-            return channel
+            return channel, False
         self.status.set(
             UpdaterPhase.REFRESHING_CHANNEL,
             detail=f"Refreshing channel metadata for {channel.name}",
             channel_id=channel.id,
             channel_name=channel.name,
         )
-        return await self.channel_videos.refresh_channel(channel)
+        return await self.channel_videos.refresh_channel(channel), True
 
     async def _process_backfill_pages(
         self,
         channel: YouTubeChannel,
-    ) -> None:
+    ) -> bool:
         if self.progress.backfill_channels >= self.policy.backfill_channels_per_cycle:
             logger.info(
                 "Backfill channel cap reached (%s); deferring video backfill for %s",
                 self.policy.backfill_channels_per_cycle,
                 channel.id,
             )
-            return
+            return False
 
         self.progress.backfill_channels += 1
+        committed = False
         for page_index in range(self.policy.backfill_pages_per_cycle):
             if page_index:
                 await self.list_pause()
             refreshed = await self.backfill_page(channel)
             await self.commit()
+            committed = True
             if refreshed is None:
-                return
+                return committed
             channel = refreshed
             if channel.video_backfill_status != VIDEO_BACKFILL_RUNNING:
-                return
+                return committed
+        return committed
 
     async def _process_steady_scan(
         self,
         channel: YouTubeChannel,
-    ) -> list[YouTubeVideo] | None:
+    ) -> tuple[list[YouTubeVideo] | None, bool]:
         if not self.channel_videos.scan_is_due(channel):
-            return None
+            return None, False
         if self.progress.steady_channels >= self.policy.steady_channels_per_cycle:
-            return None
+            return None, False
 
         self.progress.steady_channels += 1
         self.status.set(
@@ -135,7 +140,7 @@ class ChannelCycleService:
             raise
         except Exception:
             await self._schedule_scan_retry(channel)
-            return None
+            return None, True
 
         await self.channel_repo.schedule_video_scan(
             channel.id,
@@ -145,7 +150,7 @@ class ChannelCycleService:
         )
         if not videos:
             logger.info("No normal archive records found for %s", channel.id)
-        return videos
+        return videos, True
 
     async def _schedule_scan_retry(self, channel: YouTubeChannel) -> None:
         failures = max(0, channel.video_scan_failures) + 1

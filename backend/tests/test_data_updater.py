@@ -118,11 +118,13 @@ async def test_cancelled_cycle_persists_cancelled_runtime_outcome(monkeypatch):
 async def test_comment_cap_does_not_skip_later_channel_metadata(monkeypatch):
     channels = [_channel("channel-1"), _channel("channel-2")]
     session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    cache = SimpleNamespace(invalidate=AsyncMock())
     updater = DataUpdater(
         session,
         SimpleNamespace(get_all=AsyncMock(return_value=channels)),
         SimpleNamespace(),
         SimpleNamespace(),
+        cache=cache,
     )
 
     processed: list[str] = []
@@ -136,6 +138,7 @@ async def test_comment_cap_does_not_skip_later_channel_metadata(monkeypatch):
 
     assert processed == ["channel-1", "channel-2"]
     assert session.commit.await_count == 2
+    cache.invalidate.assert_not_awaited()
 
 
 @pytest.mark.asyncio
