@@ -114,7 +114,16 @@ class ReportRepository:
                     func.count()
                     .filter(Songs.analyzed_by_llm.is_(True))
                     .label("analyzed_by_llm"),
+                    func.count(func.distinct(Videos.setlist_comment_author_id))
+                    .filter(
+                        Videos.has_song_list_comment.is_(True),
+                        Videos.setlist_comment_author.is_not(None),
+                        Videos.setlist_comment_author_id.is_not(None),
+                    )
+                    .label("contributors"),
                 )
+                .select_from(Songs)
+                .join(Videos, Songs.video_id == Videos.id)
             )
         ).one()
 
@@ -157,5 +166,6 @@ class ReportRepository:
             songs=SongReport(
                 total=int(song_counts.total),
                 analyzed_by_llm=int(song_counts.analyzed_by_llm),
+                contributors=int(song_counts.contributors),
             ),
         )

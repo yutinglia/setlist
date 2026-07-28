@@ -43,7 +43,7 @@ def _summary() -> SummaryReport:
                 "skipped": 8,
             },
         },
-        songs={"total": 98, "analyzed_by_llm": 4},
+        songs={"total": 98, "analyzed_by_llm": 4, "contributors": 12},
     )
 
 

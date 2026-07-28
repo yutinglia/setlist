@@ -277,6 +277,7 @@
   "summary_comments": "保存済みコメント",
   "summary_setlists": "検出したセットリスト",
   "summary_songs": "抽出した曲",
+  "summary_contributors": "セットリスト提供者",
   "summary_pipeline": "解析カバレッジ",
   "summary_pipeline_hint": "保存されている歌枠に対する解析の進捗です。",
   "summary_analysis_coverage": "解析を試行した歌枠",

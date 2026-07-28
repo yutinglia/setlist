@@ -213,6 +213,7 @@ async def test_upsert_channel_video_and_replace_songs(session: AsyncSession):
     assert after.analysis.status.done == before.analysis.status.done + 1
     assert after.songs.total == before.songs.total + 3
     assert after.songs.analyzed_by_llm == before.songs.analyzed_by_llm + 1
+    assert after.songs.contributors == before.songs.contributors + 1
     assert after.videos.latest_discovered_at is not None
     assert after.analysis.latest_analyzed_at is not None
 

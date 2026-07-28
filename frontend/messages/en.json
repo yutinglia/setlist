@@ -277,6 +277,7 @@
   "summary_comments": "Comments captured",
   "summary_setlists": "Setlists found",
   "summary_songs": "Songs extracted",
+  "summary_contributors": "Setlist contributors",
   "summary_pipeline": "Analysis coverage",
   "summary_pipeline_hint": "Coverage is measured against stored karaoke streams.",
   "summary_analysis_coverage": "Streams attempted",

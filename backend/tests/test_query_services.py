@@ -78,7 +78,7 @@ def _summary():
                 "skipped": 0,
             },
         },
-        songs={"total": 1, "analyzed_by_llm": 0},
+        songs={"total": 1, "analyzed_by_llm": 0, "contributors": 1},
     )
 
 

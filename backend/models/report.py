@@ -55,6 +55,10 @@ class AnalysisReport(BaseModel):
 class SongReport(BaseModel):
     total: int = Field(ge=0)
     analyzed_by_llm: int = Field(ge=0)
+    contributors: int = Field(
+        ge=0,
+        description="Distinct credited setlist authors with indexed songs",
+    )
 
 
 class SummaryReport(BaseModel):

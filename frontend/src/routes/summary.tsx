@@ -4,6 +4,7 @@ import {
   Archive,
   BarChart3,
   Clock3,
+  HeartHandshake,
   ListMusic,
   MessageSquareText,
   Radio,
@@ -123,6 +124,11 @@ function SummaryPage() {
                   label={m.summary_songs()}
                   value={data.songs.total}
                   accent
+                />
+                <MetricCard
+                  icon={HeartHandshake}
+                  label={m.summary_contributors()}
+                  value={data.songs.contributors}
                 />
               </div>
 
