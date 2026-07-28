@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import CHANNEL_ADD_COOLDOWN_SECONDS, SCRAPE_POLICY
 from models.channel import VIDEO_BACKFILL_PENDING, YouTubeChannel
 from repositories.channel_repository import ChannelRepository
-from services.cache import ResponseCache
+from services.cache import PUBLIC_CACHE_NAMESPACES, ResponseCache
 from services.scrape_policy import ScrapePolicy
 from services.scraping import (
     DefaultScraperFactory,
@@ -227,7 +227,7 @@ class ChannelCreator:
                 await self.repo.set_channel_add_cooldown_until(
                     self._new_add_cooldown_deadline()
                 )
-                await self._commit()
+                await self._commit(invalidate_cache=False)
                 return ChannelCreationOutcome(
                     requested_url=channel_url,
                     status="already_exists",
@@ -237,7 +237,7 @@ class ChannelCreator:
             await self.repo.set_channel_add_cooldown_until(
                 self._new_add_cooldown_deadline()
             )
-            await self._commit()
+            await self._commit(invalidate_cache=True)
         except BaseException:
             await self.session.rollback()
             raise
@@ -273,7 +273,7 @@ class ChannelCreator:
             await self.repo.set_channel_add_cooldown_until(
                 self._new_add_cooldown_deadline()
             )
-            await self._commit()
+            await self._commit(invalidate_cache=False)
         except BaseException:
             await self.session.rollback()
             raise
@@ -288,7 +288,7 @@ class ChannelCreator:
             await self.repo.set_youtube_cooldown_until(
                 now + timedelta(seconds=block_seconds)
             )
-            await self._commit()
+            await self._commit(invalidate_cache=False)
         except BaseException:
             await self.session.rollback()
             raise
@@ -300,10 +300,10 @@ class ChannelCreator:
     def _set_youtube_cooldown(self, seconds: float) -> None:
         self.cooldown.activate(seconds)
 
-    async def _commit(self) -> None:
+    async def _commit(self, *, invalidate_cache: bool) -> None:
         await self.session.commit()
-        if self.cache is not None:
-            await self.cache.invalidate("catalog", "report")
+        if invalidate_cache and self.cache is not None:
+            await self.cache.invalidate(*PUBLIC_CACHE_NAMESPACES)
 
     def _new_add_cooldown_deadline(
         self,

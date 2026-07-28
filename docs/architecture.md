@@ -32,11 +32,30 @@ Set `CACHE_URL` to any compatible Redis URL. Redis and Valkey use the same
 adapter because Valkey accepts existing Redis client libraries. With no URL,
 the container injects a no-op backend and opens no cache connection.
 
-Public catalog and summary reads are serialized as validated Pydantic JSON.
+Public search, catalog, and summary reads are serialized as validated Pydantic JSON.
 Cache keys contain a schema version and a hash of canonical parameters.
-Mutations invalidate catalog and report namespaces. Read, write, invalidation,
-and health-check failures are fail-open: PostgreSQL serves the request and the
-failure is rate-limited in logs.
+Commits that can change public data invalidate all three namespaces; no-op
+channel and cooldown-only commits do not. Search, catalog, and report entries use
+15-minute, 1-hour, and 5-minute stale-data safety bounds. Read, write,
+invalidation, and health-check failures are fail-open: PostgreSQL serves the
+request, a short failure backoff avoids repeated cache timeouts, and failure
+logging is rate-limited. A namespace whose invalidation failed stays bypassed
+until cleanup succeeds, so a longer TTL cannot revive a response made stale by
+a committed mutation. API startup also performs fail-open namespace cleanup to
+cover cache entries left by an earlier process.
+
+| Namespace | Public GET endpoints | Default TTL |
+| --- | --- | --- |
+| `search` | `/v1/songs/search`, `/v1/songs/suggestions` | 15 minutes |
+| `catalog` | Song, contributor, channel, video, and video-song browse/detail routes | 1 hour |
+| `report` | `/v1/report/summary` | 5 minutes |
+
+`/v1/health` remains live, authentication and updater-status responses are
+`no-store`, and mutations are never response-cached. Authenticated API
+responses also receive `Cache-Control: no-store` from middleware. The frontend
+proxy does not add an HTTP response cache for `/v1`; Valkey is the shared
+server-side cache, while TanStack Query owns the per-browser server-state
+cache.
 
 For the bundled optional service:
 
@@ -45,7 +64,10 @@ CACHE_URL=redis://cache:6379/0 docker compose --profile cache up -d
 ```
 
 The cache is not published to the host and persistence is disabled because it
-contains derived response data only.
+contains derived response data only. The bundled 128 MiB container configures
+an 80 MiB Valkey `maxmemory`, `allkeys-lru` eviction, and a 5% aggregate client
+memory limit so the process evicts replaceable keys before reaching its
+container limit without relying on swap.
 
 ## Testing and replacement
 

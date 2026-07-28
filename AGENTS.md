@@ -101,8 +101,8 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
   depends on `ResponseCache`/`CacheBackend`, never directly on a Redis client.
   An empty `CACHE_URL` selects `NullCacheBackend`; Redis and Valkey use the same
   async adapter. PostgreSQL remains authoritative, cache failures stay
-  fail-open, and mutation owners invalidate catalog/report namespaces only
-  after a successful commit. Never cache authentication/session-bearing
+  fail-open, and mutation owners invalidate search/catalog/report namespaces
+  only after a successful commit that can change public data. Never cache authentication/session-bearing
   responses or move transaction ownership into the cache.
 - **Schema source of truth** is Flyway SQL in `db/migrations/`. ORM models in `backend/db/models.py` are generated — prefer editing SQL + regenerating over hand-editing generated models unless necessary.
 - **Pydantic models** (`backend/models/`) are the API/domain DTOs; repositories map ORM → Pydantic with `model_validate` / `from_attributes`.

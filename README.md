@@ -479,7 +479,10 @@ Important settings:
 | `UPDATER_HEARTBEAT_INTERVAL_SECONDS` | `30` | Durable heartbeat write interval during a cycle |
 | `UPDATER_HEARTBEAT_STALE_SECONDS` | `120` | Worker heartbeat age that triggers a stalled alert |
 | `CACHE_URL` | empty | Optional Redis/Valkey URL; empty selects the no-op cache adapter |
-| `CACHE_DEFAULT_TTL_SECONDS` | `60` | Shared public-query response cache lifetime |
+| `CACHE_SEARCH_TTL_SECONDS` | `900` | Search/suggestion cache lifetime |
+| `CACHE_CATALOG_TTL_SECONDS` | `3600` | Stable browse/detail cache lifetime |
+| `CACHE_REPORT_TTL_SECONDS` | `300` | Summary-report cache lifetime |
+| `CACHE_MAXMEMORY` | `80mb` | Bundled Valkey limit inside its 128 MiB container |
 | `LLM_CLEANING_ENABLED` | `false` | Optional post-regex cleanup |
 
 The complete list and explanatory comments live in [`.env.example`](.env.example).
@@ -489,7 +492,10 @@ receive query/use-case services, and those services receive repositories,
 authentication, scraper strategies, updater state, and cache ports through
 dependency injection. PostgreSQL remains the source of truth. The optional
 cache uses a cache-aside adapter, fails open when unavailable, and is
-invalidated after committed mutations. Start the bundled Valkey profile with:
+invalidated after committed public-data mutations. The bundled service uses
+bounded memory with LRU eviction, and cache failures temporarily bypass the
+adapter rather than adding repeated network timeouts. Start the bundled Valkey
+profile with:
 
 ```bash
 CACHE_URL=redis://cache:6379/0 docker compose --profile cache up -d

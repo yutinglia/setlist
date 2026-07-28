@@ -447,7 +447,10 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&channel_id=UC_FIRST&channe
 | `UPDATER_HEARTBEAT_INTERVAL_SECONDS` | `30` | 週期執行中寫入持久化心跳的間隔 |
 | `UPDATER_HEARTBEAT_STALE_SECONDS` | `120` | 背景 worker 觸發 stalled 警示的心跳逾期秒數 |
 | `CACHE_URL` | 空白 | 可選的 Redis／Valkey URL；空白時注入 no-op 快取 adapter |
-| `CACHE_DEFAULT_TTL_SECONDS` | `60` | 共用公開查詢回應的快取期限 |
+| `CACHE_SEARCH_TTL_SECONDS` | `900` | 搜尋／建議的快取期限 |
+| `CACHE_CATALOG_TTL_SECONDS` | `3600` | 穩定瀏覽／詳細資料的快取期限 |
+| `CACHE_REPORT_TTL_SECONDS` | `300` | Summary report 的快取期限 |
+| `CACHE_MAXMEMORY` | `80mb` | 內建 Valkey 在 128 MiB 容器內的上限 |
 | `LLM_CLEANING_ENABLED` | `false` | 可選用的正規表示式後處理 |
 
 完整設定與說明請見 [`.env.example`](.env.example)。
@@ -455,8 +458,10 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&channel_id=UC_FIRST&channe
 後端使用明確的 application composition root。FastAPI route 透過依賴注入取得
 查詢／use-case service，而 service 再取得 repository、驗證、爬蟲策略、
 updater state 與 cache port。PostgreSQL 仍是唯一真實來源；可選快取採
-cache-aside，快取服務失效時會 fail-open，且已提交的異動會使相關快取失效。
-若要啟用內建 Valkey profile：
+cache-aside，快取服務失效時會 fail-open，只有會改變公開資料且已提交的異動
+才會使相關快取失效。內建服務採有限記憶體與 LRU 淘汰；cache 故障時會短暫
+bypass adapter，避免每個 request 重複等待網路 timeout。若要啟用內建
+Valkey profile：
 
 ```bash
 CACHE_URL=redis://cache:6379/0 docker compose --profile cache up -d

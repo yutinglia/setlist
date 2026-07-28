@@ -18,10 +18,13 @@ from repositories import (
     SongRepository,
     VideoRepository,
 )
-from services.cache import ResponseCache
-
-CATALOG_CACHE_NAMESPACE = "catalog"
-REPORT_CACHE_NAMESPACE = "report"
+from services.cache import (
+    CATALOG_CACHE_NAMESPACE,
+    PUBLIC_CACHE_NAMESPACES,
+    REPORT_CACHE_NAMESPACE,
+    SEARCH_CACHE_NAMESPACE,
+    ResponseCache,
+)
 
 
 class CatalogQueryService:
@@ -83,7 +86,7 @@ class CatalogQueryService:
             )
 
         return await self.cache.remember(
-            CATALOG_CACHE_NAMESPACE,
+            SEARCH_CACHE_NAMESPACE,
             parameters,
             Paginated[SongSearchResult],
             load,
@@ -120,7 +123,7 @@ class CatalogQueryService:
             )
 
         return await self.cache.remember(
-            CATALOG_CACHE_NAMESPACE,
+            SEARCH_CACHE_NAMESPACE,
             parameters,
             list[SongSuggestion],
             load,
@@ -294,7 +297,7 @@ class CatalogQueryService:
         )
 
     async def invalidate(self) -> None:
-        await self.cache.invalidate(CATALOG_CACHE_NAMESPACE, REPORT_CACHE_NAMESPACE)
+        await self.cache.invalidate(*PUBLIC_CACHE_NAMESPACES)
 
 
 class ReportQueryService:

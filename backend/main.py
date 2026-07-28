@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from container import ApplicationContainer
 from routers.v1 import router as v1_router
+from services.cache import PUBLIC_CACHE_NAMESPACES
 from services.rate_limit import GuestRateLimitMiddleware
 from services.update_cycle_trigger import UpdateCycleRequest, UpdateCycleTrigger
 from services.updater_runtime_state import (
@@ -120,6 +121,10 @@ def create_app(
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         updater_task: asyncio.Task[None] | None = None
+        # Discard response entries that may predate this API process. If the
+        # optional cache is unavailable, its dirty namespaces remain bypassed
+        # and are cleared automatically after the adapter recovers.
+        await app_container.cache.invalidate(*PUBLIC_CACHE_NAMESPACES)
         app_container.update_cycle_trigger.clear()
         if settings.background_updater_enabled:
             updater_task = asyncio.create_task(run_periodic_data_updater(app_container))

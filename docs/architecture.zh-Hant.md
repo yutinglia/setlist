@@ -31,10 +31,28 @@ repository、Redis client 或 scraper 實作。
 client library，因此兩者共用同一 adapter。未設定 URL 時，container 會注入
 no-op backend，且不會建立任何快取連線。
 
-公開 catalog 與 summary 查詢會序列化成經 Pydantic 驗證的 JSON。Cache key
-含 schema version 與正規化參數雜湊；異動會使 catalog 與 report namespace
-失效。讀取、寫入、失效與健康檢查若失敗都會 fail-open：請求改由 PostgreSQL
-提供，並限制重複錯誤 log。
+公開 search、catalog 與 summary 查詢會序列化成經 Pydantic 驗證的 JSON。
+Cache key 含 schema version 與正規化參數雜湊；只有會改變公開資料的 commit
+才會使三個 namespace 失效，沒有工作的 channel 與單純 cooldown commit
+不會清空快取。
+搜尋、catalog、report 分別使用 15 分鐘、1 小時、5 分鐘的 stale-data 安全
+上限。讀取、寫入、失效與健康檢查若失敗都會 fail-open：請求改由 PostgreSQL
+提供、短暫 backoff 以避免重複 cache timeout，並限制重複錯誤 log。
+Invalidation 失敗的 namespace 會持續 bypass，直到清除成功，因此延長 TTL
+不會讓已 commit 異動之前的舊回應重新出現。API 啟動時也會以 fail-open 方式
+清除 namespace，涵蓋前一個 process 留下的 key。
+
+| Namespace | 公開 GET endpoint | 預設 TTL |
+| --- | --- | --- |
+| `search` | `/v1/songs/search`、`/v1/songs/suggestions` | 15 分鐘 |
+| `catalog` | 歌曲、貢獻者、頻道、影片與影片歌曲的瀏覽／詳細資料 route | 1 小時 |
+| `report` | `/v1/report/summary` | 5 分鐘 |
+
+`/v1/health` 維持即時查詢；驗證與 updater status 回應為 `no-store`，mutation
+永遠不做 response cache。帶有效管理員 session 的 API 回應也由 middleware
+加入 `Cache-Control: no-store`。Frontend proxy 不會替 `/v1` 增加 HTTP
+response cache；Valkey 是共用 server-side cache，TanStack Query 則管理每個
+browser 的 server-state cache。
 
 啟用內建的可選服務：
 
@@ -43,6 +61,8 @@ CACHE_URL=redis://cache:6379/0 docker compose --profile cache up -d
 ```
 
 Cache 不會對主機公開 port，且不啟用持久化，因為其中只有可重建的衍生回應。
+內建 128 MiB 容器會設定 Valkey `maxmemory=80mb`、`allkeys-lru` 與 5% 的
+client 總記憶體限制，先淘汰可重建 key，再接近容器上限，且不依賴 swap。
 
 ## 測試與替換
 

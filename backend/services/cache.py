@@ -19,6 +19,15 @@ from config import CacheSettings
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
+SEARCH_CACHE_NAMESPACE = "search"
+CATALOG_CACHE_NAMESPACE = "catalog"
+REPORT_CACHE_NAMESPACE = "report"
+PUBLIC_CACHE_NAMESPACES = (
+    SEARCH_CACHE_NAMESPACE,
+    CATALOG_CACHE_NAMESPACE,
+    REPORT_CACHE_NAMESPACE,
+)
+
 
 class CacheBackend(Protocol):
     """Small async key/value port implemented by cache infrastructure."""
@@ -162,12 +171,19 @@ class ResponseCache:
         *,
         key_prefix: str,
         default_ttl_seconds: int,
+        namespace_ttl_seconds: dict[str, int] | None = None,
+        failure_backoff_seconds: float = 5,
     ) -> None:
         self.backend = backend
         self.key_prefix = key_prefix
         self.default_ttl_seconds = default_ttl_seconds
+        self.namespace_ttl_seconds = namespace_ttl_seconds or {}
+        self.failure_backoff_seconds = failure_backoff_seconds
         self._locks = tuple(asyncio.Lock() for _ in range(64))
+        self._invalidation_lock = asyncio.Lock()
+        self._dirty_namespaces: set[str] = set()
         self._last_failure_log_at = 0.0
+        self._bypass_until = 0.0
 
     @property
     def enabled(self) -> bool:
@@ -182,7 +198,7 @@ class ResponseCache:
         *,
         ttl_seconds: int | None = None,
     ) -> T:
-        if not self.enabled:
+        if not self.enabled or await self._must_bypass(namespace):
             return await loader()
 
         key = self._key(namespace, parameters)
@@ -194,8 +210,13 @@ class ResponseCache:
             except Exception:
                 logger.warning("Ignoring invalid cached response for %s", namespace)
 
+        if await self._must_bypass(namespace):
+            return await loader()
+
         lock = self._locks[int(hashlib.sha256(key.encode()).hexdigest()[:8], 16) % 64]
         async with lock:
+            if await self._must_bypass(namespace):
+                return await loader()
             cached = await self._safe_get(key)
             if cached is not None:
                 try:
@@ -207,21 +228,31 @@ class ResponseCache:
             await self._safe_set(
                 key,
                 payload,
-                ttl_seconds=ttl_seconds or self.default_ttl_seconds,
+                ttl_seconds=(
+                    ttl_seconds
+                    or self.namespace_ttl_seconds.get(
+                        namespace,
+                        self.default_ttl_seconds,
+                    )
+                ),
             )
             return result
 
     async def invalidate(self, *namespaces: str) -> None:
-        for namespace in namespaces:
-            prefix = f"{self.key_prefix}:{self._SCHEMA_VERSION}:{namespace}:"
-            try:
-                await self.backend.delete_prefix(prefix)
-            except Exception as exc:
-                self._log_failure("invalidate", exc)
+        if not self.enabled:
+            return
+        self._dirty_namespaces.update(namespaces)
+        await self._retry_dirty_namespaces()
 
     async def status(self) -> str:
         if not self.enabled:
             return "disabled"
+        if self._backing_off():
+            return "unavailable"
+        if self._dirty_namespaces:
+            await self._retry_dirty_namespaces()
+            if self._dirty_namespaces:
+                return "unavailable"
         try:
             return "ok" if await self.backend.ping() else "unavailable"
         except Exception as exc:
@@ -259,6 +290,10 @@ class ResponseCache:
 
     def _log_failure(self, operation: str, exc: Exception) -> None:
         now = time.monotonic()
+        self._bypass_until = max(
+            self._bypass_until,
+            now + self.failure_backoff_seconds,
+        )
         if now - self._last_failure_log_at < 60:
             return
         self._last_failure_log_at = now
@@ -267,6 +302,32 @@ class ResponseCache:
             operation,
             type(exc).__name__,
         )
+
+    def _backing_off(self) -> bool:
+        return time.monotonic() < self._bypass_until
+
+    async def _must_bypass(self, namespace: str) -> bool:
+        if self._backing_off():
+            return True
+        if namespace not in self._dirty_namespaces:
+            return False
+        await self._retry_dirty_namespaces()
+        return self._backing_off() or namespace in self._dirty_namespaces
+
+    async def _retry_dirty_namespaces(self) -> None:
+        if self._backing_off():
+            return
+        async with self._invalidation_lock:
+            for namespace in tuple(self._dirty_namespaces):
+                if self._backing_off():
+                    return
+                prefix = f"{self.key_prefix}:{self._SCHEMA_VERSION}:{namespace}:"
+                try:
+                    await self.backend.delete_prefix(prefix)
+                except Exception as exc:
+                    self._log_failure("invalidate", exc)
+                    return
+                self._dirty_namespaces.discard(namespace)
 
 
 def create_cache(settings: CacheSettings) -> ResponseCache:
@@ -279,4 +340,10 @@ def create_cache(settings: CacheSettings) -> ResponseCache:
         backend,
         key_prefix=settings.key_prefix,
         default_ttl_seconds=settings.default_ttl_seconds,
+        namespace_ttl_seconds={
+            SEARCH_CACHE_NAMESPACE: settings.search_ttl_seconds,
+            CATALOG_CACHE_NAMESPACE: settings.catalog_ttl_seconds,
+            REPORT_CACHE_NAMESPACE: settings.report_ttl_seconds,
+        },
+        failure_backoff_seconds=settings.failure_backoff_seconds,
     )

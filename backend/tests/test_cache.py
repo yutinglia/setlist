@@ -4,10 +4,12 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from pydantic import TypeAdapter
 
 from config import CacheSettings
 from models.search import SongSearchResult
 from services.cache import (
+    PUBLIC_CACHE_NAMESPACES,
     MemoryCacheBackend,
     RedisCacheBackend,
     ResponseCache,
@@ -93,6 +95,17 @@ async def test_cache_failure_is_fail_open():
     assert result.title == "Stellar"
     loader.assert_awaited_once()
     assert await cache.status() == "unavailable"
+    backend.get.assert_awaited_once()
+    backend.ping.assert_not_awaited()
+
+    await cache.remember(
+        "catalog",
+        {"id": 2},
+        SongSearchResult,
+        loader,
+    )
+    backend.get.assert_awaited_once()
+    assert loader.await_count == 2
     await cache.invalidate("catalog")
 
 
@@ -142,6 +155,10 @@ async def test_empty_cache_url_injects_noop_backend():
             url="",
             key_prefix="test",
             default_ttl_seconds=60,
+            search_ttl_seconds=900,
+            catalog_ttl_seconds=3600,
+            report_ttl_seconds=300,
+            failure_backoff_seconds=5,
             connect_timeout_seconds=1,
             socket_timeout_seconds=1,
         )
@@ -178,7 +195,11 @@ async def test_mutation_invalidates_injected_cache_only_after_commit():
     await updater._commit()
 
     assert order == ["commit", "invalidate"]
-    cache.invalidate.assert_awaited_once_with("catalog", "report")
+    cache.invalidate.assert_awaited_once_with(*PUBLIC_CACHE_NAMESPACES)
+
+    cache.invalidate.reset_mock()
+    await updater._commit(invalidate_cache=False)
+    cache.invalidate.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -221,6 +242,10 @@ def test_enabled_cache_settings_build_redis_adapter(monkeypatch):
         url="redis://cache:6379/0",
         key_prefix="test",
         default_ttl_seconds=60,
+        search_ttl_seconds=900,
+        catalog_ttl_seconds=3600,
+        report_ttl_seconds=300,
+        failure_backoff_seconds=5,
         connect_timeout_seconds=1.5,
         socket_timeout_seconds=2.5,
     )
@@ -236,6 +261,94 @@ def test_enabled_cache_settings_build_redis_adapter(monkeypatch):
         socket_timeout=2.5,
         health_check_interval=30,
     )
+    assert cache.namespace_ttl_seconds == {
+        "search": 900,
+        "catalog": 3600,
+        "report": 300,
+    }
+    assert cache.failure_backoff_seconds == 5
+
+
+@pytest.mark.asyncio
+async def test_namespace_ttl_policy_is_used_for_cache_writes():
+    backend = SimpleNamespace(
+        enabled=True,
+        name="recording",
+        get=AsyncMock(return_value=None),
+        set=AsyncMock(),
+        delete_prefix=AsyncMock(),
+        ping=AsyncMock(return_value=True),
+        aclose=AsyncMock(),
+    )
+    cache = ResponseCache(
+        backend,
+        key_prefix="test",
+        default_ttl_seconds=60,
+        namespace_ttl_seconds={"search": 900, "catalog": 3600},
+    )
+    loader = AsyncMock(return_value=_hit())
+
+    await cache.remember("search", {"id": 1}, SongSearchResult, loader)
+    await cache.remember("catalog", {"id": 1}, SongSearchResult, loader)
+
+    assert [call.kwargs["ttl_seconds"] for call in backend.set.await_args_list] == [
+        900,
+        3600,
+    ]
+
+
+@pytest.mark.asyncio
+async def test_failed_invalidation_bypasses_stale_data_until_cleanup(monkeypatch):
+    class FlakyInvalidationBackend(MemoryCacheBackend):
+        def __init__(self):
+            super().__init__()
+            self.delete_calls = 0
+
+        async def delete_prefix(self, prefix: str) -> None:
+            self.delete_calls += 1
+            if self.delete_calls == 1:
+                raise ConnectionError("temporarily unavailable")
+            await super().delete_prefix(prefix)
+
+    clock = Mock(return_value=100.0)
+    monkeypatch.setattr("services.cache.time.monotonic", clock)
+    backend = FlakyInvalidationBackend()
+    cache = ResponseCache(
+        backend,
+        key_prefix="test",
+        default_ttl_seconds=60,
+        failure_backoff_seconds=5,
+    )
+    key = cache._key("catalog", {"id": 1})
+    await backend.set(
+        key, TypeAdapter(SongSearchResult).dump_json(_hit()), ttl_seconds=60
+    )
+    fresh = _hit().model_copy(update={"title": "Fresh"})
+    loader = AsyncMock(return_value=fresh)
+
+    await cache.invalidate("catalog")
+    assert (
+        await cache.remember(
+            "catalog",
+            {"id": 1},
+            SongSearchResult,
+            loader,
+        )
+    ) == fresh
+    assert backend.delete_calls == 1
+
+    clock.return_value = 106.0
+    assert (
+        await cache.remember(
+            "catalog",
+            {"id": 1},
+            SongSearchResult,
+            loader,
+        )
+    ) == fresh
+    assert backend.delete_calls == 2
+    assert loader.await_count == 2
+    assert cache._dirty_namespaces == set()
 
 
 @pytest.mark.asyncio
