@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { Link, createFileRoute } from "@tanstack/react-router"
 import { ExternalLink } from "lucide-react"
 
 import { InfoPage, InfoSection } from "@/components/info-page"
@@ -27,6 +27,15 @@ function AboutPage() {
       >
         <InfoSection title={m.about_how_heading()}>
           <p>{m.about_how_body()}</p>
+        </InfoSection>
+        <InfoSection title={m.about_contributors_heading()}>
+          <p>{m.about_contributors_body()}</p>
+          <Link
+            to="/thanks"
+            className={cn(buttonVariants({ variant: "outline" }), "mt-2")}
+          >
+            {m.about_contributors_link()}
+          </Link>
         </InfoSection>
         <InfoSection title={m.about_scope_heading()}>
           <p>{m.about_scope_body()}</p>

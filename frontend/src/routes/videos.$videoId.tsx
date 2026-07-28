@@ -24,6 +24,7 @@ import { ContextualBackButton } from "@/components/contextual-back-button"
 import { PaginationControls } from "@/components/pagination-controls"
 import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
+import { SetlistAttribution } from "@/components/setlist-attribution"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { VideoListBadges } from "@/components/video-list-badges"
 import { useClampPage } from "@/hooks/use-clamp-page"
@@ -198,6 +199,13 @@ function VideoDetailPage() {
                         <p className="mt-1.5 text-sm text-muted-foreground">
                           {m.video_setlist_hint()}
                         </p>
+                        <SetlistAttribution
+                          author={videoQuery.data.setlist_comment_author}
+                          authorId={videoQuery.data.setlist_comment_author_id}
+                          commentId={videoQuery.data.setlist_comment_id}
+                          videoId={videoQuery.data.id}
+                          className="mt-2"
+                        />
                       </div>
                       <div className="p-3 sm:p-4">
                         <QueryState

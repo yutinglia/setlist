@@ -191,6 +191,17 @@ export function useSong(id: number) {
   })
 }
 
+export function useSetlistContributors(page: number) {
+  const api = useApi()
+  const offset = page * PAGE_SIZE
+  return useQuery({
+    queryKey: ["setlist-contributors", page],
+    queryFn: () => api.listSetlistContributors(PAGE_SIZE, offset),
+    placeholderData: (prev) => prev,
+    staleTime: 60_000,
+  })
+}
+
 export function useChannels(page: number) {
   const api = useApi()
   const offset = page * PAGE_SIZE

@@ -11,6 +11,7 @@ import { useSong } from "@/api/hooks"
 import { ContextualBackButton } from "@/components/contextual-back-button"
 import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
+import { SetlistAttribution } from "@/components/setlist-attribution"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
@@ -136,6 +137,22 @@ function SongDetailPage() {
                         </Link>
                       </dd>
                     </div>
+                    {query.data.setlist_comment_author ? (
+                      <div className="border-t border-border/60 pt-4">
+                        <dt className="text-xs font-medium text-muted-foreground">
+                          {m.song_setlist_credit()}
+                        </dt>
+                        <dd className="mt-2">
+                          <SetlistAttribution
+                            author={query.data.setlist_comment_author}
+                            authorId={query.data.setlist_comment_author_id}
+                            commentId={query.data.setlist_comment_id}
+                            videoId={query.data.video_id}
+                            className="text-sm"
+                          />
+                        </dd>
+                      </div>
+                    ) : null}
                   </dl>
                 </aside>
               </div>

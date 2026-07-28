@@ -13,6 +13,7 @@ from models.video import ANALYSIS_DONE, YouTubeVideo
 from repositories.channel_repository import ChannelRepository
 from repositories.song_repository import SongRepository
 from repositories.video_repository import VideoRepository
+from services.analyzer.comment_attribution import apply_setlist_comment_attribution
 from services.analyzer.yt_comment_analyzer import CommentAnalyzer
 from services.cache import ResponseCache
 from services.youtube_operation_lock import (
@@ -196,6 +197,7 @@ class StoredDataReanalyzer:
         video.next_analysis_at = None
         video.last_analyzed_at = analyzed_at
         video.song_list_comment_raw_data = analyzer.song_list_comment
+        apply_setlist_comment_attribution(video, analyzer.song_list_comment)
         video.cleaned_song_list_comment = None
         await self.song_repo.replace_for_video(video.id, songs)
         await self.video_repo.update_analysis(video)

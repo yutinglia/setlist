@@ -6,7 +6,8 @@
 
 Setlist 是可自行託管的 VTuber 歌回曲目索引。它會處理公開的 YouTube
 封存影片、從附有時間戳的歌單留言抽取歌曲名稱，並將每筆搜尋結果連結至原始
-影片中已收錄的時間戳。
+影片中已收錄的時間戳。每筆收錄歌曲也會標示提供所選歌單與時間戳的公開
+YouTube 留言者。
 
 Setlist 是個人維護的 homelab 專案，並以小型公開部署為設計目標，也歡迎範圍
 明確的貢獻。訪客可以搜尋及瀏覽；單一管理員登入後，則可管理頻道、重新整理
@@ -21,6 +22,7 @@ Setlist 是個人維護的 homelab 專案，並以小型公開部署為設計目
 - 以搜尋為主的首頁，提供歌名建議與獨立結果頁面
 - 可分頁的網格搜尋結果，支援多個頻道、內容類型與日期篩選
 - 可直接跳到歌曲時間戳的 YouTube 深層連結
+- 歌曲會標示來源留言作者，並提供公開感謝頁列出歌單貢獻者
 - 網格形式的頻道與影片瀏覽，以及歌曲詳情與資料庫摘要
 - 英文、繁體中文與日文介面
 - 優先採用置頂／上傳者留言、依已解析歌曲數評分、辨識混合歌單／章節邊界，並
@@ -30,7 +32,7 @@ Setlist 是個人維護的 homelab 專案，並以小型公開部署為設計目
 - 可選用 OpenAI 相容 API，在正規表示式抽取後進一步清理歌單
 - 使用簽章 HttpOnly 工作階段與 CSRF 防護的單一管理員驗證
 - 依 IP 限制訪客 API 流量，並對登入採用更嚴格的限制
-- 公開的使用說明、關於、服務條款、隱私權與著作權／移除請求頁面
+- 公開的使用說明、關於、貢獻者感謝、服務條款、隱私權與著作權／移除請求頁面
 - React 前端、FastAPI、PostgreSQL 與 Flyway 的正式環境容器
 
 ## 權限模型
@@ -38,6 +40,7 @@ Setlist 是個人維護的 homelab 專案，並以小型公開部署為設計目
 | 功能 | 訪客 | 管理員 |
 |------|:----:|:------:|
 | 搜尋與瀏覽公開索引 | 可以 | 可以 |
+| 查看歌單貢獻者感謝名單 | 可以 | 可以 |
 | 查看摘要報告 | 可以 | 可以 |
 | 輪詢即時更新器狀態 | 不可以 | 可以 |
 | 新增頻道或重新整理頻道中繼資料 | 不可以 | 可以 |
@@ -368,6 +371,7 @@ BACKGROUND_UPDATER_ENABLED=true
 | `GET` | `/v1/songs/search?q=` | 搜尋歌曲，可重複指定頻道，並選用類型／日期篩選 |
 | `GET` | `/v1/songs/suggestions?q=` | 最多 10 個不重複的歌名建議，可重複指定頻道，並選用類型／日期篩選 |
 | `GET` | `/v1/songs/{id}` | 歌曲詳情與帶時間戳的 YouTube 連結 |
+| `GET` | `/v1/contributors` | 分頁列出歌單留言作者及其歌曲／影片貢獻數 |
 | `GET` | `/v1/channels` | 已追蹤頻道 |
 | `GET` | `/v1/channels/{id}` | 單一已追蹤頻道的公開中繼資料 |
 | `GET` | `/v1/channels/{id}/videos` | 指定頻道的影片 |
@@ -384,7 +388,9 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&channel_id=UC_FIRST&channe
 ```
 
 搜尋結果會包含類似
-`https://www.youtube.com/watch?v=...&t=300s` 的 `video_url`。
+`https://www.youtube.com/watch?v=...&t=300s` 的 `video_url`；若有來源留言，
+也會包含 `setlist_comment_author`、`setlist_comment_author_id` 與
+`setlist_comment_id` 標示欄位。
 
 搜尋 UI 會在輸入至少兩個字並停止 500 毫秒後，取得最多八個輕量建議。
 訪客最多可複選 25 個頻道，前端會以重複的 `channel_id` 參數送出。
@@ -468,7 +474,8 @@ CACHE_URL=redis://cache:6379/0 docker compose --profile cache up -d
 4. 可能是歌回的影片會進入獨立且受節流控制的留言分析佇列。
 5. 分析器依序優先採用置頂、上傳者、已解析歌曲數及按讚數；它會隔離明確歌單
    區段，在無關章節或時間戳大幅倒退前停止、保留安可區段，並只在成功分析後
-   取代影片歌單。
+   取代影片歌單。所選留言的公開作者名稱、穩定 YouTube 頻道 ID 與留言 ID
+   會提升為明確的標示欄位。
 6. 精確中繼資料可以升級約略值；之後的稀疏觀察不會抹除較完整的快照或先前
    成功的歌單。
 7. 若疑似受到 YouTube 封鎖，系統會中止剩餘呼叫並保存冷卻時間，避免重啟
@@ -530,7 +537,7 @@ setlist/
 ├── .devcontainer/          # Python 3.14 + Node 26 編輯器環境
 ├── .github/workflows/      # CI 與 release image 發佈
 ├── backend/                # FastAPI API、驗證、更新器、爬蟲與測試
-├── db/migrations/          # Flyway V1–V10 schema 歷史（唯一依據）
+├── db/migrations/          # Flyway V1–V12 schema 歷史（唯一依據）
 ├── frontend/               # React UI 與正式環境 nginx 代理
 ├── scripts/                # 倉庫安全檢查
 ├── CONTRIBUTING.md         # 貢獻流程
@@ -543,9 +550,9 @@ setlist/
 
 ## 貢獻與專案狀態
 
-Phase 0–9 已完成：資料流程、抽取、搜尋 API/UI、排程器強化、驗證、訪客限流、
-公開服務頁面、部署強化、公開文件，以及 updater 崩潰安全性與可觀測性。在
-1.0.0 之前，資料庫與 API 相容性可能隨版本更新而變更。
+Phase 0–10 已完成：資料流程、抽取、搜尋 API/UI、排程器強化、驗證、訪客限流、
+公開服務頁面、部署強化、公開文件、updater 崩潰安全性與可觀測性，以及歌單
+貢獻者標示。在 1.0.0 之前，資料庫與 API 相容性可能隨版本更新而變更。
 
 提交 pull request 前，請先閱讀 [CONTRIBUTING.md](CONTRIBUTING.md)、
 [AGENTS.md](AGENTS.md) 與 [PLAN.md](PLAN.md)。
@@ -554,6 +561,11 @@ Phase 0–9 已完成：資料流程、抽取、搜尋 API/UI、排程器強化�
 
 Setlist 儲存事實性中繼資料並連結至公開 YouTube 頁面，不託管所連結的演出。
 影片、音訊、縮圖、名稱與其他創作素材的權利仍屬各自權利人。
+
+歌曲索引仰賴 YouTube 留言者貢獻的時間戳歌單。Setlist 會標示每則所選來源
+留言附帶的公開帳號，並在可行時連回來源；列名不代表背書或隸屬關係。公開
+留言者名稱、頻道 ID、留言 ID 與所選留言文字可能保留至來源重新整理，或有人
+提出更正或移除要求為止。
 
 權利人與頻道營運者可透過
 [GitHub Issues](https://github.com/yutinglia/setlist/issues)

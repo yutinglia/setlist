@@ -4,6 +4,7 @@ import type {
   ChannelVideoRefresh,
   HealthResponse,
   Paginated,
+  SetlistContributor,
   Song,
   SongSearchResult,
   SongSuggestion,
@@ -180,6 +181,11 @@ export function createApiClient(options: ApiClientOptions = {}) {
   },
 
   getSong: (id: number) => request<SongSearchResult>(`/v1/songs/${id}`),
+
+  listSetlistContributors: (limit: number, offset: number) =>
+    request<Paginated<SetlistContributor>>(
+      `/v1/contributors?${pageQuery(limit, offset)}`,
+    ),
 
   listChannels: (limit: number, offset: number) =>
     request<Paginated<YouTubeChannel>>(

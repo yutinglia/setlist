@@ -123,6 +123,15 @@ async def test_upsert_channel_video_and_replace_songs(session: AsyncSession):
     refreshed.last_analyzed_at = datetime.now(UTC).replace(tzinfo=None)
     refreshed.has_song_list_comment = True
     refreshed.analysis_status = "done"
+    refreshed.song_list_comment_raw_data = {
+        "id": f"comment_{suffix}",
+        "author": f"@helper_{suffix}",
+        "author_id": f"UC_helper_{suffix}",
+        "text": "0:10 Song A",
+    }
+    refreshed.setlist_comment_author = f"@helper_{suffix}"
+    refreshed.setlist_comment_author_id = f"UC_helper_{suffix}"
+    refreshed.setlist_comment_id = f"comment_{suffix}"
     await video_repo.update_analysis(refreshed)
 
     songs = await song_repo.replace_for_video(
@@ -169,6 +178,21 @@ async def test_upsert_channel_video_and_replace_songs(session: AsyncSession):
     )
     assert underscore_total == 1
     assert [song.title for song in underscore_hits] == ["Under_score"]
+    assert percent_hits[0].setlist_comment_author == f"@helper_{suffix}"
+    assert percent_hits[0].setlist_comment_author_id == f"UC_helper_{suffix}"
+    assert percent_hits[0].setlist_comment_id == f"comment_{suffix}"
+
+    contributors, contributor_total = await song_repo.list_setlist_contributors(
+        limit=100,
+        offset=0,
+    )
+    assert contributor_total >= 1
+    contributor = next(
+        item for item in contributors if item.author_id == f"UC_helper_{suffix}"
+    )
+    assert contributor.author == f"@helper_{suffix}"
+    assert contributor.song_count == 3
+    assert contributor.video_count == 1
 
     after = await report_repo.get_summary()
     assert after.channels == before.channels + 1

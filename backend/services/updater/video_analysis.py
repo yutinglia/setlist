@@ -20,6 +20,10 @@ from models.video import (
 )
 from repositories.song_repository import SongRepository
 from repositories.video_repository import VideoRepository
+from services.analyzer.comment_attribution import (
+    apply_setlist_comment_attribution,
+    clear_setlist_comment_attribution,
+)
 from services.analyzer.llm_cleaner import SongListCleaner
 from services.analyzer.yt_comment_analyzer import CommentAnalyzer
 from services.scrape_policy import ScrapePolicy
@@ -324,6 +328,7 @@ class VideoAnalysisService:
         video.analysis_status = ANALYSIS_DONE
         video.next_analysis_at = None
         video.song_list_comment_raw_data = analyzer.song_list_comment
+        apply_setlist_comment_attribution(video, analyzer.song_list_comment)
         video.cleaned_song_list_comment = None
         final_songs = await self.maybe_llm_clean(video, analyzer, songs)
         await self.song_repo.replace_for_video(video.id, final_songs)
@@ -402,6 +407,7 @@ class VideoAnalysisService:
 
         video.has_song_list_comment = False
         video.song_list_comment_raw_data = None
+        clear_setlist_comment_attribution(video)
         video.cleaned_song_list_comment = None
         video.cleaning_attempts = 0
         video.last_cleaned_at = None

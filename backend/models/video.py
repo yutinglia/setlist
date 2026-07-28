@@ -45,6 +45,9 @@ class YouTubeVideo(BaseModel):
     last_analyzed_at: datetime | None = None
     has_song_list_comment: bool = Field(default=False)
     song_list_comment_raw_data: dict[str, Any] | None = None
+    setlist_comment_author: str | None = Field(default=None, max_length=255)
+    setlist_comment_author_id: str | None = Field(default=None, max_length=255)
+    setlist_comment_id: str | None = Field(default=None, max_length=255)
     cleaning_attempts: int = Field(default=0, ge=0)
     last_cleaned_at: datetime | None = None
     cleaned_song_list_comment: dict[str, Any] | None = None

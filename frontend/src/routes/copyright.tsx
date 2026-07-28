@@ -31,6 +31,9 @@ function CopyrightPage() {
       <InfoSection title={m.copyright_metadata_heading()}>
         <p>{m.copyright_metadata_body()}</p>
       </InfoSection>
+      <InfoSection title={m.copyright_comments_heading()}>
+        <p>{m.copyright_comments_body()}</p>
+      </InfoSection>
       <InfoSection title={m.copyright_source_heading()}>
         <p>
           {m.copyright_source_body()}{" "}

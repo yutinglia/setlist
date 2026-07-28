@@ -60,6 +60,9 @@ const video = {
   upload_date_precision: "exact" as const,
   type: "karaoke",
   has_song_list_comment: true,
+  setlist_comment_author: "@helper",
+  setlist_comment_author_id: "UC-helper",
+  setlist_comment_id: "comment-1",
   created_at: null,
   updated_at: null,
 }
@@ -74,6 +77,9 @@ const song = {
   channel_id: channel.id,
   channel_name: channel.name,
   analyzed_by_llm: true,
+  setlist_comment_author: "@helper",
+  setlist_comment_author_id: "UC-helper",
+  setlist_comment_id: "comment-1",
 }
 
 beforeEach(() => {
@@ -228,6 +234,7 @@ describe("shared display components", () => {
       </>,
     )
     expect(screen.getAllByText(channel.name).length).toBeGreaterThan(1)
+    expect(screen.getAllByText("@helper").length).toBeGreaterThan(0)
     expect(screen.getByText("Info")).toBeInTheDocument()
     expect(buttonVariants({ size: "sm", variant: "outline" })).toContain(
       "outline",

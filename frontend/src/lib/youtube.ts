@@ -26,6 +26,21 @@ export function youtubeVideoUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`
 }
 
+/** Stable channel URL for a yt-dlp comment `author_id`. */
+export function youtubeChannelUrl(authorId: string): string {
+  return `https://www.youtube.com/channel/${encodeURIComponent(authorId)}`
+}
+
+/** Direct link to a public YouTube comment on its source video. */
+export function youtubeCommentUrl(
+  videoId: string,
+  commentId: string,
+): string {
+  const url = new URL(youtubeVideoUrl(videoId))
+  url.searchParams.set("lc", commentId)
+  return url.toString()
+}
+
 function timestampToSeconds(
   timestamp: string | null | undefined,
 ): number | null {

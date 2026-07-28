@@ -109,6 +109,7 @@ proxy.
 | `/` | Search-focused entry point with title suggestions, a compact collection summary, and a route to `/search` |
 | `/search` | Grid results from `GET /v1/songs/search`; 500 ms debounced suggestions while typing; repeated channel, type, and date filters apply to both requests |
 | `/songs/$songId` | `GET /v1/songs/{id}`; contextual back navigation restores the prior search or video page |
+| `/thanks` | `GET /v1/contributors`; credits public YouTube commenters whose selected timestamped setlists supply indexed songs |
 | `/channels` | Grid view from `GET /v1/channels` |
 | `/channels/new` | Administrator-only `POST /v1/channels` |
 | `/channels/$channelId` | Grid view from `GET /v1/channels/{id}` + `/videos`; cards open details and expose a separate untimestamped YouTube action |
@@ -117,7 +118,7 @@ proxy.
 | `/status` | Administrator-only `GET /v1/updater/status` |
 | `/summary` | `GET /v1/report/summary` |
 | `/how-to-use` | Public search, browsing, timestamp, and channel-request guide |
-| `/about` | Project purpose and source link |
+| `/about` | Project purpose, community-setlist attribution, and source link |
 | `/terms` | Terms of service |
 | `/privacy` | Privacy notice |
 | `/copyright` | Copyright and removal requests |

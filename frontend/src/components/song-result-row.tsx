@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { Clock3, Info, Play } from "lucide-react"
 
 import type { SongSearchResult } from "@/api/types"
+import { SetlistAttribution } from "@/components/setlist-attribution"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { youtubeThumbnailUrl } from "@/lib/youtube"
@@ -70,6 +71,13 @@ export function SongResultCard({ song, index = 0 }: Props) {
             {song.video_title}
           </p>
         ) : null}
+        <SetlistAttribution
+          author={song.setlist_comment_author}
+          authorId={song.setlist_comment_author_id}
+          commentId={song.setlist_comment_id}
+          videoId={song.video_id}
+          className="mt-2"
+        />
 
         <div className="mt-auto flex items-center justify-between gap-2 pt-3">
           <div className="flex items-center gap-1.5">

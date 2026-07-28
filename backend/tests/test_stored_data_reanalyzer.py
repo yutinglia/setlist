@@ -38,7 +38,14 @@ def _video(
 async def test_dry_run_reclassifies_replays_and_rolls_back():
     recovered = _video(
         "recovered",
-        [{"text": "Set list\n0:10 Song A\n0:20 Song B"}],
+        [
+            {
+                "id": "comment-1",
+                "author": "@helper",
+                "author_id": "UC-helper",
+                "text": "Set list\n0:10 Song A\n0:20 Song B",
+            }
+        ],
     )
     preserved_negative = _video(
         "negative",
@@ -99,6 +106,9 @@ async def test_dry_run_reclassifies_replays_and_rolls_back():
     replay_call = song_repo.replace_for_video.await_args_list[1]
     assert replay_call.args[0] == "recovered"
     assert [song.title for song in replay_call.args[1]] == ["Song A", "Song B"]
+    assert recovered.setlist_comment_author == "@helper"
+    assert recovered.setlist_comment_author_id == "UC-helper"
+    assert recovered.setlist_comment_id == "comment-1"
     video_repo.update_analysis.assert_awaited_once_with(recovered)
 
 

@@ -18,6 +18,7 @@ import { ApiError, type ApiClient } from "@/api/client"
 import { ApiProvider } from "@/api/provider"
 import type {
   AuthSession,
+  SetlistContributor,
   SongSearchResult,
   SummaryReport,
   UpdaterStatus,
@@ -45,6 +46,9 @@ const video: YouTubeVideo = {
   upload_date_precision: "exact",
   type: "karaoke",
   has_song_list_comment: true,
+  setlist_comment_author: "@helper",
+  setlist_comment_author_id: "UC-helper",
+  setlist_comment_id: "comment-1",
   created_at: "2026-07-20T00:00:00Z",
   updated_at: "2026-07-21T00:00:00Z",
 }
@@ -59,6 +63,16 @@ const song: SongSearchResult = {
   channel_id: channel.id,
   channel_name: channel.name,
   analyzed_by_llm: true,
+  setlist_comment_author: "@helper",
+  setlist_comment_author_id: "UC-helper",
+  setlist_comment_id: "comment-1",
+}
+
+const contributor: SetlistContributor = {
+  author: "@helper",
+  author_id: "UC-helper",
+  song_count: 42,
+  video_count: 3,
 }
 
 const summary: SummaryReport = {
@@ -163,6 +177,12 @@ function makeApi(
       { title: "Test Song", occurrences: 2 },
     ]),
     getSong: vi.fn(async () => song),
+    listSetlistContributors: vi.fn(async (limit, offset) => ({
+      items: [contributor],
+      total: 1,
+      limit,
+      offset,
+    })),
     listChannels: vi.fn(async (limit, offset) => ({
       items: [channel],
       total: 1,
@@ -286,6 +306,7 @@ describe("application routes", () => {
     "/status",
     "/channels/new",
     "/about",
+    "/thanks",
     "/how-to-use",
     "/terms",
     "/privacy",
@@ -295,6 +316,16 @@ describe("application routes", () => {
     expect(document.querySelector("#main-content")?.textContent?.length)
       .toBeGreaterThan(20)
     expect(document.title).toContain("Setlist")
+  })
+
+  test("credits the YouTube setlist author on song and thanks pages", async () => {
+    await renderRoute("/songs/1")
+    expect(screen.getAllByText("@helper").length).toBeGreaterThan(0)
+
+    await renderRoute("/thanks")
+    expect(screen.getByText(m.thanks_heading())).toBeInTheDocument()
+    expect(screen.getAllByText("@helper").length).toBeGreaterThan(1)
+    expect(screen.getByText("42")).toBeInTheDocument()
   })
 
   test("renders the login route for an anonymous visitor", async () => {

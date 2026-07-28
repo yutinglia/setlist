@@ -201,6 +201,42 @@ async def test_negative_reanalysis_preserves_prior_successful_setlist():
 
 
 @pytest.mark.asyncio
+async def test_successful_setlist_persists_comment_attribution():
+    source_comment = {
+        "id": "comment-1",
+        "author": "@setlist-helper",
+        "author_id": "UC-helper",
+        "text": "0:10 Song A\n1:20 Song B\n2:30 Song C",
+    }
+
+    class CommentScraper:
+        def get_video_top_comments(self, _max_comments: int) -> list[dict]:
+            return [source_comment]
+
+    song_repo = SimpleNamespace(replace_for_video=AsyncMock(return_value=[]))
+    video_repo = SimpleNamespace(update_analysis=AsyncMock())
+    updater = DataUpdater(
+        SimpleNamespace(),
+        SimpleNamespace(),
+        video_repo,
+        song_repo,
+        **_comment_scraper_dependencies(CommentScraper()),
+    )
+    video = _video()
+
+    await updater._analyze_video(video)
+
+    assert video.has_song_list_comment is True
+    assert video.song_list_comment_raw_data == source_comment
+    assert video.setlist_comment_author == "@setlist-helper"
+    assert video.setlist_comment_author_id == "UC-helper"
+    assert video.setlist_comment_id == "comment-1"
+    persisted_songs = song_repo.replace_for_video.await_args.args[1]
+    assert [song.title for song in persisted_songs] == ["Song A", "Song B", "Song C"]
+    video_repo.update_analysis.assert_awaited_once_with(video)
+
+
+@pytest.mark.asyncio
 async def test_comment_request_upgrades_approximate_date_without_another_scrape():
     class CommentScraper:
         def __init__(self, *_args, **_kwargs) -> None:

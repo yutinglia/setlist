@@ -6,7 +6,13 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException
 
-from models.search import ChannelRead, Paginated, SongSearchResult, VideoRead
+from models.search import (
+    ChannelRead,
+    Paginated,
+    SetlistContributor,
+    SongSearchResult,
+    VideoRead,
+)
 from models.song import Song
 from models.video import YouTubeVideo
 from routers.v1 import search
@@ -52,8 +58,22 @@ async def test_public_catalog_routes_return_paginated_projections():
         video_id=detail.video_id,
         timestamp=detail.timestamp,
     )
+    contributor = SetlistContributor(
+        author="@helper",
+        author_id="UC-helper",
+        song_count=1,
+        video_count=1,
+    )
     queries = SimpleNamespace(
         get_song=AsyncMock(return_value=detail),
+        list_setlist_contributors=AsyncMock(
+            return_value=Paginated(
+                items=[contributor],
+                total=1,
+                limit=20,
+                offset=0,
+            )
+        ),
         list_channels=AsyncMock(
             return_value=Paginated(
                 items=[channel],
@@ -74,12 +94,15 @@ async def test_public_catalog_routes_return_paginated_projections():
     )
 
     assert (await search.get_song(1, queries)).title == detail.title
+    contributors = await search.list_setlist_contributors((20, 0), queries)
+    assert contributors.items == [contributor]
     channels = await search.list_channels((10, 20), queries)
     assert channels.items == [channel]
     assert (await search.get_video(video.id, queries)).id == video.id
     songs = await search.list_video_songs(video.id, (20, 40), queries)
     assert songs.items == [song]
     queries.list_channels.assert_awaited_once_with(limit=10, offset=20)
+    queries.list_setlist_contributors.assert_awaited_once_with(limit=20, offset=0)
     queries.list_video_songs.assert_awaited_once_with(
         video.id,
         limit=20,

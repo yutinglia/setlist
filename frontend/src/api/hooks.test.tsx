@@ -22,6 +22,7 @@ import {
   useSong,
   useSongSearch,
   useSongSuggestions,
+  useSetlistContributors,
   useSummaryReport,
   useUpdaterStatus,
   useVideo,
@@ -58,6 +59,12 @@ function makeApi(overrides: Partial<ApiClient> = {}) {
     })),
     suggestSongs: vi.fn(async () => []),
     getSong: vi.fn(async () => ({ id: 7 })),
+    listSetlistContributors: vi.fn(async () => ({
+      items: [],
+      total: 0,
+      limit: PAGE_SIZE,
+      offset: 0,
+    })),
     listChannels: vi.fn(async () => ({
       items: [],
       total: 0,
@@ -153,6 +160,7 @@ describe("API context and query hooks", () => {
         }),
         channelOptions: useChannelOptions(),
         song: useSong(7),
+        contributors: useSetlistContributors(2),
         channels: useChannels(2),
         channel: useChannel("UC1"),
         videos: useChannelVideos("UC1", 2, "karaoke", true, 10),
@@ -188,6 +196,7 @@ describe("API context and query hooks", () => {
       expect.any(AbortSignal),
     )
     expect(api.listChannels).toHaveBeenCalledWith(PAGE_SIZE, 40)
+    expect(api.listSetlistContributors).toHaveBeenCalledWith(PAGE_SIZE, 40)
     expect(api.listChannels).toHaveBeenCalledWith(100, 0)
     expect(api.listChannelVideos).toHaveBeenCalledWith(
       "UC1",
