@@ -74,6 +74,8 @@ status in the background.
 | `npm run build` | Typecheck + production build |
 | `npm run lint` | Oxlint static checks |
 | `npm test` | Vitest unit tests for injected browser infrastructure |
+| `npm run test:coverage` | Vitest with the 80% per-metric coverage gate |
+| `npm run test:e2e` | Playwright Chromium checks for critical user journeys |
 | `npm run preview` | Preview production build |
 | `npm run check:i18n` | Verify locale keys and message placeholders stay in sync |
 | `npm run generate:i18n` | Recompile Paraglide from `messages/*.json` into `src/paraglide/` |
@@ -84,6 +86,9 @@ React context and TanStack Router context. Hooks and route guards depend on the
 `ApiClient` contract, so tests can provide an isolated client/fetch
 implementation. TanStack Query remains the server-state cache; adding another
 frontend DI container would duplicate React's existing composition boundary.
+Install the browser once with `npx playwright install chromium` before running
+the E2E command locally. Its API routes are stubbed at the browser boundary, so
+the suite does not need PostgreSQL or live YouTube access.
 
 ## Production container
 

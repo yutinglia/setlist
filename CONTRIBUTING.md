@@ -46,7 +46,7 @@ cd backend
 python -m pip install -r requirements-dev.txt
 python -m ruff check .
 python -m ruff format --check .
-python -m pytest
+python -m pytest --cov --cov-report=term-missing:skip-covered
 ```
 
 Frontend:
@@ -55,6 +55,9 @@ Frontend:
 cd frontend
 npm ci
 npm run lint
+npm run test:coverage
+npx playwright install chromium
+npm run test:e2e
 npm run build
 ```
 
@@ -65,7 +68,13 @@ python scripts/check_secrets.py
 ```
 
 Run tests that are proportional to the change. Schema and repository changes
-should be verified against PostgreSQL after all Flyway migrations.
+should be verified against PostgreSQL after all Flyway migrations. Before
+opening a pull request, run the complete coverage commands: backend combined
+statement/branch coverage and every frontend metric must remain at least 80%.
+Run the focused browser E2E suite when navigation, authentication, or another
+critical user journey changes. The exact measured scope and report locations
+are documented in
+[docs/COVERAGE.md](docs/COVERAGE.md).
 
 ## Pull requests
 

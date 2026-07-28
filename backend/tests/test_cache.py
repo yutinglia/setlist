@@ -1,13 +1,18 @@
 """Optional cache adapter, cache-aside, and DI regressions."""
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from config import CacheSettings
 from models.search import SongSearchResult
-from services.cache import MemoryCacheBackend, ResponseCache, create_cache
+from services.cache import (
+    MemoryCacheBackend,
+    RedisCacheBackend,
+    ResponseCache,
+    create_cache,
+)
 from services.data_updater import DataUpdater
 from services.queries import CatalogQueryService
 
@@ -174,3 +179,103 @@ async def test_mutation_invalidates_injected_cache_only_after_commit():
 
     assert order == ["commit", "invalidate"]
     cache.invalidate.assert_awaited_once_with("catalog", "report")
+
+
+@pytest.mark.asyncio
+async def test_redis_cache_adapter_handles_values_batches_and_lifecycle():
+    async def scan_iter(**kwargs):
+        assert kwargs == {"match": "prefix*", "count": 100}
+        for index in range(105):
+            yield f"key-{index}"
+
+    client = SimpleNamespace(
+        get=AsyncMock(side_effect=[None, b"bytes", "text"]),
+        set=AsyncMock(),
+        scan_iter=scan_iter,
+        delete=AsyncMock(),
+        ping=AsyncMock(return_value=1),
+        aclose=AsyncMock(),
+    )
+    backend = RedisCacheBackend(client)
+
+    assert await backend.get("missing") is None
+    assert await backend.get("bytes") == b"bytes"
+    assert await backend.get("text") == b"text"
+    await backend.set("key", b"value", ttl_seconds=30)
+    await backend.delete_prefix("prefix")
+    assert await backend.ping() is True
+    await backend.aclose()
+
+    client.set.assert_awaited_once_with("key", b"value", ex=30)
+    assert client.delete.await_count == 2
+    assert len(client.delete.await_args_list[0].args) == 100
+    assert len(client.delete.await_args_list[1].args) == 5
+    client.aclose.assert_awaited_once()
+
+
+def test_enabled_cache_settings_build_redis_adapter(monkeypatch):
+    client = SimpleNamespace()
+    from_url = Mock(return_value=client)
+    monkeypatch.setattr("services.cache.Redis.from_url", from_url)
+    settings = CacheSettings(
+        url="redis://cache:6379/0",
+        key_prefix="test",
+        default_ttl_seconds=60,
+        connect_timeout_seconds=1.5,
+        socket_timeout_seconds=2.5,
+    )
+
+    cache = create_cache(settings)
+
+    assert cache.enabled is True
+    assert cache.backend._client is client
+    from_url.assert_called_once_with(
+        settings.url,
+        decode_responses=False,
+        socket_connect_timeout=1.5,
+        socket_timeout=2.5,
+        health_check_interval=30,
+    )
+
+
+@pytest.mark.asyncio
+async def test_cache_invalid_payload_expiry_and_close_failure(monkeypatch):
+    backend = MemoryCacheBackend()
+    cache = ResponseCache(
+        backend,
+        key_prefix="test",
+        default_ttl_seconds=60,
+    )
+    key = cache._key("catalog", {"id": 1})
+    await backend.set(key, b"not-json", ttl_seconds=60)
+    loader = AsyncMock(return_value=_hit())
+
+    assert (
+        await cache.remember(
+            "catalog",
+            {"id": 1},
+            SongSearchResult,
+            loader,
+            ttl_seconds=5,
+        )
+    ) == _hit()
+    loader.assert_awaited_once()
+
+    monkeypatch.setattr(
+        "services.cache.time.monotonic",
+        Mock(return_value=10_000_000_000),
+    )
+    assert await backend.get(key) is None
+    assert await backend.ping() is True
+    await backend.aclose()
+
+    failing = ResponseCache(
+        SimpleNamespace(
+            enabled=True,
+            name="failing",
+            aclose=AsyncMock(side_effect=ConnectionError("down")),
+        ),
+        key_prefix="test",
+        default_ttl_seconds=60,
+    )
+    await failing.aclose()

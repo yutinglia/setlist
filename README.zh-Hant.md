@@ -491,7 +491,7 @@ cd backend
 python -m pip install -r requirements-dev.txt
 python -m ruff check .
 python -m ruff format --check .
-python -m pytest
+python -m pytest --cov --cov-report=term-missing:skip-covered
 ```
 
 前端：
@@ -500,7 +500,9 @@ python -m pytest
 cd frontend
 npm ci
 npm run lint
-npm test
+npm run test:coverage
+npx playwright install chromium
+npm run test:e2e
 npm run build
 ```
 
@@ -511,9 +513,14 @@ python scripts/check_secrets.py
 ```
 
 GitHub Actions CI 會執行憑證掃描、Ruff、在 PostgreSQL 18 與完整 Flyway
-migration 後的後端測試、正式環境映像建置、第三方授權清單驗證、前端 lint，
-以及正式前端建置。Release workflow 只接受與目前受保護 `main` commit 相符的
-語意版本 tag；正式部署則隔離在私有 repo。
+migration 後的後端測試、前端測試、正式環境映像建置、第三方授權清單驗證、
+前端 lint 與正式前端建置。後端 statement/branch 合併覆蓋率，以及前端每一項
+覆蓋率指標都必須至少 80%。CI 會保留 HTML、XML、JSON summary 與 LCOV
+報告供分析。Playwright 也會在 Chromium 驗證關鍵公開搜尋與管理員驗證流程，
+失敗時保留 trace、畫面與影片；範圍、排除項目及本機指令請見
+[覆蓋率政策](docs/COVERAGE.zh-Hant.md)。Release workflow 只接受與目前受保護
+`main` commit 相符、且已有成功 coverage-gated CI 的語意版本 tag；正式部署
+則隔離在私有 repo。
 
 ## 專案結構
 

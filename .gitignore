@@ -21,6 +21,9 @@ build/
 .mypy_cache/
 .ruff_cache/
 .coverage
+.coverage.*
+coverage.json
+coverage.xml
 htmlcov/
 .tox/
 .cache/
@@ -43,5 +46,8 @@ Thumbs.db
 # Frontend (Vite / Node)
 frontend/node_modules/
 frontend/dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
 frontend/*.local
 frontend/*.tsbuildinfo

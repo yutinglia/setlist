@@ -527,7 +527,7 @@ cd backend
 python -m pip install -r requirements-dev.txt
 python -m ruff check .
 python -m ruff format --check .
-python -m pytest
+python -m pytest --cov --cov-report=term-missing:skip-covered
 ```
 
 Frontend:
@@ -536,7 +536,9 @@ Frontend:
 cd frontend
 npm ci
 npm run lint
-npm test
+npm run test:coverage
+npx playwright install chromium
+npm run test:e2e
 npm run build
 ```
 
@@ -547,11 +549,17 @@ python scripts/check_secrets.py
 ```
 
 GitHub Actions CI runs the credential scan, Ruff, backend tests against
-PostgreSQL 18 after all Flyway migrations, production image builds, third-party
-notice verification, frontend lint, and the production frontend build. The
-release workflow runs only for a matching semantic version tag on the current
-protected `main` commit; production deployment is isolated in a private
-repository.
+PostgreSQL 18 after all Flyway migrations, frontend tests, production image
+builds, third-party notice verification, frontend lint, and the production
+frontend build. Backend combined statement/branch coverage and every frontend
+coverage metric must be at least 80%. HTML, XML, JSON-summary, and LCOV reports
+are retained as CI artifacts for analysis. Playwright also verifies the
+critical public-search and administrator-authentication journeys in Chromium;
+failure traces, screenshots, and video are retained. See
+[Coverage policy](docs/COVERAGE.md) for scope, exclusions, and local commands.
+The release workflow accepts only a matching semantic version tag on the
+current protected `main` commit with a successful coverage-gated CI run;
+production deployment is isolated in a private repository.
 
 ## Project layout
 

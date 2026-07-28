@@ -6,7 +6,7 @@ Skipped automatically when the database is unavailable.
 
 import os
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
@@ -670,5 +670,220 @@ async def test_suggest_titles_deduplicates_ranks_and_filters(session: AsyncSessi
 
     literal_percent = await song_repo.suggest_titles("%", limit=8)
     assert any(item.title == f"100% {needle}" for item in literal_percent)
+
+    await session.rollback()
+
+
+@pytest.mark.asyncio
+async def test_channel_repository_preserves_cursors_and_persists_schedules(
+    session: AsyncSession,
+):
+    """Exercise channel state transitions through their public repository API."""
+    suffix = uuid.uuid4().hex[:8]
+    channel_id = f"ch_state_{suffix}"
+    channel_url = f"https://www.youtube.com/channel/{channel_id}"
+    repo = ChannelRepository(session)
+
+    created = await repo.upsert(
+        YouTubeChannel(
+            id=channel_id,
+            name="Stateful Channel",
+            url=channel_url,
+            thumbnail_url="https://images.test/old.jpg",
+            raw_data={"source": "initial"},
+            video_backfill_status="pending",
+            video_backfill_offset=7,
+        )
+    )
+    assert created.video_backfill_status == "pending"
+    assert created.video_backfill_offset == 7
+
+    assert await repo.count_all() >= 1
+    assert (await repo.get_by_id(channel_id)).name == "Stateful Channel"
+    assert await repo.get_by_id(f"missing_{suffix}") is None
+    assert (await repo.get_by_url(channel_url)).id == channel_id
+    assert await repo.get_by_url(f"https://invalid.test/{suffix}") is None
+    assert any(item.id == channel_id for item in await repo.get_all())
+    assert len(await repo.get_all(limit=1, offset=0)) == 1
+    assert isinstance(await repo.get_all(offset=1), list)
+
+    refreshed = await repo.upsert(
+        YouTubeChannel(
+            id=channel_id,
+            name="Renamed Channel",
+            url=channel_url,
+            thumbnail_url="https://images.test/new.jpg",
+            raw_data={"source": "refresh"},
+            video_backfill_status="done",
+            video_backfill_offset=99,
+        )
+    )
+    assert refreshed.name == "Renamed Channel"
+    assert refreshed.raw_data == {"source": "refresh"}
+    assert refreshed.video_backfill_status == "pending"
+    assert refreshed.video_backfill_offset == 7
+
+    backfill = await repo.update_video_backfill(
+        channel_id,
+        status="running",
+        offset=0,
+    )
+    assert backfill.video_backfill_status == "running"
+    assert backfill.video_backfill_offset == 1
+    assert (
+        await repo.update_video_backfill(
+            f"missing_{suffix}",
+            status="failed",
+            offset=3,
+        )
+        is None
+    )
+
+    first_due = datetime.now(UTC).replace(tzinfo=None) + timedelta(minutes=5)
+    failed_scan = await repo.schedule_video_scan(
+        channel_id,
+        next_scan_at=first_due,
+        succeeded=False,
+    )
+    assert failed_scan.next_video_scan_at == first_due
+    assert failed_scan.video_scan_failures == 1
+
+    second_due = first_due + timedelta(hours=6)
+    successful_scan = await repo.schedule_video_scan(
+        channel_id,
+        next_scan_at=second_due,
+        succeeded=True,
+    )
+    assert successful_scan.next_video_scan_at == second_due
+    assert successful_scan.video_scan_failures == 0
+    assert successful_scan.last_video_scan_at is not None
+    assert (
+        await repo.schedule_video_scan(
+            f"missing_{suffix}",
+            next_scan_at=second_due,
+            succeeded=True,
+        )
+        is None
+    )
+
+    youtube_cooldown = datetime.now(UTC).replace(tzinfo=None) + timedelta(minutes=15)
+    add_cooldown = youtube_cooldown + timedelta(minutes=1)
+    await repo.set_youtube_cooldown_until(youtube_cooldown)
+    await repo.set_channel_add_cooldown_until(add_cooldown)
+    assert await repo.get_youtube_cooldown_until() == youtube_cooldown
+    assert await repo.get_channel_add_cooldown_until() == add_cooldown
+
+    await session.rollback()
+
+
+@pytest.mark.asyncio
+async def test_video_repository_analysis_queue_filters_ineligible_archives(
+    session: AsyncSession,
+):
+    """Queue only due karaoke archives while retaining reusable observations."""
+    suffix = uuid.uuid4().hex[:8]
+    channel_id = f"ch_queue_{suffix}"
+    channel_repo = ChannelRepository(session)
+    repo = VideoRepository(session)
+    await channel_repo.create(
+        YouTubeChannel(
+            id=channel_id,
+            name="Queue Test",
+            url=f"https://www.youtube.com/channel/{channel_id}",
+        )
+    )
+
+    eligible = await repo.upsert(
+        YouTubeVideo(
+            id=f"vid_eligible_{suffix}",
+            title="【歌枠】Queue Test",
+            url=f"https://www.youtube.com/watch?v=eligible_{suffix}",
+            channel_id=channel_id,
+            upload_date="20260729",
+            type="karaoke",
+            raw_data={"title": "【歌枠】Queue Test"},
+            metadata_raw_data={"duration": 3600, "live_status": "was_live"},
+        )
+    )
+    eligible.comments_raw_data = {"comments": [{"text": "0:10 Song"}]}
+    await repo.update_analysis(eligible)
+
+    false_positive = await repo.upsert(
+        YouTubeVideo(
+            id=f"vid_false_{suffix}",
+            title="Official MV",
+            url=f"https://www.youtube.com/watch?v=false_{suffix}",
+            channel_id=channel_id,
+            upload_date="20260728",
+            type="karaoke",
+            raw_data={"title": "Official MV"},
+            metadata_raw_data={"duration": 240, "live_status": "not_live"},
+        )
+    )
+    deferred = await repo.upsert(
+        YouTubeVideo(
+            id=f"vid_deferred_{suffix}",
+            title="KARAOKE later",
+            url=f"https://www.youtube.com/watch?v=deferred_{suffix}",
+            channel_id=channel_id,
+            upload_date="20260727",
+            type="karaoke",
+            raw_data={},
+            metadata_raw_data={"duration": 3600, "live_status": "was_live"},
+        )
+    )
+    deferred.analysis_status = "retry"
+    deferred.next_analysis_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(
+        hours=1
+    )
+    await repo.update_analysis(deferred)
+
+    all_videos = await repo.get_all()
+    assert {eligible.id, false_positive.id, deferred.id} <= {
+        item.id for item in all_videos
+    }
+    stored = await repo.get_with_stored_comments()
+    assert eligible.id in {item.id for item in stored}
+
+    assert (
+        await repo.get_needing_analysis(
+            channel_id,
+            max_attempts=3,
+            limit=0,
+        )
+        == []
+    )
+    needing = await repo.get_needing_analysis(
+        channel_id,
+        max_attempts=3,
+        limit=10,
+    )
+    assert [item.id for item in needing] == [eligible.id]
+
+    now = datetime.now(UTC).replace(tzinfo=None)
+    assert await repo.get_analysis_queue(max_attempts=3, limit=0, now=now) == []
+    queued = await repo.get_analysis_queue(max_attempts=3, limit=10, now=now)
+    assert [item.id for item in queued] == [eligible.id]
+
+    assert await repo.reclassify_by_ids([]) == 0
+    assert await repo.reclassify_by_ids([false_positive.id]) == 1
+    reclassified = await repo.get_by_id(false_positive.id)
+    assert reclassified.type == "song"
+    assert reclassified.analysis_status == "skipped"
+
+    assert (
+        await repo.clear_analysis_for_non_karaoke_by_ids(
+            [],
+            max_attempts=3,
+        )
+        == []
+    )
+    assert await repo.clear_analysis_for_non_karaoke_by_ids(
+        [false_positive.id],
+        max_attempts=3,
+    ) == [false_positive.id]
+    cleared = await repo.get_by_id(false_positive.id)
+    assert cleared.analyze_attempts == 3
+    assert cleared.analysis_status == "skipped"
 
     await session.rollback()

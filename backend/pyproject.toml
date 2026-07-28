@@ -14,3 +14,23 @@ ignore = [
     # Pydantic's Generic[T] form remains clearer and works across tooling.
     "UP046",
 ]
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = [
+    "db/models.py",
+    "services/yt_scraper/test.py",
+    "tests/*",
+]
+
+[tool.coverage.report]
+fail_under = 80
+precision = 2
+show_missing = true
+skip_covered = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]

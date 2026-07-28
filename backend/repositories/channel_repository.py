@@ -125,7 +125,9 @@ class ChannelRepository:
             )
             .returning(Channels)
         )
-        result = await self.session.execute(stmt)
+        result = await self.session.execute(
+            stmt.execution_options(populate_existing=True)
+        )
         row = result.scalar_one()
         await self.session.flush()
         return YouTubeChannel.model_validate(row)
