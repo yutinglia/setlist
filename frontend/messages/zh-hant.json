@@ -277,6 +277,7 @@
   "summary_comments": "已保存留言",
   "summary_setlists": "找到歌單",
   "summary_songs": "抽出歌曲",
+  "summary_contributors": "歌單貢獻者",
   "summary_pipeline": "分析覆蓋率",
   "summary_pipeline_hint": "覆蓋率以資料庫內的歌回紀錄為基準。",
   "summary_analysis_coverage": "已嘗試分析歌回",

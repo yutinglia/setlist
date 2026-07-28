@@ -7,9 +7,11 @@ import {
 
 import type { ApiClient } from "@/api/client"
 import { useApi } from "@/api/context"
+import type { YouTubeChannel } from "@/api/types"
 
 export const PAGE_SIZE = 20
 export const SONG_SUGGESTION_LIMIT = 8
+const CHANNEL_OPTIONS_PAGE_SIZE = 100
 
 export const authSessionQueryKey = ["auth", "session"] as const
 
@@ -172,12 +174,33 @@ export function useSongSuggestions(
   })
 }
 
-/** Channel options for advanced search (not page-sized browse). */
+async function listAllChannelOptions(api: ApiClient) {
+  const items: YouTubeChannel[] = []
+  let total = 0
+  let offset = 0
+
+  do {
+    const page = await api.listChannels(CHANNEL_OPTIONS_PAGE_SIZE, offset)
+    total = page.total
+    items.push(...page.items)
+    if (page.items.length === 0) break
+    offset += page.items.length
+  } while (offset < total)
+
+  return {
+    items,
+    total,
+    limit: CHANNEL_OPTIONS_PAGE_SIZE,
+    offset: 0,
+  }
+}
+
+/** Complete channel options for advanced search (not page-sized browse). */
 export function useChannelOptions() {
   const api = useApi()
   return useQuery({
     queryKey: ["channels", "options"],
-    queryFn: () => api.listChannels(100, 0),
+    queryFn: () => listAllChannelOptions(api),
     staleTime: 60_000,
   })
 }

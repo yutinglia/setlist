@@ -148,6 +148,7 @@ export type SummaryReport = {
   songs: {
     total: number
     analyzed_by_llm: number
+    contributors: number
   }
 }
 

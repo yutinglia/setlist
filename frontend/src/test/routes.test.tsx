@@ -10,6 +10,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, test, vi } from "vitest"
@@ -106,7 +107,7 @@ const summary: SummaryReport = {
       skipped: 0,
     },
   },
-  songs: { total: 1, analyzed_by_llm: 1 },
+  songs: { total: 1, analyzed_by_llm: 1, contributors: 1 },
 }
 
 const updater: UpdaterStatus = {
@@ -326,6 +327,38 @@ describe("application routes", () => {
     expect(screen.getByText(m.thanks_heading())).toBeInTheDocument()
     expect(screen.getAllByText("@helper").length).toBeGreaterThan(1)
     expect(screen.getByText("42")).toBeInTheDocument()
+  })
+
+  test("shows the contributor total in the collection summary", async () => {
+    await renderRoute("/summary")
+
+    const label = screen.getByText(m.summary_contributors())
+    expect(within(label.parentElement!).getByText("1")).toBeInTheDocument()
+  })
+
+  test("paginates tracked channels through the URL and API offset", async () => {
+    const channels = Array.from({ length: 21 }, (_, index) => ({
+      ...channel,
+      id: `UC${index + 1}`,
+      name: `Test Singer ${index + 1}`,
+    }))
+    const listChannels = vi.fn(async (limit: number, offset: number) => ({
+      items: channels.slice(offset, offset + limit),
+      total: channels.length,
+      limit,
+      offset,
+    }))
+    const api = makeApi(adminSession, { listChannels })
+    const { router } = await renderRoute("/channels", api)
+
+    expect(listChannels).toHaveBeenCalledWith(20, 0)
+    await userEvent.click(
+      screen.getByRole("button", { name: m.pagination_next() }),
+    )
+
+    await waitFor(() => expect(listChannels).toHaveBeenCalledWith(20, 20))
+    expect(router.state.location.search).toMatchObject({ page: 1 })
+    expect(screen.getByText("Test Singer 21")).toBeInTheDocument()
   })
 
   test("renders the login route for an anonymous visitor", async () => {

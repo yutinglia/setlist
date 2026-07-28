@@ -253,6 +253,68 @@ describe("API context and query hooks", () => {
     expect(api.listVideoSongs).not.toHaveBeenCalled()
   })
 
+  test("loads every channel option page", async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) => ({
+      id: `UC${index}`,
+      name: `Channel ${index}`,
+      url: `https://youtube.test/channel/UC${index}`,
+      thumbnail_url: null,
+      created_at: null,
+      updated_at: null,
+    }))
+    const listChannels = vi
+      .fn()
+      .mockResolvedValueOnce({
+        items: firstPage,
+        total: 101,
+        limit: 100,
+        offset: 0,
+      })
+      .mockResolvedValueOnce({
+        items: [
+          {
+            id: "UC100",
+            name: "Channel 100",
+            url: "https://youtube.test/channel/UC100",
+            thumbnail_url: null,
+            created_at: null,
+            updated_at: null,
+          },
+        ],
+        total: 101,
+        limit: 100,
+        offset: 100,
+      })
+    const api = makeApi({ listChannels })
+    const { Wrapper } = harness(api)
+    const { result } = renderHook(() => useChannelOptions(), {
+      wrapper: Wrapper,
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data?.items).toHaveLength(101)
+    expect(listChannels).toHaveBeenNthCalledWith(1, 100, 0)
+    expect(listChannels).toHaveBeenNthCalledWith(2, 100, 100)
+  })
+
+  test("does not loop when a channel option page is unexpectedly empty", async () => {
+    const listChannels = vi.fn(async () => ({
+      items: [],
+      total: 101,
+      limit: 100,
+      offset: 0,
+    }))
+    const api = makeApi({ listChannels })
+    const { Wrapper } = harness(api)
+    const { result } = renderHook(() => useChannelOptions(), {
+      wrapper: Wrapper,
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data?.items).toEqual([])
+    expect(listChannels).toHaveBeenCalledOnce()
+  })
+
   test("runs mutations and updates or invalidates cached state", async () => {
     const api = makeApi()
     const { queryClient, Wrapper } = harness(api)
