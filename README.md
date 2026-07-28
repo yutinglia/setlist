@@ -7,7 +7,8 @@
 Setlist is a self-hosted index of songs performed in VTuber karaoke streams.
 It processes public YouTube archives, extracts song titles from timestamped
 setlist comments, and links each search result to its saved timestamp in the
-original video.
+original video. Each indexed song credits the public YouTube commenter whose
+selected setlist supplied its title and timestamp.
 
 Setlist is maintained as a personal homelab project and is designed for a small
 public deployment. Focused contributions are welcome. Guests can search and
@@ -23,6 +24,8 @@ metadata, reload a video's song list, and view live updater status.
 - Search-focused home page with title suggestions and a dedicated results page
 - Paginated grid results with one or more channel, content type, and date filters
 - YouTube deep links that open directly at each song's timestamp
+- Source-comment attribution on songs plus a public thank-you page that
+  recognizes setlist contributors
 - Grid-based channel, video, song-detail, and database-summary browsing
 - English, Traditional Chinese, and Japanese UI
 - Pinned/uploader-aware setlist extraction with parsed-song scoring, mixed
@@ -33,7 +36,8 @@ metadata, reload a video's song list, and view live updater status.
 - Optional OpenAI-compatible cleanup after the regex extractor
 - Single-administrator authentication with signed HttpOnly sessions and CSRF
 - Per-IP guest API limits and stricter login limits
-- Public How to Use, About, Terms, Privacy, and Copyright/removal pages
+- Public How to Use, About, contributor Thanks, Terms, Privacy, and
+  Copyright/removal pages
 - Production containers for the React frontend, FastAPI service, PostgreSQL,
   and Flyway
 
@@ -42,6 +46,7 @@ metadata, reload a video's song list, and view live updater status.
 | Capability | Guest | Administrator |
 |------------|:-----:|:-------------:|
 | Search and browse public index data | Yes | Yes |
+| View setlist contributor acknowledgements | Yes | Yes |
 | View summary report | Yes | Yes |
 | Poll live updater status | No | Yes |
 | Add channels or refresh channel metadata | No | Yes |
@@ -395,6 +400,7 @@ List endpoints accept `limit` (1–100, default 20) and `offset`
 | `GET` | `/v1/songs/search?q=` | Search songs; optional repeated channel/type/date filters |
 | `GET` | `/v1/songs/suggestions?q=` | Up to 10 distinct title suggestions; optional repeated channel/type/date filters |
 | `GET` | `/v1/songs/{id}` | Song detail and timestamped YouTube link |
+| `GET` | `/v1/contributors` | Paginated setlist-comment authors with song and video counts |
 | `GET` | `/v1/channels` | Tracked channels |
 | `GET` | `/v1/channels/{id}` | Public metadata for one tracked channel |
 | `GET` | `/v1/channels/{id}/videos` | Videos for one channel |
@@ -411,7 +417,9 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&channel_id=UC_FIRST&channe
 ```
 
 Search results include a `video_url` such as
-`https://www.youtube.com/watch?v=...&t=300s`.
+`https://www.youtube.com/watch?v=...&t=300s`, along with
+`setlist_comment_author`, `setlist_comment_author_id`, and
+`setlist_comment_id` attribution fields when a source comment is available.
 
 The search UI waits 500 ms after at least two characters before requesting up
 to eight lightweight suggestions. Visitors can select up to 25 channels; the
@@ -503,7 +511,9 @@ Leave `CACHE_URL` empty to run without Redis or Valkey. See
 5. The analyzer prefers pinned and uploader comments, then parsed-song count and
    likes. It isolates explicit setlist sections, stops before unrelated chapters
    or large timestamp regressions, preserves encore sections, and replaces a
-   video's song list only after a successful analysis.
+   video's song list only after a successful analysis. The selected comment's
+   public author handle, stable YouTube channel id, and comment id are promoted
+   into explicit attribution fields.
 6. Exact metadata can upgrade approximate values; later sparse observations
    never erase richer snapshots or a previous successful setlist.
 7. Suspected YouTube blocking aborts remaining calls and persists a cooldown so
@@ -569,7 +579,7 @@ setlist/
 ├── .devcontainer/          # Python 3.14 + Node 26 editor environment
 ├── .github/workflows/      # CI and release image publication
 ├── backend/                # FastAPI API, auth, updater, scrapers, tests
-├── db/migrations/          # Flyway V1–V10 schema history (source of truth)
+├── db/migrations/          # Flyway V1–V12 schema history (source of truth)
 ├── frontend/               # React UI and production nginx proxy
 ├── scripts/                # Repository security checks
 ├── CONTRIBUTING.md         # Contribution workflow
@@ -582,10 +592,11 @@ setlist/
 
 ## Contributing and project status
 
-Phases 0–9 are implemented: pipeline, extraction, search API/UI, scheduler
+Phases 0–10 are implemented: pipeline, extraction, search API/UI, scheduler
 hardening, authentication, guest limits, public-service pages, deployment
-hardening, public documentation, and updater crash safety/observability. Until
-version 1.0.0, database and API compatibility may change between releases.
+hardening, public documentation, updater crash safety/observability, and
+setlist-contributor attribution. Until version 1.0.0, database and API
+compatibility may change between releases.
 
 Before opening a pull request, read [CONTRIBUTING.md](CONTRIBUTING.md),
 [AGENTS.md](AGENTS.md), and [PLAN.md](PLAN.md).
@@ -595,6 +606,13 @@ Before opening a pull request, read [CONTRIBUTING.md](CONTRIBUTING.md),
 Setlist stores factual metadata and links to public YouTube pages; it does not
 host the linked performances. Rights to videos, audio, thumbnails, names, and
 other creative material remain with their respective owners.
+
+The song index depends on timestamped setlists contributed by commenters on
+YouTube. Setlist credits the public account attached to each selected source
+comment and links back where possible. Attribution does not imply endorsement
+or affiliation. Public comment handles, channel ids, comment ids, and selected
+comment text may remain indexed until the source is refreshed or a correction
+or removal is requested.
 
 Rights holders and channel operators can request a correction, channel
 exclusion, or removal through

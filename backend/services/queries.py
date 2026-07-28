@@ -6,6 +6,7 @@ from models.report import SummaryReport
 from models.search import (
     ChannelRead,
     Paginated,
+    SetlistContributor,
     SongSearchResult,
     SongSuggestion,
     VideoRead,
@@ -133,6 +134,35 @@ class CatalogQueryService:
             CATALOG_CACHE_NAMESPACE,
             {"operation": "get_song", "song_id": song_id},
             SongSearchResult | None,
+            load,
+        )
+
+    async def list_setlist_contributors(
+        self,
+        *,
+        limit: int,
+        offset: int,
+    ) -> Paginated[SetlistContributor]:
+        async def load() -> Paginated[SetlistContributor]:
+            items, total = await self.song_repo.list_setlist_contributors(
+                limit=limit,
+                offset=offset,
+            )
+            return Paginated(
+                items=items,
+                total=total,
+                limit=limit,
+                offset=offset,
+            )
+
+        return await self.cache.remember(
+            CATALOG_CACHE_NAMESPACE,
+            {
+                "operation": "list_setlist_contributors",
+                "limit": limit,
+                "offset": offset,
+            },
+            Paginated[SetlistContributor],
             load,
         )
 

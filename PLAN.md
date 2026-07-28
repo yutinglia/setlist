@@ -7,19 +7,19 @@ conservatively, extract timestamped songs, expose a useful search API/UI, and
 reserve operational controls for one authenticated administrator.
 
 This file preserves the implementation phases and their design decisions.
-Phases 0–9 are complete; future work should be added here only after it enters
+Phases 0–10 are complete; future work should be added here only after it enters
 scope, with individual work tracked in GitHub issues.
 
 ## Current state (baseline)
 
 | Area | Status |
 |------|--------|
-| Postgres schema (Flyway V1–V11) | Done |
+| Postgres schema (Flyway V1–V12) | Done |
 | yt-dlp scrapers (channel / videos / comments) | Done, used by DataUpdater |
 | Comment → song-list heuristics | Done (`video_id` required; unit tests) |
 | Repositories | Read + upsert / `replace_for_video` (updater-owned commits) |
 | `DataUpdater.update()` | Wired + atomic durable work units + cross-process singleton + delayed global analysis queue |
-| Search / UI | Public API + bilingual React search/browse UI |
+| Search / UI | Public API + trilingual React search/browse UI + contributor credits |
 | Access control | Single-admin Argon2id login, signed sessions, CSRF |
 | Public service limits | Per-IP guest/login limits; admin-only status/mutations |
 | Channel ingest | Admin bulk add (max 10), durable add cooldown, one coalesced updater wake |
@@ -318,6 +318,20 @@ session/rate-limit storage.
   dry-run and replayed without another YouTube request. Reclassification from
   persisted metadata resets newly recognized karaoke archives to the normal
   paced analysis queue; only records without stored comments require yt-dlp.
+
+---
+
+## Phase 10 — Setlist contributor attribution
+
+- [x] Promote the selected source comment's public author handle, stable
+  YouTube channel id, and comment id into explicit video columns with a
+  migration backfill from saved yt-dlp JSON.
+- [x] Project attribution into song search/detail responses and video metadata,
+  with links to the public author channel and source comment in the UI.
+- [x] Add a cached, paginated public contributor aggregate and a trilingual
+  thank-you page showing indexed-song and setlist-video counts.
+- [x] Document community-setlist provenance, public comment metadata retention,
+  attribution limits, and correction/removal paths.
 
 ---
 

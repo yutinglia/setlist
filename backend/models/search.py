@@ -42,6 +42,9 @@ class VideoRead(BaseModel):
     upload_date_precision: UploadDatePrecision | None = None
     type: str | None = None
     has_song_list_comment: bool = False
+    setlist_comment_author: str | None = None
+    setlist_comment_author_id: str | None = None
+    setlist_comment_id: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -60,6 +63,9 @@ class SongSearchResult(BaseModel):
     channel_id: str
     channel_name: str
     analyzed_by_llm: bool = False
+    setlist_comment_author: str | None = None
+    setlist_comment_author_id: str | None = None
+    setlist_comment_id: str | None = None
 
     @classmethod
     def from_parts(
@@ -70,6 +76,9 @@ class SongSearchResult(BaseModel):
         channel_id: str,
         channel_name: str,
         deep_link_url: str,
+        setlist_comment_author: str | None = None,
+        setlist_comment_author_id: str | None = None,
+        setlist_comment_id: str | None = None,
     ) -> "SongSearchResult":
         if song.id is None:
             raise ValueError("Song id is required for search results")
@@ -83,6 +92,9 @@ class SongSearchResult(BaseModel):
             channel_id=channel_id,
             channel_name=channel_name,
             analyzed_by_llm=song.analyzed_by_llm,
+            setlist_comment_author=setlist_comment_author,
+            setlist_comment_author_id=setlist_comment_author_id,
+            setlist_comment_id=setlist_comment_id,
         )
 
 
@@ -91,3 +103,12 @@ class SongSuggestion(BaseModel):
 
     title: str
     occurrences: int = Field(..., ge=1)
+
+
+class SetlistContributor(BaseModel):
+    """A public YouTube commenter credited for one or more indexed setlists."""
+
+    author: str
+    author_id: str
+    song_count: int = Field(..., ge=1)
+    video_count: int = Field(..., ge=1)

@@ -9,7 +9,7 @@ from fastapi import Response, status
 
 from models.channel import YouTubeChannel
 from models.report import SummaryReport
-from models.search import SongSearchResult, SongSuggestion
+from models.search import SetlistContributor, SongSearchResult, SongSuggestion
 from models.song import Song
 from models.video import YouTubeVideo
 from routers.v1.health import health_check
@@ -86,6 +86,12 @@ async def test_catalog_query_service_loads_every_public_projection():
         channel_name=channel.name,
     )
     suggestion = SongSuggestion(title=song.title, occurrences=1)
+    contributor = SetlistContributor(
+        author="@helper",
+        author_id="UC-helper",
+        song_count=12,
+        video_count=2,
+    )
     channel_repo = SimpleNamespace(
         get_all=AsyncMock(return_value=[channel]),
         count_all=AsyncMock(return_value=1),
@@ -100,6 +106,7 @@ async def test_catalog_query_service_loads_every_public_projection():
         search_by_title=AsyncMock(return_value=([detail], 1)),
         suggest_titles=AsyncMock(return_value=[suggestion]),
         get_detail=AsyncMock(return_value=detail),
+        list_setlist_contributors=AsyncMock(return_value=([contributor], 1)),
         get_by_video_id=AsyncMock(return_value=[song]),
         count_by_video_id=AsyncMock(return_value=1),
     )
@@ -123,6 +130,7 @@ async def test_catalog_query_service_loads_every_public_projection():
         upload_date_to=None,
     )
     assert (await service.get_song(1)) == detail
+    contributors = await service.list_setlist_contributors(limit=20, offset=0)
     channels = await service.list_channels(limit=20, offset=0)
     assert (await service.get_channel(channel.id)).id == channel.id
     videos = await service.list_channel_videos(
@@ -138,6 +146,8 @@ async def test_catalog_query_service_loads_every_public_projection():
 
     assert search.items == [detail]
     assert suggestions == [suggestion]
+    assert contributors.items == [contributor]
+    assert contributors.total == 1
     assert channels.items[0].id == channel.id
     assert videos.items[0].id == video.id
     assert songs.items == [song]

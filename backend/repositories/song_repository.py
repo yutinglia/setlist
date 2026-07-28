@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import Channels, Songs, Videos
-from models.search import SongSearchResult, SongSuggestion
+from models.search import SetlistContributor, SongSearchResult, SongSuggestion
 from models.song import Song
 from utils.youtube_timestamp import youtube_url_with_timestamp
 
@@ -122,6 +122,9 @@ class SongRepository:
                 channel_id=channel.id,
                 channel_name=channel.name,
                 deep_link_url=youtube_url_with_timestamp(video.url, song.timestamp),
+                setlist_comment_author=video.setlist_comment_author,
+                setlist_comment_author_id=video.setlist_comment_author_id,
+                setlist_comment_id=video.setlist_comment_id,
             )
             for song, video, channel in rows
         ]
@@ -196,6 +199,65 @@ class SongRepository:
             for row in rows
         ]
 
+    async def list_setlist_contributors(
+        self,
+        *,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[SetlistContributor], int]:
+        """Aggregate indexed songs and source videos by stable comment author id."""
+        author_label = func.max(Videos.setlist_comment_author).label("author")
+        song_count = func.count(Songs.id).label("song_count")
+        video_count = func.count(func.distinct(Videos.id)).label("video_count")
+        eligible = (
+            Videos.has_song_list_comment.is_(True)
+            & Videos.setlist_comment_author.is_not(None)
+            & Videos.setlist_comment_author_id.is_not(None)
+        )
+        stmt = (
+            select(
+                Videos.setlist_comment_author_id.label("author_id"),
+                author_label,
+                song_count,
+                video_count,
+            )
+            .select_from(Videos)
+            .join(Songs, Songs.video_id == Videos.id)
+            .where(eligible)
+            .group_by(Videos.setlist_comment_author_id)
+            .order_by(
+                song_count.desc(),
+                video_count.desc(),
+                func.lower(author_label),
+                Videos.setlist_comment_author_id,
+            )
+            .limit(limit)
+            .offset(offset)
+        )
+        rows = (await self.session.execute(stmt)).all()
+        total = int(
+            (
+                await self.session.execute(
+                    select(func.count(func.distinct(Videos.setlist_comment_author_id)))
+                    .select_from(Videos)
+                    .join(Songs, Songs.video_id == Videos.id)
+                    .where(eligible)
+                )
+            ).scalar_one()
+        )
+        return (
+            [
+                SetlistContributor(
+                    author=row.author,
+                    author_id=row.author_id,
+                    song_count=int(row.song_count),
+                    video_count=int(row.video_count),
+                )
+                for row in rows
+            ],
+            total,
+        )
+
     async def get_detail(self, song_id: int) -> SongSearchResult | None:
         """Song detail with video deep link and channel info."""
         stmt = (
@@ -214,6 +276,9 @@ class SongRepository:
             channel_id=channel.id,
             channel_name=channel.name,
             deep_link_url=youtube_url_with_timestamp(video.url, song.timestamp),
+            setlist_comment_author=video.setlist_comment_author,
+            setlist_comment_author_id=video.setlist_comment_author_id,
+            setlist_comment_id=video.setlist_comment_id,
         )
 
     async def replace_for_video(self, video_id: str, songs: list[Song]) -> list[Song]:

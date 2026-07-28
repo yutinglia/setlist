@@ -5,6 +5,7 @@ import {
   BarChart3,
   BookOpen,
   Disc3,
+  HeartHandshake,
   Languages,
   LogIn,
   LogOut,
@@ -74,6 +75,7 @@ export function SiteHeader() {
           <NavLink to="/search" label={m.nav_search()} icon={Search} exact />
           <NavLink to="/channels" label={m.nav_channels()} icon={Radio} />
           <NavLink to="/summary" label={m.nav_summary()} icon={BarChart3} />
+          <NavLink to="/thanks" label={m.nav_thanks()} icon={HeartHandshake} />
           <NavLink
             to="/how-to-use"
             label={m.nav_how_to_use()}
@@ -206,7 +208,13 @@ function NavLink({
   icon: Icon,
   exact = false,
 }: {
-  to: "/search" | "/channels" | "/summary" | "/how-to-use" | "/status"
+  to:
+    | "/search"
+    | "/channels"
+    | "/summary"
+    | "/thanks"
+    | "/how-to-use"
+    | "/status"
   label: string
   icon: typeof Search
   exact?: boolean

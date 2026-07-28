@@ -27,6 +27,9 @@ function PrivacyPage() {
       <InfoSection title={m.privacy_storage_heading()}>
         <p>{m.privacy_storage_body()}</p>
       </InfoSection>
+      <InfoSection title={m.privacy_public_metadata_heading()}>
+        <p>{m.privacy_public_metadata_body()}</p>
+      </InfoSection>
       <InfoSection title={m.privacy_admin_heading()}>
         <p>{m.privacy_admin_body()}</p>
       </InfoSection>

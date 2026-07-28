@@ -37,6 +37,12 @@ export function makeTestApi(overrides: Partial<ApiClient> = {}) {
     })),
     suggestSongs: vi.fn(async () => []),
     getSong: vi.fn(async () => ({ id: 1 })),
+    listSetlistContributors: vi.fn(async () => ({
+      items: [],
+      total: 0,
+      limit: 20,
+      offset: 0,
+    })),
     listChannels: vi.fn(async () => ({
       items: [],
       total: 0,

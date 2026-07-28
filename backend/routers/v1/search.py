@@ -23,6 +23,7 @@ from models.channel import (
 from models.search import (
     ChannelRead,
     Paginated,
+    SetlistContributor,
     SongSearchResult,
     SongSuggestion,
     VideoRead,
@@ -173,6 +174,16 @@ async def suggest_songs(
         upload_date_from=upload_date_from,
         upload_date_to=upload_date_to,
     )
+
+
+@router.get("/contributors", response_model=Paginated[SetlistContributor])
+async def list_setlist_contributors(
+    pagination: tuple[int, int] = Depends(pagination_params),
+    queries: CatalogQueryService = Depends(get_catalog_query_service),
+):
+    """Credit public YouTube commenters whose setlists power the song index."""
+    limit, offset = pagination
+    return await queries.list_setlist_contributors(limit=limit, offset=offset)
 
 
 @router.get("/songs/{song_id}", response_model=SongSearchResult)

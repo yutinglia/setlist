@@ -17,11 +17,21 @@ export type SongSearchResult = {
   channel_id: string
   channel_name: string
   analyzed_by_llm: boolean
+  setlist_comment_author: string | null
+  setlist_comment_author_id: string | null
+  setlist_comment_id: string | null
 }
 
 export type SongSuggestion = {
   title: string
   occurrences: number
+}
+
+export type SetlistContributor = {
+  author: string
+  author_id: string
+  song_count: number
+  video_count: number
 }
 
 export type YouTubeChannel = {
@@ -67,6 +77,9 @@ export type YouTubeVideo = {
   upload_date_precision: "exact" | "approximate" | null
   type: string | null
   has_song_list_comment: boolean
+  setlist_comment_author: string | null
+  setlist_comment_author_id: string | null
+  setlist_comment_id: string | null
   created_at: string | null
   updated_at: string | null
 }

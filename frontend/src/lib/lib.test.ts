@@ -35,6 +35,8 @@ import {
 import { cn } from "@/lib/utils"
 import {
   youtubeThumbnailUrl,
+  youtubeChannelUrl,
+  youtubeCommentUrl,
   youtubeUrlAtTimestamp,
   youtubeVideoUrl,
 } from "@/lib/youtube"
@@ -219,6 +221,10 @@ describe("YouTube helpers", () => {
     )
     expect(youtubeThumbnailUrl("id/x")).toContain("id%2Fx")
     expect(youtubeVideoUrl("id/x")).toContain("id%2Fx")
+    expect(youtubeChannelUrl("UC/id")).toContain("UC%2Fid")
+    expect(youtubeCommentUrl("video/id", "comment/id")).toBe(
+      "https://www.youtube.com/watch?v=video%2Fid&lc=comment%2Fid",
+    )
   })
 })
 

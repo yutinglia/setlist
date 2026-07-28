@@ -2,7 +2,7 @@
 
 ## What this project is
 
-Public-ready homelab service that scrapes VTuber karaoke streams, detects setlist comments (timestamp lists), extracts songs, and exposes them through a minimal HTTP API + search UI. **Phases 0–9 landed** (pipeline, Tier B pacing, search API, extraction quality, React UI, administrator auth, guest limits, public-service pages, deployment hardening, bilingual public documentation, and updater crash safety/observability).
+Public-ready homelab service that scrapes VTuber karaoke streams, detects setlist comments (timestamp lists), extracts songs, and exposes them through a minimal HTTP API + search UI. **Phases 0–10 landed** (pipeline, Tier B pacing, search API, extraction quality, React UI, administrator auth, guest limits, public-service pages, deployment hardening, bilingual public documentation, updater crash safety/observability, and setlist-contributor attribution).
 
 Stack: **FastAPI + SQLAlchemy 2 (async) + PostgreSQL + yt-dlp + Flyway** (backend); **React (Vite + TypeScript 6) + TanStack Router/Query + Zustand + Paraglide + Tailwind + shadcn/ui** (frontend).
 
@@ -33,7 +33,7 @@ setlist/
 │   │   └── yt_scraper/    # yt-dlp wrappers + ad-hoc test.py
 │   └── tests/             # pytest unit + PostgreSQL integration coverage
 ├── db/
-│   ├── migrations/        # Flyway SQL (V1–V10; schema source of truth)
+│   ├── migrations/        # Flyway SQL (V1–V12; schema source of truth)
 │   └── devscript/         # PowerShell one-shot Postgres + sqlacodegen
 ├── .devcontainer/         # Dev Container image/config (Python 3.14 + Node 26)
 ├── scripts/               # Repository checks, including credential scanning
@@ -199,9 +199,10 @@ Seed channels: `db/devscript/seed_channels.sql` (see README).
 
 ## Known gaps (as of last review)
 
-- Phases 0–9 are done (pipeline, Tier B pacing, search API/UI, extraction
+- Phases 0–10 are done (pipeline, Tier B pacing, search API/UI, extraction
   quality, single-admin auth, guest limits, public pages, production hardening,
-  bilingual public documentation, and updater crash safety/observability).
+  bilingual public documentation, updater crash safety/observability, and
+  setlist-contributor attribution).
 - Auth intentionally supports one environment-configured administrator only;
   there is no registration, password recovery, OAuth, or multi-user model.
 - Rate limits and sessions are self-contained for a single API process. A

@@ -87,7 +87,8 @@ class Videos(Base):
         PrimaryKeyConstraint('id', name='videos_pkey'),
         Index('idx_videos_analysis_queue', 'analysis_status', 'next_analysis_at', 'upload_date', 'playlist_position', 'id', postgresql_where="((type)::text = 'karaoke'::text)"),
         Index('idx_videos_channel_analysis', 'channel_id', 'type', 'has_song_list_comment', 'analyze_attempts'),
-        Index('idx_videos_channel_upload_date', 'channel_id', 'upload_date', 'id')
+        Index('idx_videos_channel_upload_date', 'channel_id', 'upload_date', 'id'),
+        Index('idx_videos_setlist_comment_author', 'setlist_comment_author_id', postgresql_where='((setlist_comment_author_id IS NOT NULL) AND has_song_list_comment)')
     )
 
     id: Mapped[str] = mapped_column(String(255), primary_key=True)
@@ -104,6 +105,9 @@ class Videos(Base):
     comments_raw_data: Mapped[Optional[dict]] = mapped_column(JSONB)
     last_analyzed_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     song_list_comment_raw_data: Mapped[Optional[dict]] = mapped_column(JSONB)
+    setlist_comment_author: Mapped[Optional[str]] = mapped_column(String(255))
+    setlist_comment_author_id: Mapped[Optional[str]] = mapped_column(String(255))
+    setlist_comment_id: Mapped[Optional[str]] = mapped_column(String(255))
     last_cleaned_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     cleaned_song_list_comment: Mapped[Optional[dict]] = mapped_column(JSONB)
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))

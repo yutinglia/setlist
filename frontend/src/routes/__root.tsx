@@ -55,6 +55,9 @@ function RootLayout() {
             <Link to="/about" className="hover:text-primary">
               {m.nav_about()}
             </Link>
+            <Link to="/thanks" className="hover:text-primary">
+              {m.nav_thanks()}
+            </Link>
             <Link to="/terms" className="hover:text-primary">
               {m.nav_terms()}
             </Link>
