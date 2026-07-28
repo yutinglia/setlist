@@ -542,14 +542,15 @@ npm run test:e2e
 npm run build
 ```
 
-Repository credential scan:
+Repository checks:
 
 ```bash
 python scripts/check_secrets.py
+python scripts/check_code_quality.py
 ```
 
-GitHub Actions CI runs the credential scan, Ruff, backend tests against
-PostgreSQL 18 after all Flyway migrations, frontend tests, production image
+GitHub Actions CI runs the credential and source-size checks, Ruff, backend
+tests against PostgreSQL 18 after all Flyway migrations, frontend tests, production image
 builds, third-party notice verification, frontend lint, and the production
 frontend build. Backend combined statement/branch coverage and every frontend
 coverage metric must be at least 80%. HTML, XML, JSON-summary, and LCOV reports

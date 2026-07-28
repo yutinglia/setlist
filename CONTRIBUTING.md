@@ -61,16 +61,20 @@ npm run test:e2e
 npm run build
 ```
 
-Credential scan:
+Repository checks:
 
 ```bash
 python scripts/check_secrets.py
+python scripts/check_code_quality.py
 ```
 
 Run tests that are proportional to the change. Schema and repository changes
 should be verified against PostgreSQL after all Flyway migrations. Before
 opening a pull request, run the complete coverage commands: backend combined
 statement/branch coverage and every frontend metric must remain at least 80%.
+Hand-written source files are capped at 1,000 lines; split growing modules by
+responsibility before they cross that boundary. Ruff also enforces production
+function complexity, branch-count, and statement-count limits.
 Run the focused browser E2E suite when navigation, authentication, or another
 critical user journey changes. The exact measured scope and report locations
 are documented in

@@ -84,6 +84,7 @@ export async function renderWithProviders(
     api: ApiClient
   }>()({
     component: Outlet,
+    notFoundComponent: () => null,
   })
   const indexRoute = createRoute({
     getParentRoute: () => rootRoute,

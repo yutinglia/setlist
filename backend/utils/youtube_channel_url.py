@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import ParseResult, urlparse, urlunparse
 
 _TAB_SUFFIXES = frozenset(
     {"videos", "streams", "live", "shorts", "playlists", "community", "featured"}
@@ -25,18 +25,7 @@ _NON_CHANNEL_ROOTS = frozenset(
 _ALLOWED_HOSTS = frozenset({"youtube.com", "www.youtube.com", "m.youtube.com"})
 
 
-def normalize_youtube_channel_url(channel_url: str) -> str:
-    """Validate and canonicalize a public YouTube channel URL.
-
-    This function is also the SSRF boundary for user-supplied channel URLs:
-    only normal HTTP(S) YouTube hosts and channel-shaped paths are accepted.
-    Query strings, fragments, credentials, ports, and tab suffixes are removed.
-    """
-    raw = (channel_url or "").strip()
-    if not raw:
-        raise ValueError("YouTube channel URL must not be empty")
-
-    parsed = urlparse(raw)
+def _validate_youtube_origin(parsed: ParseResult) -> None:
     if parsed.scheme.lower() not in {"http", "https"}:
         raise ValueError("YouTube channel URL must use http or https")
     if parsed.username or parsed.password:
@@ -52,6 +41,8 @@ def normalize_youtube_channel_url(channel_url: str) -> str:
     if host not in _ALLOWED_HOSTS:
         raise ValueError("URL must point to youtube.com")
 
+
+def _channel_path_parts(parsed: ParseResult) -> list[str]:
     parts = [part for part in (parsed.path or "").split("/") if part]
     if not parts or parts[0].lower() in _NON_CHANNEL_ROOTS:
         raise ValueError("URL must point to a YouTube channel")
@@ -59,18 +50,40 @@ def normalize_youtube_channel_url(channel_url: str) -> str:
         parts.pop()
     if not parts:
         raise ValueError("URL must point to a YouTube channel")
+    _validate_channel_path(parts)
+    return parts
+
+
+def _validate_channel_path(parts: list[str]) -> None:
     root = parts[0].lower()
     if root in {"channel", "c", "user"}:
         if len(parts) != 2:
             raise ValueError("YouTube channel URL has an invalid path")
-    elif parts[0].startswith("@"):
+        return
+    if parts[0].startswith("@"):
         if len(parts) != 1 or len(parts[0]) == 1:
             raise ValueError("YouTube channel handle is invalid")
-    elif len(parts) != 1:
+        return
+    if len(parts) != 1:
         # Retain one-segment legacy custom channel URLs, but reject arbitrary
         # nested YouTube paths such as /embed/... or /foo/bar.
         raise ValueError("URL must point to a YouTube channel")
 
+
+def normalize_youtube_channel_url(channel_url: str) -> str:
+    """Validate and canonicalize a public YouTube channel URL.
+
+    This function is also the SSRF boundary for user-supplied channel URLs:
+    only normal HTTP(S) YouTube hosts and channel-shaped paths are accepted.
+    Query strings, fragments, credentials, ports, and tab suffixes are removed.
+    """
+    raw = (channel_url or "").strip()
+    if not raw:
+        raise ValueError("YouTube channel URL must not be empty")
+
+    parsed = urlparse(raw)
+    _validate_youtube_origin(parsed)
+    parts = _channel_path_parts(parsed)
     path = "/" + "/".join(parts)
     return urlunparse(("https", "www.youtube.com", path, "", "", ""))
 

@@ -25,6 +25,9 @@ jobs:
       - name: Scan tracked files for credentials
         run: python scripts/check_secrets.py
 
+      - name: Reject oversized source files
+        run: python scripts/check_code_quality.py
+
   backend:
     runs-on: ubuntu-latest
     timeout-minutes: 20

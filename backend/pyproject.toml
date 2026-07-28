@@ -4,7 +4,7 @@ line-length = 88
 extend-exclude = ["db/models.py", "NOTE.md"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP", "RUF"]
+select = ["E", "F", "I", "B", "UP", "RUF", "C90", "PLR0912", "PLR0915"]
 # FastAPI's dependency injection intentionally uses Depends(...) defaults.
 ignore = [
     "B008",
@@ -14,6 +14,10 @@ ignore = [
     # Pydantic's Generic[T] form remains clearer and works across tooling.
     "UP046",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Long integration-test narratives may exceed production statement limits.
+"tests/*" = ["PLR0915"]
 
 [tool.coverage.run]
 branch = true

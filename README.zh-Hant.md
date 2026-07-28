@@ -506,14 +506,15 @@ npm run test:e2e
 npm run build
 ```
 
-倉庫憑證掃描：
+倉庫檢查：
 
 ```bash
 python scripts/check_secrets.py
+python scripts/check_code_quality.py
 ```
 
-GitHub Actions CI 會執行憑證掃描、Ruff、在 PostgreSQL 18 與完整 Flyway
-migration 後的後端測試、前端測試、正式環境映像建置、第三方授權清單驗證、
+GitHub Actions CI 會執行憑證與原始碼檔案大小檢查、Ruff、在 PostgreSQL 18
+與完整 Flyway migration 後的後端測試、前端測試、正式環境映像建置、第三方授權清單驗證、
 前端 lint 與正式前端建置。後端 statement/branch 合併覆蓋率，以及前端每一項
 覆蓋率指標都必須至少 80%。CI 會保留 HTML、XML、JSON summary 與 LCOV
 報告供分析。Playwright 也會在 Chromium 驗證關鍵公開搜尋與管理員驗證流程，

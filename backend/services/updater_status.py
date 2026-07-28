@@ -78,28 +78,71 @@ class UpdaterStatusTracker:
             s.phase = phase
             s.detail = detail
             s.updated_at = _utc_now()
-            if clear_channel:
-                s.channel_id = None
-                s.channel_name = None
-            elif channel_id is not None or channel_name is not None:
-                if channel_id is not None:
-                    s.channel_id = channel_id
-                if channel_name is not None:
-                    s.channel_name = channel_name
-            if clear_video:
-                s.video_id = None
-                s.video_title = None
-            elif video_id is not None or video_title is not None:
-                if video_id is not None:
-                    s.video_id = video_id
-                if video_title is not None:
-                    s.video_title = video_title
+            self._update_channel(
+                s,
+                clear=clear_channel,
+                channel_id=channel_id,
+                channel_name=channel_name,
+            )
+            self._update_video(
+                s,
+                clear=clear_video,
+                video_id=video_id,
+                video_title=video_title,
+            )
             if comment_scrapes_this_cycle is not None:
                 s.comment_scrapes_this_cycle = comment_scrapes_this_cycle
-            if clear_error:
-                s.last_error = None
-            elif last_error is not None:
-                s.last_error = last_error
+            self._update_error(
+                s,
+                clear=clear_error,
+                last_error=last_error,
+            )
+
+    @staticmethod
+    def _update_channel(
+        state: _StatusState,
+        *,
+        clear: bool,
+        channel_id: str | None,
+        channel_name: str | None,
+    ) -> None:
+        if clear:
+            state.channel_id = None
+            state.channel_name = None
+            return
+        if channel_id is not None:
+            state.channel_id = channel_id
+        if channel_name is not None:
+            state.channel_name = channel_name
+
+    @staticmethod
+    def _update_video(
+        state: _StatusState,
+        *,
+        clear: bool,
+        video_id: str | None,
+        video_title: str | None,
+    ) -> None:
+        if clear:
+            state.video_id = None
+            state.video_title = None
+            return
+        if video_id is not None:
+            state.video_id = video_id
+        if video_title is not None:
+            state.video_title = video_title
+
+    @staticmethod
+    def _update_error(
+        state: _StatusState,
+        *,
+        clear: bool,
+        last_error: str | None,
+    ) -> None:
+        if clear:
+            state.last_error = None
+        elif last_error is not None:
+            state.last_error = last_error
 
     def begin_cycle(self) -> None:
         with self._lock:

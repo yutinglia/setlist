@@ -8,7 +8,8 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.video import ANALYSIS_DONE
+from models.song import Song
+from models.video import ANALYSIS_DONE, YouTubeVideo
 from repositories.channel_repository import ChannelRepository
 from repositories.song_repository import SongRepository
 from repositories.video_repository import VideoRepository
@@ -36,6 +37,33 @@ class StoredDataReanalysisResult:
     skipped_cleaned_setlists: int
     songs_before: int
     songs_after: int
+
+
+@dataclass
+class _ReanalysisStats:
+    reclassified_videos: int = 0
+    cleared_non_karaoke_videos: int = 0
+    stored_comment_videos: int = 0
+    detected_setlists: int = 0
+    recovered_setlists: int = 0
+    changed_setlists: int = 0
+    skipped_cleaned_setlists: int = 0
+    songs_before: int = 0
+    songs_after: int = 0
+
+    def result(self, *, applied: bool) -> StoredDataReanalysisResult:
+        return StoredDataReanalysisResult(
+            applied=applied,
+            reclassified_videos=self.reclassified_videos,
+            cleared_non_karaoke_videos=self.cleared_non_karaoke_videos,
+            stored_comment_videos=self.stored_comment_videos,
+            detected_setlists=self.detected_setlists,
+            recovered_setlists=self.recovered_setlists,
+            changed_setlists=self.changed_setlists,
+            skipped_cleaned_setlists=self.skipped_cleaned_setlists,
+            songs_before=self.songs_before,
+            songs_after=self.songs_after,
+        )
 
 
 class StoredDataReanalyzer:
@@ -90,10 +118,20 @@ class StoredDataReanalyzer:
         *,
         apply: bool,
     ) -> StoredDataReanalysisResult:
-        reclassified = 0
+        stats = _ReanalysisStats()
+        await self._reclassify_stored_videos(stats)
+        await self._replay_stored_comments(stats)
+        return stats.result(applied=apply)
+
+    async def _reclassify_stored_videos(
+        self,
+        stats: _ReanalysisStats,
+    ) -> None:
         cleared_ids: list[str] = []
         for channel in await self.channel_repo.get_all():
-            reclassified += await self.video_repo.reclassify_for_channel(channel.id)
+            stats.reclassified_videos += await self.video_repo.reclassify_for_channel(
+                channel.id
+            )
             cleared_ids.extend(
                 await self.video_repo.clear_analysis_for_non_karaoke(
                     channel.id,
@@ -103,79 +141,68 @@ class StoredDataReanalyzer:
 
         for video_id in cleared_ids:
             await self.song_repo.replace_for_video(video_id, [])
+        stats.cleared_non_karaoke_videos = len(cleared_ids)
 
-        stored_comment_videos = 0
-        detected_setlists = 0
-        recovered_setlists = 0
-        changed_setlists = 0
-        skipped_cleaned_setlists = 0
-        songs_before = 0
-        songs_after = 0
+    async def _replay_stored_comments(
+        self,
+        stats: _ReanalysisStats,
+    ) -> None:
         analyzed_at = datetime.now(UTC).replace(tzinfo=None)
-
         for video in await self.video_repo.get_with_stored_comments():
-            if video.type != VIDEO_TYPE_KARAOKE:
-                continue
-            comments = self._snapshot_comments(video.comments_raw_data)
-            if comments is None:
-                continue
+            await self._replay_video(video, stats, analyzed_at=analyzed_at)
 
-            stored_comment_videos += 1
-            existing_songs = await self.song_repo.get_by_video_id(video.id)
-            songs_before += len(existing_songs)
+    async def _replay_video(
+        self,
+        video: YouTubeVideo,
+        stats: _ReanalysisStats,
+        *,
+        analyzed_at: datetime,
+    ) -> None:
+        if video.type != VIDEO_TYPE_KARAOKE:
+            return
+        comments = self._snapshot_comments(video.comments_raw_data)
+        if comments is None:
+            return
 
-            analyzer = CommentAnalyzer(comments, video_id=video.id)
-            if not analyzer.has_song_list_comment():
-                songs_after += len(existing_songs)
-                continue
+        stats.stored_comment_videos += 1
+        existing_songs = await self.song_repo.get_by_video_id(video.id)
+        stats.songs_before += len(existing_songs)
+        analyzer = CommentAnalyzer(comments, video_id=video.id)
+        if not analyzer.has_song_list_comment():
+            stats.songs_after += len(existing_songs)
+            return
 
-            detected_setlists += 1
-            songs = analyzer.extract_song_list()
-            if not songs:
-                songs_after += len(existing_songs)
-                continue
+        stats.detected_setlists += 1
+        songs = analyzer.extract_song_list()
+        if not songs or video.cleaned_song_list_comment is not None:
+            stats.skipped_cleaned_setlists += int(
+                bool(songs) and video.cleaned_song_list_comment is not None
+            )
+            stats.songs_after += len(existing_songs)
+            return
 
-            if video.cleaned_song_list_comment is not None:
-                skipped_cleaned_setlists += 1
-                songs_after += len(existing_songs)
-                continue
-            songs_after += len(songs)
+        stats.songs_after += len(songs)
+        newly_recovered = not video.has_song_list_comment
+        changed = newly_recovered or self._song_pairs(
+            existing_songs
+        ) != self._song_pairs(songs)
+        if not changed:
+            return
 
-            old_pairs = [
-                (song.timestamp or "", song.title.casefold().strip())
-                for song in existing_songs
-            ]
-            new_pairs = [
-                (song.timestamp or "", song.title.casefold().strip()) for song in songs
-            ]
-            newly_recovered = not video.has_song_list_comment
-            changed = newly_recovered or old_pairs != new_pairs
-            if not changed:
-                continue
+        stats.recovered_setlists += int(newly_recovered)
+        stats.changed_setlists += 1
+        video.has_song_list_comment = True
+        video.analysis_status = ANALYSIS_DONE
+        video.next_analysis_at = None
+        video.last_analyzed_at = analyzed_at
+        video.song_list_comment_raw_data = analyzer.song_list_comment
+        video.cleaned_song_list_comment = None
+        await self.song_repo.replace_for_video(video.id, songs)
+        await self.video_repo.update_analysis(video)
 
-            recovered_setlists += int(newly_recovered)
-            changed_setlists += 1
-            video.has_song_list_comment = True
-            video.analysis_status = ANALYSIS_DONE
-            video.next_analysis_at = None
-            video.last_analyzed_at = analyzed_at
-            video.song_list_comment_raw_data = analyzer.song_list_comment
-            video.cleaned_song_list_comment = None
-            await self.song_repo.replace_for_video(video.id, songs)
-            await self.video_repo.update_analysis(video)
-
-        return StoredDataReanalysisResult(
-            applied=apply,
-            reclassified_videos=reclassified,
-            cleared_non_karaoke_videos=len(cleared_ids),
-            stored_comment_videos=stored_comment_videos,
-            detected_setlists=detected_setlists,
-            recovered_setlists=recovered_setlists,
-            changed_setlists=changed_setlists,
-            skipped_cleaned_setlists=skipped_cleaned_setlists,
-            songs_before=songs_before,
-            songs_after=songs_after,
-        )
+    @staticmethod
+    def _song_pairs(songs: list[Song]) -> list[tuple[str, str]]:
+        return [(song.timestamp or "", song.title.casefold().strip()) for song in songs]
 
     @staticmethod
     def _snapshot_comments(
