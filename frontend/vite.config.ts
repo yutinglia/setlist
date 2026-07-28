@@ -175,6 +175,9 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       setupFiles: ["./src/test/setup.ts"],
       exclude: ["e2e/**", "node_modules/**", "dist/**"],
+      // Node 26 exposes process-global Web Storage that shadows jsdom unless
+      // disabled for Vitest workers.
+      execArgv: ["--no-experimental-webstorage"],
       coverage: {
         provider: "v8",
         include: ["src/**/*.{ts,tsx}"],
