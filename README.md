@@ -57,8 +57,8 @@ treated as a security boundary.
 
 Guests who want another channel indexed should contact the deployment
 operator. On the official Setlist site, open a
-[GitHub issue](https://github.com/yutinglia/setlist/issues/new); on any other
-hosted instance, contact that site's owner or administrator.
+[channel request](https://github.com/yutinglia/setlist/issues/new?template=channel-request.yml);
+on any other hosted instance, contact that site's owner or administrator.
 
 ## Quick start with a Dev Container
 
@@ -124,7 +124,8 @@ blank in `.env`.
 
 Self-hosters should also set `VITE_CHANNEL_REQUEST_URL` to their own support
 form, issue tracker, `mailto:` address, or same-origin contact page. When it is
-unset, the frontend falls back to `VITE_SOURCE_URL/issues/new`.
+unset, the frontend falls back to the `channel-request.yml` issue form under
+`VITE_SOURCE_URL`.
 
 ### 2. Generate the administrator password hash
 
@@ -622,7 +623,7 @@ or removal is requested.
 
 Rights holders and channel operators can request a correction, channel
 exclusion, or removal through
-[GitHub Issues](https://github.com/yutinglia/setlist/issues).
+[the correction or removal form](https://github.com/yutinglia/setlist/issues/new?template=correction-or-removal.yml).
 Do not post private identity documents in a public issue.
 
 ## License

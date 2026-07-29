@@ -26,6 +26,10 @@ import type {
   YouTubeChannel,
   YouTubeVideo,
 } from "@/api/types"
+import {
+  CHANNEL_REQUEST_ISSUE_URL,
+  DATA_REQUEST_ISSUE_URL,
+} from "@/lib/public-config"
 import { m } from "@/paraglide/messages"
 import { routeTree } from "@/routeTree.gen"
 
@@ -359,6 +363,39 @@ describe("application routes", () => {
     await waitFor(() => expect(listChannels).toHaveBeenCalledWith(20, 20))
     expect(router.state.location.search).toMatchObject({ page: 1 })
     expect(screen.getByText("Test Singer 21")).toBeInTheDocument()
+  })
+
+  test("links guest channel requests to the dedicated issue form", async () => {
+    await renderRoute(
+      "/channels",
+      makeApi({
+        authenticated: false,
+        role: null,
+        username: null,
+        csrf_token: null,
+        management_enabled: false,
+      }),
+    )
+
+    const requestLinks = screen.getAllByRole("link", {
+      name: m.channel_request_contact_cta(),
+    })
+    expect(requestLinks).toHaveLength(2)
+    for (const link of requestLinks) {
+      expect(link).toHaveAttribute("href", CHANNEL_REQUEST_ISSUE_URL)
+    }
+  })
+
+  test.each([
+    ["/privacy", m.info_contact_link()],
+    ["/copyright", m.copyright_request_link()],
+  ])("links %s requests to the correction form", async (path, linkName) => {
+    await renderRoute(path)
+
+    expect(screen.getByRole("link", { name: linkName })).toHaveAttribute(
+      "href",
+      DATA_REQUEST_ISSUE_URL,
+    )
   })
 
   test("renders the login route for an anonymous visitor", async () => {

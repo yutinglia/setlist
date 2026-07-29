@@ -49,8 +49,8 @@ Setlist 是個人維護的 homelab 專案，並以小型公開部署為設計目
 所有權限都由 API 強制執行；隱藏前端按鈕不會被當成安全邊界。
 
 訪客若想建議收錄其他頻道，應聯絡該部署的營運者。在 Setlist 官方網站請
-[建立 GitHub Issue](https://github.com/yutinglia/setlist/issues/new)；若使用
-其他人託管的站點，請聯絡該站擁有者或管理員。
+[提出頻道收錄建議](https://github.com/yutinglia/setlist/issues/new?template=channel-request.yml)；
+若使用其他人託管的站點，請聯絡該站擁有者或管理員。
 
 ## 使用 Dev Container 快速開始
 
@@ -115,7 +115,7 @@ Copy-Item .env.production.example .env
 
 自行託管者也應將 `VITE_CHANNEL_REQUEST_URL` 設為自己的支援表單、Issue
 追蹤器、`mailto:` 信箱或同源聯絡頁面；未設定時，前端會回退至
-`VITE_SOURCE_URL/issues/new`。
+`VITE_SOURCE_URL` 下的 `channel-request.yml` Issue 表單。
 
 ### 2. 產生管理員密碼雜湊
 
@@ -573,7 +573,7 @@ Setlist 儲存事實性中繼資料並連結至公開 YouTube 頁面，不託管
 提出更正或移除要求為止。
 
 權利人與頻道營運者可透過
-[GitHub Issues](https://github.com/yutinglia/setlist/issues)
+[更正或移除表單](https://github.com/yutinglia/setlist/issues/new?template=correction-or-removal.yml)
 要求更正、排除頻道或移除資料。請勿在公開 Issue 中張貼私人身分文件。
 
 ## 授權

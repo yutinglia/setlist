@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { InfoPage, InfoSection } from "@/components/info-page"
 import { PageMetadata } from "@/components/page-metadata"
-import { ISSUES_URL } from "@/lib/public-config"
+import { DATA_REQUEST_ISSUE_URL } from "@/lib/public-config"
 import { m } from "@/paraglide/messages"
 
 export const Route = createFileRoute("/privacy")({
@@ -43,7 +43,7 @@ function PrivacyPage() {
         <p>
           {m.info_contact_body()}{" "}
           <a
-            href={ISSUES_URL}
+            href={DATA_REQUEST_ISSUE_URL}
             target="_blank"
             rel="noreferrer"
             className="font-medium text-primary underline-offset-2 hover:underline"

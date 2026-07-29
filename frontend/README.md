@@ -143,7 +143,7 @@ Source messages live in `messages/en.json`, `messages/zh-hant.json`, and
 - `VITE_SOURCE_URL` sets the project source/contact base.
 - `VITE_CHANNEL_REQUEST_URL` sets the host-specific guest contact link for
   channel requests. It accepts `http(s)`, `mailto:`, or a same-origin path and
-  falls back to `VITE_SOURCE_URL/issues/new`.
+  falls back to the `channel-request.yml` issue form under `VITE_SOURCE_URL`.
 - `VITE_PUBLIC_SITE_URL` sets the canonical Open Graph origin.
 - `VITE_APP_VERSION` optionally overrides the footer build version.
 - `public/og.png` is the social preview image.
