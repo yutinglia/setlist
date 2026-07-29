@@ -1,0 +1,59 @@
+name: Suggest an improvement
+description: Propose a focused feature or improvement for Setlist
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing an idea. Please explain the user problem before the proposed implementation so the tradeoffs are clear.
+
+        To request that a VTuber channel be indexed, use the dedicated channel-request form instead.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Public website
+        - Search or public API
+        - Scraping or setlist extraction
+        - Administrator tools
+        - Deployment or operations
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Who encounters this problem, and what are they unable to do today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed improvement
+      description: Describe the desired behavior. Mockups or examples are welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any workarounds or simpler approaches you considered.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and did not find the same proposal.
+          required: true
+        - label: This is not a request to add a channel.
+          required: true

@@ -1,0 +1,77 @@
+name: Report a bug
+description: Report a reproducible problem with the website, API, or data pipeline
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Setlist. Do not include credentials, private deployment details, or unpatched security vulnerabilities. Follow the security policy for sensitive reports.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Public website
+        - Search or public API
+        - Channel or video data
+        - Scraping or setlist extraction
+        - Administrator tools
+        - Deployment or documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and include the affected public URL when relevant.
+      placeholder: A clear description of the observed behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Give the smallest reliable sequence that reproduces the problem.
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: For website problems, include browser, operating system, language, and whether this is the official or a self-hosted deployment.
+      placeholder: Firefox 128, Windows 11, Traditional Chinese, official deployment
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or logs
+      description: Add redacted screenshots or logs if they help explain the problem.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: This report contains no secrets, private data, or unpatched vulnerability details.
+          required: true

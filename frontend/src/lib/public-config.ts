@@ -19,11 +19,17 @@ export const PUBLIC_SITE_URL =
     ? configuredPublicSiteUrl.replace(/\/+$/, "")
     : "http://localhost:5173"
 
-export const ISSUES_URL = `${SOURCE_URL.replace(/\/+$/, "")}/issues/new`
+const sourceBaseUrl = SOURCE_URL.replace(/\/+$/, "")
+
+export const ISSUES_URL = `${sourceBaseUrl}/issues/new/choose`
+export const CHANNEL_REQUEST_ISSUE_URL =
+  `${sourceBaseUrl}/issues/new?template=channel-request.yml`
+export const DATA_REQUEST_ISSUE_URL =
+  `${sourceBaseUrl}/issues/new?template=correction-or-removal.yml`
 export const CHANNEL_REQUEST_URL = isSafeContactUrl(configuredChannelRequestUrl)
   ? configuredChannelRequestUrl
-  : ISSUES_URL
-export const LICENSE_URL = `${SOURCE_URL.replace(/\/+$/, "")}/blob/main/LICENSE`
+  : CHANNEL_REQUEST_ISSUE_URL
+export const LICENSE_URL = `${sourceBaseUrl}/blob/main/LICENSE`
 export const THIRD_PARTY_NOTICES_URL = "/THIRD_PARTY_NOTICES.md"
 
 function isSafeContactUrl(value: string | undefined): value is string {

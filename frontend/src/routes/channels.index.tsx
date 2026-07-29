@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
-import { Plus } from "lucide-react"
+import { MessageSquarePlus, Plus } from "lucide-react"
 import { useCallback } from "react"
 
 import { PAGE_SIZE, useAuthSession, useChannels } from "@/api/hooks"
@@ -11,6 +11,7 @@ import { QueryState } from "@/components/query-state"
 import { buttonVariants } from "@/components/ui/button"
 import { useClampPage } from "@/hooks/use-clamp-page"
 import { formatInteger } from "@/lib/locale-format"
+import { CHANNEL_REQUEST_URL } from "@/lib/public-config"
 import { pageSearchSchema } from "@/lib/search-schemas"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
@@ -71,6 +72,19 @@ function ChannelsPage() {
               <Plus aria-hidden />
               {m.channel_add_cta()}
             </Link>
+          ) : !auth.isLoading && !isAdmin ? (
+            <a
+              href={CHANNEL_REQUEST_URL}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "inline-flex",
+              )}
+            >
+              <MessageSquarePlus aria-hidden />
+              {m.channel_request_contact_cta()}
+            </a>
           ) : null}
         </div>
       </header>

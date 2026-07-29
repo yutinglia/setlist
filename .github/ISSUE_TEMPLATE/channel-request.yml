@@ -1,0 +1,55 @@
+name: Request a channel
+description: Suggest a public VTuber YouTube channel for the Setlist index
+title: "[Channel]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a channel. This form is for the official Setlist deployment; other deployments maintain their own channel lists.
+
+        Please open one issue per channel so requests can be checked and tracked independently.
+
+  - type: input
+    id: channel-url
+    attributes:
+      label: YouTube channel URL
+      description: Provide the canonical public channel URL, not a search-results page.
+      placeholder: https://www.youtube.com/@channel
+    validations:
+      required: true
+
+  - type: input
+    id: channel-name
+    attributes:
+      label: Channel name
+      description: Enter the public display name shown on YouTube.
+      placeholder: Example VTuber
+    validations:
+      required: true
+
+  - type: input
+    id: karaoke-example
+    attributes:
+      label: Example karaoke stream
+      description: Link one public karaoke stream or song archive that helps verify the channel belongs in this index.
+      placeholder: https://www.youtube.com/watch?v=...
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
+      description: Add useful context such as the VTuber's language or agency. Do not include private information.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and did not find an open request for this channel.
+          required: true
+        - label: The channel and example archive are publicly accessible.
+          required: true

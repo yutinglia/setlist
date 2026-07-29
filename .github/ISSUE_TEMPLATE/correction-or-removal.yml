@@ -1,0 +1,73 @@
+name: Request a correction or removal
+description: Request correction, exclusion, attribution changes, or removal of indexed public data
+title: "[Data request]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Setlist indexes public YouTube metadata and timestamped setlist comments. Rights holders, channel operators, setlist contributors, and affected people may use this form to request a correction or removal.
+
+        Do not post identity documents, private contact details, or other sensitive evidence in this public issue. The maintainer may arrange a private verification method if one is needed.
+
+  - type: dropdown
+    id: request-type
+    attributes:
+      label: Request type
+      options:
+        - Correct inaccurate data
+        - Correct or remove attribution
+        - Exclude a channel
+        - Remove indexed data
+        - Privacy request
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected-urls
+    attributes:
+      label: Affected public URLs
+      description: Include the relevant Setlist and/or YouTube URLs, one per line.
+      placeholder: |
+        https://setlist.example/channels/...
+        https://www.youtube.com/watch?v=...
+    validations:
+      required: true
+
+  - type: textarea
+    id: requested-change
+    attributes:
+      label: Requested change
+      description: Explain exactly what should be corrected, excluded, or removed and why.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: relationship
+    attributes:
+      label: Your relationship to the content
+      options:
+        - Channel owner or authorized operator
+        - Rights holder or authorized representative
+        - Setlist comment author
+        - Person identified in the indexed data
+        - Viewer reporting an inaccuracy
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: public-evidence
+    attributes:
+      label: Public supporting information
+      description: Link only non-sensitive public information that helps verify the request. Private evidence can be arranged separately if needed.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I have not included private identity documents, credentials, or other sensitive information.
+          required: true
+        - label: I understand this issue and its public supporting information will be publicly visible.
+          required: true
