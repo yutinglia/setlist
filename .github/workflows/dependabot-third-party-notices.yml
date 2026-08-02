@@ -1,86 +1,230 @@
 name: Dependabot third-party notices
 
 on:
-  pull_request_target:
+  workflow_run:
+    workflows:
+      - CI
     types:
-      - opened
-      - reopened
-      - synchronize
+      - completed
 
-permissions:
-  actions: write
-  contents: write
-  pull-requests: read
+# Deny all permissions unless a job explicitly opts in.
+permissions: {}
 
 concurrency:
-  group: dependabot-third-party-notices-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: >-
+    dependabot-third-party-notices-${{ github.event.workflow_run.head_repository.id }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
 
 jobs:
-  update:
+  prepare:
+    name: Prepare notice update
     if: >-
-      github.event.pull_request.user.login == 'dependabot[bot]' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      startsWith(github.event.pull_request.head.ref, 'dependabot/npm_and_yarn/frontend/')
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/npm_and_yarn/frontend/')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      base_sha: ${{ steps.validate.outputs.base_sha }}
+      changed: ${{ steps.generate.outputs.changed }}
+      head_ref: ${{ steps.validate.outputs.head_ref }}
+      head_sha: ${{ steps.validate.outputs.head_sha }}
+      notice_sha256: ${{ steps.generate.outputs.notice_sha256 }}
+      pr_number: ${{ steps.validate.outputs.pr_number }}
 
     steps:
-      - name: Validate the Dependabot change set
+      - name: Validate the triggering run and Dependabot PR
+        id: validate
         env:
           API_URL: ${{ github.api_url }}
-          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
           REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           python - <<'PY'
           import json
           import os
+          import re
+          import urllib.error
+          import urllib.parse
           import urllib.request
 
           api_url = os.environ["API_URL"]
+          default_branch = os.environ["DEFAULT_BRANCH"]
           repository = os.environ["REPOSITORY"]
-          pr_number = os.environ["PR_NUMBER"]
-          changed_files = int(os.environ["CHANGED_FILES"])
+          run_id = int(os.environ["RUN_ID"])
           token = os.environ["GH_TOKEN"]
-
-          allowed = {
+          output_file = os.environ["GITHUB_OUTPUT"]
+          branch_prefix = "dependabot/npm_and_yarn/frontend/"
+          allowed_files = {
               "frontend/package.json",
               "frontend/package-lock.json",
               "THIRD_PARTY_NOTICES.md",
           }
+          headers = {
+              "Accept": "application/vnd.github+json",
+              "Authorization": f"Bearer {token}",
+              "X-GitHub-Api-Version": "2022-11-28",
+          }
 
-          if changed_files > len(allowed):
-              raise SystemExit(
-                  f"Refusing PR with {changed_files} changed files; expected at most {len(allowed)}."
+          def request(path):
+              req = urllib.request.Request(
+                  f"{api_url}/repos/{repository}{path}", headers=headers
               )
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as response:
+                      return json.load(response)
+              except urllib.error.HTTPError as error:
+                  detail = error.read().decode(errors="replace")
+                  raise SystemExit(
+                      f"GitHub API GET {path} failed: {error.code} {detail}"
+                  ) from error
 
-          request = urllib.request.Request(
-              f"{api_url}/repos/{repository}/pulls/{pr_number}/files?per_page=100",
-              headers={
-                  "Accept": "application/vnd.github+json",
-                  "Authorization": f"Bearer {token}",
-                  "X-GitHub-Api-Version": "2022-11-28",
-              },
+          def all_pages(path, key=None):
+              separator = "&" if "?" in path else "?"
+              page = 1
+              items = []
+              total = None
+              while True:
+                  payload = request(f"{path}{separator}per_page=100&page={page}")
+                  if key is None:
+                      batch = payload
+                  else:
+                      batch = payload[key]
+                      total = payload.get("total_count", total)
+                  items.extend(batch)
+                  if len(batch) < 100:
+                      break
+                  page += 1
+              if total is not None and len(items) != total:
+                  raise SystemExit(
+                      f"Incomplete pagination for {path}: got {len(items)} of {total}."
+                  )
+              return items
+
+          run = request(f"/actions/runs/{run_id}")
+          run_checks = {
+              "run ID": run.get("id") == run_id,
+              "event": run.get("event") == "pull_request",
+              "conclusion": run.get("conclusion") == "failure",
+              "actor": run.get("actor", {}).get("login") == "dependabot[bot]",
+              "head repository": (
+                  run.get("head_repository", {}).get("full_name") == repository
+              ),
+              "head branch": str(run.get("head_branch", "")).startswith(
+                  branch_prefix
+              ),
+          }
+          failed = [name for name, passed in run_checks.items() if not passed]
+          if failed:
+              raise SystemExit(f"Triggering run validation failed: {failed}")
+
+          jobs = all_pages(
+              f"/actions/runs/{run_id}/jobs?filter=latest", key="jobs"
           )
-          with urllib.request.urlopen(request) as response:
-              files = json.load(response)
-
-          names = {entry["filename"] for entry in files}
-          if len(files) != changed_files:
+          notice_failures = [
+              (job.get("id"), job.get("name"))
+              for job in jobs
+              for step in job.get("steps", [])
+              if job.get("name") == "frontend"
+              and step.get("name") == "Verify third-party notices"
+              and step.get("conclusion") == "failure"
+          ]
+          if len(notice_failures) != 1:
               raise SystemExit(
-                  "Could not validate the complete PR file list; refusing to continue."
+                  "Expected exactly one failed frontend / Verify third-party "
+                  f"notices step, found {notice_failures}."
               )
 
-          unexpected = sorted(names - allowed)
+          candidates = {
+              int(entry["number"])
+              for entry in run.get("pull_requests", [])
+              if entry.get("number") is not None
+          }
+          if not candidates:
+              owner = repository.split("/", 1)[0]
+              query = urllib.parse.urlencode(
+                  {
+                      "state": "open",
+                      "head": f"{owner}:{run['head_branch']}",
+                      "base": default_branch,
+                  }
+              )
+              candidates = {
+                  int(entry["number"])
+                  for entry in request(f"/pulls?{query}&per_page=100")
+              }
+          if len(candidates) != 1:
+              raise SystemExit(
+                  f"Expected one PR for the triggering run, found {sorted(candidates)}."
+              )
+
+          pr_number = candidates.pop()
+          pr = request(f"/pulls/{pr_number}")
+          head_sha = pr.get("head", {}).get("sha", "")
+          base_sha = pr.get("base", {}).get("sha", "")
+          head_ref = pr.get("head", {}).get("ref", "")
+          pr_checks = {
+              "PR state": pr.get("state") == "open",
+              "PR author": pr.get("user", {}).get("login") == "dependabot[bot]",
+              "head repository": (
+                  pr.get("head", {}).get("repo", {}).get("full_name") == repository
+              ),
+              "head branch": head_ref.startswith(branch_prefix),
+              "run branch": head_ref == run.get("head_branch"),
+              "base branch": pr.get("base", {}).get("ref") == default_branch,
+              "head SHA": re.fullmatch(r"[0-9a-f]{40}", head_sha) is not None,
+              "base SHA": re.fullmatch(r"[0-9a-f]{40}", base_sha) is not None,
+          }
+          failed = [name for name, passed in pr_checks.items() if not passed]
+          if failed:
+              raise SystemExit(f"Dependabot PR validation failed: {failed}")
+
+          changed_count = int(pr.get("changed_files", -1))
+          if changed_count < 1 or changed_count > len(allowed_files):
+              raise SystemExit(f"Unexpected changed-file count: {changed_count}")
+          files = all_pages(f"/pulls/{pr_number}/files")
+          if len(files) != changed_count:
+              raise SystemExit(
+                  f"Incomplete PR file list: got {len(files)} of {changed_count}."
+              )
+          names = {entry.get("filename") for entry in files}
+          unexpected = sorted(names - allowed_files)
           if unexpected:
               raise SystemExit(f"Unexpected changed files: {unexpected}")
-
           if "frontend/package-lock.json" not in names:
               raise SystemExit("The PR does not change frontend/package-lock.json.")
+          invalid_status = sorted(
+              entry.get("filename")
+              for entry in files
+              if entry.get("status") != "modified"
+              or entry.get("previous_filename") is not None
+          )
+          if invalid_status:
+              raise SystemExit(
+                  f"Expected only in-place file modifications: {invalid_status}"
+              )
 
-          print("Validated changed files:")
+          values = {
+              "base_sha": base_sha,
+              "head_ref": head_ref,
+              "head_sha": head_sha,
+              "pr_number": str(pr_number),
+          }
+          with open(output_file, "a", encoding="utf-8") as output:
+              for name, value in values.items():
+                  print(f"{name}={value}", file=output)
+
+          print(f"Validated Dependabot PR #{pr_number} at {head_sha}.")
+          print("Changed files:")
           for name in sorted(names):
               print(f"- {name}")
           PY
@@ -88,87 +232,306 @@ jobs:
       - name: Check out the trusted base revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ steps.validate.outputs.base_sha }}
           path: trusted
           persist-credentials: false
 
       - name: Check out the exact Dependabot revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ steps.validate.outputs.head_sha }}
           path: worktree
           persist-credentials: false
+
+      - name: Verify checked-out inputs
+        env:
+          BASE_SHA: ${{ steps.validate.outputs.base_sha }}
+          HEAD_SHA: ${{ steps.validate.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git -C trusted rev-parse HEAD)" = "$BASE_SHA"
+          test "$(git -C worktree rev-parse HEAD)" = "$HEAD_SHA"
+          test -f trusted/scripts/generate-frontend-third-party-notices.mjs
+          test ! -L trusted/scripts/generate-frontend-third-party-notices.mjs
+          test -d worktree/frontend
+          test ! -L worktree/frontend
+          test -f worktree/frontend/package.json
+          test ! -L worktree/frontend/package.json
+          test -f worktree/frontend/package-lock.json
+          test ! -L worktree/frontend/package-lock.json
+
+      - name: Validate dependency manifests as data only
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path, PurePosixPath
+          import urllib.parse
+
+          base_dir = Path("trusted/frontend")
+          head_dir = Path("worktree/frontend")
+          base_package = json.loads((base_dir / "package.json").read_text())
+          head_package = json.loads((head_dir / "package.json").read_text())
+
+          dependency_fields = {"dependencies", "devDependencies"}
+          base_metadata = {
+              key: value
+              for key, value in base_package.items()
+              if key not in dependency_fields
+          }
+          head_metadata = {
+              key: value
+              for key, value in head_package.items()
+              if key not in dependency_fields
+          }
+          if base_metadata != head_metadata:
+              raise SystemExit(
+                  "Dependabot changed package.json outside dependency versions."
+              )
+
+          for field in dependency_fields:
+              before = base_package.get(field, {})
+              after = head_package.get(field, {})
+              if set(before) != set(after):
+                  raise SystemExit(f"Dependabot changed the key set in {field}.")
+              for name, value in after.items():
+                  if not isinstance(value, str):
+                      raise SystemExit(f"Non-string dependency value for {name}.")
+                  if value.startswith(
+                      ("file:", "git:", "git+", "http:", "https:", "link:")
+                  ):
+                      raise SystemExit(
+                          f"Refusing non-registry dependency source for {name}: {value}"
+                      )
+
+          base_lock = json.loads((base_dir / "package-lock.json").read_text())
+          head_lock = json.loads((head_dir / "package-lock.json").read_text())
+          if base_lock.get("lockfileVersion") != head_lock.get("lockfileVersion"):
+              raise SystemExit("Dependabot changed package-lock lockfileVersion.")
+          if head_lock.get("lockfileVersion") != 3:
+              raise SystemExit("Expected npm package-lock lockfileVersion 3.")
+
+          root = head_lock.get("packages", {}).get("")
+          if not isinstance(root, dict):
+              raise SystemExit("package-lock.json lacks the root package entry.")
+          for field in dependency_fields:
+              if root.get(field, {}) != head_package.get(field, {}):
+                  raise SystemExit(
+                      f"package-lock root {field} does not match package.json."
+                  )
+
+          base_packages = base_lock.get("packages")
+          if not isinstance(base_packages, dict):
+              raise SystemExit("Trusted package-lock packages must be an object.")
+          trusted_origins = {"https://registry.npmjs.org"}
+          for entry in base_packages.values():
+              resolved = entry.get("resolved") if isinstance(entry, dict) else None
+              if resolved:
+                  parsed = urllib.parse.urlsplit(resolved)
+                  if parsed.scheme == "https" and parsed.netloc:
+                      trusted_origins.add(f"{parsed.scheme}://{parsed.netloc}")
+
+          packages = head_lock.get("packages")
+          if not isinstance(packages, dict):
+              raise SystemExit("package-lock.json packages must be an object.")
+          for package_path, entry in packages.items():
+              if package_path:
+                  pure = PurePosixPath(package_path)
+                  if (
+                      package_path.startswith("/")
+                      or "\\" in package_path
+                      or ".." in pure.parts
+                      or not package_path.startswith("node_modules/")
+                  ):
+                      raise SystemExit(
+                          f"Unsafe package-lock package path: {package_path}"
+                      )
+              if not isinstance(entry, dict):
+                  raise SystemExit(
+                      f"Invalid package-lock entry for {package_path or '<root>'}."
+                  )
+              resolved = entry.get("resolved")
+              previous = base_packages.get(package_path, {})
+              previous_resolved = (
+                  previous.get("resolved") if isinstance(previous, dict) else None
+              )
+              if resolved and resolved != previous_resolved:
+                  parsed = urllib.parse.urlsplit(resolved)
+                  origin = f"{parsed.scheme}://{parsed.netloc}"
+                  if parsed.scheme != "https" or origin not in trusted_origins:
+                      raise SystemExit(
+                          f"Untrusted package source for {package_path}: {resolved}"
+                      )
+                  integrity = entry.get("integrity", "")
+                  if not integrity.startswith(("sha512-", "sha384-", "sha256-")):
+                      raise SystemExit(
+                          f"Missing strong integrity for {package_path}: {integrity}"
+                      )
+
+          print("Validated package.json and package-lock.json as inert data.")
+          PY
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "26"
-          cache: npm
-          cache-dependency-path: worktree/frontend/package-lock.json
+          package-manager-cache: false
 
       - name: Install dependencies without lifecycle scripts
-        working-directory: worktree/frontend
-        run: npm ci --ignore-scripts --no-audit --no-fund
-
-      - name: Generate notices with the trusted base script
         env:
-          NOTICE_RUNNER: ${{ runner.temp }}/setlist-notices
+          INSTALL_ROOT: ${{ runner.temp }}/setlist-npm-install
+          NPM_CONFIG_AUDIT: "false"
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+          NPM_CONFIG_FUND: "false"
+          NPM_CONFIG_IGNORE_SCRIPTS: "true"
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+          NPM_CONFIG_UPDATE_NOTIFIER: "false"
         run: |
-          rm -rf "$NOTICE_RUNNER"
-          mkdir -p "$NOTICE_RUNNER/scripts"
+          set -euo pipefail
+          rm -rf "$INSTALL_ROOT"
+          mkdir -p "$INSTALL_ROOT"
+          cp worktree/frontend/package.json "$INSTALL_ROOT/package.json"
+          cp worktree/frontend/package-lock.json "$INSTALL_ROOT/package-lock.json"
+          npm ci --prefix "$INSTALL_ROOT" --ignore-scripts --no-audit --no-fund
+
+      - name: Generate and validate notices with trusted code
+        id: generate
+        env:
+          INSTALL_ROOT: ${{ runner.temp }}/setlist-npm-install
+          NOTICE_RUNNER: ${{ runner.temp }}/setlist-notice-runner
+        run: |
+          set -euo pipefail
+          umask 077
+          rm -rf "$NOTICE_RUNNER" artifact
+          mkdir -p "$NOTICE_RUNNER/scripts" artifact
           cp \
             trusted/scripts/generate-frontend-third-party-notices.mjs \
             "$NOTICE_RUNNER/scripts/generate-frontend-third-party-notices.mjs"
-          ln -s "$GITHUB_WORKSPACE/worktree/frontend" "$NOTICE_RUNNER/frontend"
-          node "$NOTICE_RUNNER/scripts/generate-frontend-third-party-notices.mjs"
-          mv "$NOTICE_RUNNER/THIRD_PARTY_NOTICES.md" worktree/THIRD_PARTY_NOTICES.md
+          ln -s "$INSTALL_ROOT" "$NOTICE_RUNNER/frontend"
 
-      - name: Commit the generated notice and start CI
+          node "$NOTICE_RUNNER/scripts/generate-frontend-third-party-notices.mjs"
+          cp "$NOTICE_RUNNER/THIRD_PARTY_NOTICES.md" "$NOTICE_RUNNER/first.md"
+          node "$NOTICE_RUNNER/scripts/generate-frontend-third-party-notices.mjs"
+          cmp "$NOTICE_RUNNER/first.md" "$NOTICE_RUNNER/THIRD_PARTY_NOTICES.md"
+
+          GENERATED="$NOTICE_RUNNER/THIRD_PARTY_NOTICES.md" \
+          TRACKED="$GITHUB_WORKSPACE/worktree/THIRD_PARTY_NOTICES.md" \
+          OUTPUT="$GITHUB_OUTPUT" \
+          python - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+          import shutil
+          import stat
+
+          generated = Path(os.environ["GENERATED"])
+          tracked = Path(os.environ["TRACKED"])
+          output_file = Path(os.environ["OUTPUT"])
+          file_stat = generated.lstat()
+          if not stat.S_ISREG(file_stat.st_mode):
+              raise SystemExit("Generated notice is not a regular file.")
+          if not 1_000 <= file_stat.st_size <= 2 * 1024 * 1024:
+              raise SystemExit(
+                  f"Generated notice has an unexpected size: {file_stat.st_size}."
+              )
+
+          content = generated.read_bytes()
+          text = content.decode("utf-8")
+          if "\x00" in text:
+              raise SystemExit("Generated notice contains a NUL byte.")
+          if not text.startswith("# Setlist frontend third-party notices\n"):
+              raise SystemExit("Generated notice has an unexpected heading.")
+          if text.count("\n## Package index\n") != 1:
+              raise SystemExit("Generated notice has an invalid package index.")
+          if text.count("\n## License texts\n") != 1:
+              raise SystemExit("Generated notice has an invalid license section.")
+
+          digest = hashlib.sha256(content).hexdigest()
+          changed = not tracked.exists() or content != tracked.read_bytes()
+          if changed:
+              shutil.copyfile(generated, "artifact/THIRD_PARTY_NOTICES.md")
+
+          with output_file.open("a", encoding="utf-8") as output:
+              print(f"changed={'true' if changed else 'false'}", file=output)
+              print(f"notice_sha256={digest}", file=output)
+          print(f"Generated deterministic notice: sha256:{digest}")
+          print(f"Tracked notice requires update: {changed}")
+          PY
+
+          test -z "$(git -C worktree status --porcelain --untracked-files=no)"
+          rm -rf "$INSTALL_ROOT" "$NOTICE_RUNNER"
+
+      - name: Upload the single generated notice
+        id: upload
+        if: steps.generate.outputs.changed == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: artifact/THIRD_PARTY_NOTICES.md
+          archive: "false"
+          if-no-files-found: error
+          retention-days: 1
+
+  commit:
+    name: Commit notice update
+    needs:
+      - prepare
+    if: >-
+      needs.prepare.result == 'success' &&
+      needs.prepare.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Download the exact generated notice
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          artifact-ids: ${{ needs.prepare.outputs.artifact_id }}
+          digest-mismatch: error
+          path: staged
+          skip-decompress: "true"
+
+      - name: Revalidate and update only the notice file
         env:
           API_URL: ${{ github.api_url }}
+          BASE_SHA: ${{ needs.prepare.outputs.base_sha }}
+          EXPECTED_NOTICE_SHA256: ${{ needs.prepare.outputs.notice_sha256 }}
           GH_TOKEN: ${{ github.token }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ needs.prepare.outputs.head_ref }}
+          HEAD_SHA: ${{ needs.prepare.outputs.head_sha }}
+          PR_NUMBER: ${{ needs.prepare.outputs.pr_number }}
           REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           python - <<'PY'
           import base64
+          import hashlib
           import json
           import os
           from pathlib import Path
-          import subprocess
+          import re
+          import stat
           import urllib.error
           import urllib.parse
           import urllib.request
 
           api_url = os.environ["API_URL"]
-          repository = os.environ["REPOSITORY"]
+          base_sha = os.environ["BASE_SHA"]
+          expected_digest = os.environ["EXPECTED_NOTICE_SHA256"]
           head_ref = os.environ["HEAD_REF"]
           head_sha = os.environ["HEAD_SHA"]
+          pr_number = int(os.environ["PR_NUMBER"])
+          repository = os.environ["REPOSITORY"]
+          run_id = int(os.environ["RUN_ID"])
           token = os.environ["GH_TOKEN"]
-          worktree = Path("worktree")
-          notice_path = worktree / "THIRD_PARTY_NOTICES.md"
-
-          diff = subprocess.run(
-              ["git", "diff", "--exit-code", "--", "THIRD_PARTY_NOTICES.md"],
-              cwd=worktree,
-              check=False,
-          )
-          if diff.returncode == 0:
-              print("THIRD_PARTY_NOTICES.md is already current.")
-              raise SystemExit(0)
-          if diff.returncode != 1:
-              raise SystemExit("git diff failed unexpectedly.")
-
-          status = subprocess.check_output(
-              ["git", "status", "--porcelain", "--untracked-files=no"],
-              cwd=worktree,
-              text=True,
-          ).splitlines()
-          if status != [" M THIRD_PARTY_NOTICES.md"]:
-              raise SystemExit(f"Unexpected worktree changes: {status}")
-
+          branch_prefix = "dependabot/npm_and_yarn/frontend/"
+          allowed_files = {
+              "frontend/package.json",
+              "frontend/package-lock.json",
+              "THIRD_PARTY_NOTICES.md",
+          }
           headers = {
               "Accept": "application/vnd.github+json",
               "Authorization": f"Bearer {token}",
@@ -179,7 +542,7 @@ jobs:
               data = None
               request_headers = dict(headers)
               if payload is not None:
-                  data = json.dumps(payload).encode()
+                  data = json.dumps(payload).encode("utf-8")
                   request_headers["Content-Type"] = "application/json"
               req = urllib.request.Request(
                   f"{api_url}/repos/{repository}{path}",
@@ -188,7 +551,7 @@ jobs:
                   method=method,
               )
               try:
-                  with urllib.request.urlopen(req) as response:
+                  with urllib.request.urlopen(req, timeout=30) as response:
                       body = response.read()
                       return json.loads(body) if body else None
               except urllib.error.HTTPError as error:
@@ -197,23 +560,147 @@ jobs:
                       f"GitHub API {method} {path} failed: {error.code} {detail}"
                   ) from error
 
-          encoded_ref = urllib.parse.quote(head_ref, safe="/")
-          current_ref = request("GET", f"/git/ref/heads/{encoded_ref}")
-          if current_ref["object"]["sha"] != head_sha:
+          def get(path):
+              return request("GET", path)
+
+          def all_pages(path, key=None):
+              separator = "&" if "?" in path else "?"
+              page = 1
+              items = []
+              total = None
+              while True:
+                  payload = get(f"{path}{separator}per_page=100&page={page}")
+                  if key is None:
+                      batch = payload
+                  else:
+                      batch = payload[key]
+                      total = payload.get("total_count", total)
+                  items.extend(batch)
+                  if len(batch) < 100:
+                      break
+                  page += 1
+              if total is not None and len(items) != total:
+                  raise SystemExit(
+                      f"Incomplete pagination for {path}: got {len(items)} of {total}."
+                  )
+              return items
+
+          staged = Path("staged")
+          entries = list(staged.rglob("*"))
+          symlinks = [str(path) for path in entries if path.is_symlink()]
+          if symlinks:
+              raise SystemExit(f"Downloaded artifact contains symlinks: {symlinks}")
+          files = [path for path in entries if path.is_file()]
+          if len(files) != 1 or files[0].name != "THIRD_PARTY_NOTICES.md":
+              raise SystemExit(f"Unexpected downloaded artifact files: {files}")
+          notice_path = files[0]
+          file_stat = notice_path.lstat()
+          if not stat.S_ISREG(file_stat.st_mode):
+              raise SystemExit("Downloaded notice is not a regular file.")
+          if not 1_000 <= file_stat.st_size <= 2 * 1024 * 1024:
               raise SystemExit(
-                  "The Dependabot branch moved after validation; refusing a stale write."
+                  f"Downloaded notice has an unexpected size: {file_stat.st_size}."
               )
 
-          original_commit = request("GET", f"/git/commits/{head_sha}")
-          notice_blob = request(
+          content = notice_path.read_bytes()
+          text = content.decode("utf-8")
+          digest = hashlib.sha256(content).hexdigest()
+          if not re.fullmatch(r"[0-9a-f]{64}", expected_digest):
+              raise SystemExit("The expected notice digest is malformed.")
+          if digest != expected_digest:
+              raise SystemExit(
+                  f"Notice digest mismatch: expected {expected_digest}, got {digest}."
+              )
+          if "\x00" in text:
+              raise SystemExit("Downloaded notice contains a NUL byte.")
+          if not text.startswith("# Setlist frontend third-party notices\n"):
+              raise SystemExit("Downloaded notice has an unexpected heading.")
+          if text.count("\n## Package index\n") != 1:
+              raise SystemExit("Downloaded notice has an invalid package index.")
+          if text.count("\n## License texts\n") != 1:
+              raise SystemExit("Downloaded notice has an invalid license section.")
+
+          run = get(f"/actions/runs/{run_id}")
+          run_checks = {
+              "event": run.get("event") == "pull_request",
+              "conclusion": run.get("conclusion") == "failure",
+              "actor": run.get("actor", {}).get("login") == "dependabot[bot]",
+              "head repository": (
+                  run.get("head_repository", {}).get("full_name") == repository
+              ),
+              "head branch": run.get("head_branch") == head_ref,
+          }
+          failed = [name for name, passed in run_checks.items() if not passed]
+          if failed:
+              raise SystemExit(f"Triggering run changed unexpectedly: {failed}")
+          jobs = all_pages(
+              f"/actions/runs/{run_id}/jobs?filter=latest", key="jobs"
+          )
+          notice_failures = [
+              job.get("id")
+              for job in jobs
+              for step in job.get("steps", [])
+              if job.get("name") == "frontend"
+              and step.get("name") == "Verify third-party notices"
+              and step.get("conclusion") == "failure"
+          ]
+          if len(notice_failures) != 1:
+              raise SystemExit("The expected notice verification failure is absent.")
+
+          pr = get(f"/pulls/{pr_number}")
+          pr_checks = {
+              "state": pr.get("state") == "open",
+              "author": pr.get("user", {}).get("login") == "dependabot[bot]",
+              "head repository": (
+                  pr.get("head", {}).get("repo", {}).get("full_name") == repository
+              ),
+              "head branch": pr.get("head", {}).get("ref") == head_ref,
+              "head prefix": head_ref.startswith(branch_prefix),
+              "head SHA": pr.get("head", {}).get("sha") == head_sha,
+              "base SHA": pr.get("base", {}).get("sha") == base_sha,
+          }
+          failed = [name for name, passed in pr_checks.items() if not passed]
+          if failed:
+              raise SystemExit(f"Dependabot PR moved or changed: {failed}")
+
+          changed_count = int(pr.get("changed_files", -1))
+          if changed_count < 1 or changed_count > len(allowed_files):
+              raise SystemExit(f"Unexpected changed-file count: {changed_count}")
+          changed_files = all_pages(f"/pulls/{pr_number}/files")
+          if len(changed_files) != changed_count:
+              raise SystemExit("Could not revalidate the complete PR file list.")
+          names = {entry.get("filename") for entry in changed_files}
+          unexpected = sorted(names - allowed_files)
+          if unexpected or "frontend/package-lock.json" not in names:
+              raise SystemExit(
+                  f"PR file validation failed; unexpected={unexpected}, files={names}."
+              )
+          invalid_status = sorted(
+              entry.get("filename")
+              for entry in changed_files
+              if entry.get("status") != "modified"
+              or entry.get("previous_filename") is not None
+          )
+          if invalid_status:
+              raise SystemExit(
+                  f"Expected only in-place file modifications: {invalid_status}"
+              )
+
+          encoded_ref = urllib.parse.quote(head_ref, safe="/")
+          current_ref = get(f"/git/ref/heads/{encoded_ref}")
+          if current_ref.get("object", {}).get("sha") != head_sha:
+              raise SystemExit("The branch moved; refusing a stale write.")
+
+          original_commit = get(f"/git/commits/{head_sha}")
+          blob = request(
               "POST",
               "/git/blobs",
               {
-                  "content": base64.b64encode(notice_path.read_bytes()).decode(),
+                  "content": base64.b64encode(content).decode("ascii"),
                   "encoding": "base64",
               },
           )
-          new_tree = request(
+          tree = request(
               "POST",
               "/git/trees",
               {
@@ -223,30 +710,31 @@ jobs:
                           "path": "THIRD_PARTY_NOTICES.md",
                           "mode": "100644",
                           "type": "blob",
-                          "sha": notice_blob["sha"],
+                          "sha": blob["sha"],
                       }
                   ],
               },
           )
-          new_commit = request(
+          commit = request(
               "POST",
               "/git/commits",
               {
                   "message": "docs: regenerate third-party notices",
-                  "tree": new_tree["sha"],
+                  "tree": tree["sha"],
                   "parents": [head_sha],
               },
           )
           request(
               "PATCH",
               f"/git/refs/heads/{encoded_ref}",
-              {"sha": new_commit["sha"], "force": False},
+              {"sha": commit["sha"], "force": False},
           )
-
           request(
               "POST",
               "/actions/workflows/ci.yml/dispatches",
               {"ref": head_ref},
           )
-          print(f"Updated notices in commit {new_commit['sha']} and dispatched CI.")
+          print(
+              f"Updated PR #{pr_number} with {commit['sha']} and dispatched CI."
+          )
           PY
