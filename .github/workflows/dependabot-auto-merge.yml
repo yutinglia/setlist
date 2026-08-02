@@ -130,7 +130,7 @@ jobs:
 
               if (
                   author == "github-actions[bot]"
-                  and committer == "github-actions[bot]"
+                  and committer == "web-flow"
                   and message == "docs: regenerate third-party notices"
               ):
                   if notice_index is not None:
@@ -179,7 +179,7 @@ jobs:
             notice_json="$(gh api "repos/$REPOSITORY/commits/$notice_sha")"
             if ! jq -e --arg parent "$notice_parent_sha" '
               .author.login == "github-actions[bot]" and
-              .committer.login == "github-actions[bot]" and
+              .committer.login == "web-flow" and
               (.commit.message | split("\n")[0]) == "docs: regenerate third-party notices" and
               (.parents | length) == 1 and
               .parents[0].sha == $parent and
