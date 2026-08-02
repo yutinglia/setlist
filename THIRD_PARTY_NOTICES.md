@@ -27,7 +27,7 @@ MIT License. The packages below remain subject to their respective terms.
 - `@jridgewell/trace-mapping@0.3.31` — MIT; full text L006 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/trace-mapping
 - `@lix-js/sdk@0.4.10` — Apache-2.0; full text L005
 - `@lix-js/server-protocol-schema@0.1.1` — Apache-2.0; full text L005
-- `@oxc-project/types@0.139.0` — MIT; full text L008 — Boshen and oxc contributors — https://oxc.rs
+- `@oxc-project/types@0.142.0` — MIT; full text L008 — Boshen and oxc contributors — https://oxc.rs
 - `@radix-ui/number@1.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
 - `@radix-ui/primitive@1.1.7` — MIT; full text L009 — https://radix-ui.com/primitives
 - `@radix-ui/react-accessible-icon@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
@@ -98,9 +98,9 @@ MIT License. The packages below remain subject to their respective terms.
 - `@tanstack/react-store@0.9.3` — MIT; full text L014 — Tanner Linsley — https://tanstack.com/store
 - `@tanstack/router-core@1.171.15` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/router
 - `@tanstack/store@0.9.3` — MIT; full text L014 — Tanner Linsley — https://tanstack.com/store
-- `@types/node@26.1.1` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
-- `@types/react-dom@19.2.3` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
-- `@types/react@19.2.17` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
+- `@types/node@26.1.2` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
+- `@types/react-dom@19.2.4` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
+- `@types/react@19.2.18` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
 - `acorn@8.17.0` — MIT; full text L016 — https://github.com/acornjs/acorn
 - `aria-hidden@1.2.6` — MIT; full text L017 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/aria-hidden#readme
 - `array-timsort@1.0.3` — MIT; full text L018 — https://github.com/kaelzhang/node-array-timsort
@@ -124,7 +124,7 @@ MIT License. The packages below remain subject to their respective terms.
 - `json5@2.2.3` — MIT; full text L036 — Aseem Kishore <aseem.kishore@gmail.com> — http://json5.org/
 - `kysely@0.28.17` — MIT; full text L037 — Sami Koskimäki <sami@jakso.me> — https://kysely.dev
 - `lightningcss@1.33.0` — MPL-2.0; full text L038 — https://github.com/parcel-bundler/lightningcss
-- `lucide-react@1.27.0` — ISC; full text L039 — Eric Fennis — https://lucide.dev
+- `lucide-react@1.28.0` — ISC; full text L039 — Eric Fennis — https://lucide.dev
 - `nanoid@3.3.16` — MIT; full text L040 — Andrey Sitnik <andrey@sitnik.ru> — ai/nanoid
 - `picocolors@1.1.1` — ISC; full text L041 — Alexey Raspopov — alexeyraspopov/picocolors
 - `picomatch@4.0.5` — MIT; full text L042 — Jon Schlinkert (https://github.com/jonschlinkert) — https://github.com/micromatch/picomatch
@@ -135,7 +135,7 @@ MIT License. The packages below remain subject to their respective terms.
 - `react-remove-scroll@2.7.2` — MIT; full text L017 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll
 - `react-style-singleton@2.2.3` — MIT; full text L017 — Anton Korzunov (thekashey@gmail.com) — https://github.com/theKashey/react-style-singleton#readme
 - `react@19.2.8` — MIT; full text L044 — https://react.dev/
-- `rolldown@1.1.5` — MIT; full text L045 — https://rolldown.rs/
+- `rolldown@1.2.1` — MIT; full text L045 — https://rolldown.rs/
 - `scheduler@0.27.0` — MIT; full text L044 — https://react.dev/
 - `seroval-plugins@1.5.6` — MIT; full text L046 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/plugins
 - `seroval@1.5.6` — MIT; full text L046 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/seroval
@@ -153,7 +153,7 @@ MIT License. The packages below remain subject to their respective terms.
 - `use-sidecar@1.1.3` — MIT; full text L017 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-sidecar
 - `use-sync-external-store@1.6.0` — MIT; full text L044 — https://github.com/facebook/react
 - `uuid@14.0.1` — MIT; full text L055 — https://github.com/uuidjs/uuid
-- `vite@8.1.5` — MIT; full text L056 — Evan You — https://vite.dev
+- `vite@8.2.0` — MIT; full text L056 — Evan You — https://vite.dev
 - `webpack-virtual-modules@0.6.2` — MIT; full text L057 — SysGears INC — https://github.com/sysgears/webpack-virtual-modules#readme
 - `zod@4.4.3` — MIT; full text L058 — Colin McDonnell <zod@colinhacks.com> — https://zod.dev
 - `zustand@5.0.14` — MIT; full text L059 — Paul Henschel — https://github.com/pmndrs/zustand
@@ -497,7 +497,7 @@ SOFTWARE.
 
 ### L008
 
-Applies to: `@oxc-project/types@0.139.0`
+Applies to: `@oxc-project/types@0.142.0`
 
 ```text
 MIT License
@@ -730,7 +730,7 @@ SOFTWARE.
 
 ### L015
 
-Applies to: `@types/node@26.1.1`, `@types/react@19.2.17`, `@types/react-dom@19.2.3`
+Applies to: `@types/node@26.1.2`, `@types/react@19.2.18`, `@types/react-dom@19.2.4`
 
 ```text
 MIT License
@@ -2117,7 +2117,7 @@ defined by the Mozilla Public License, v. 2.0.
 
 ### L039
 
-Applies to: `lucide-react@1.27.0`
+Applies to: `lucide-react@1.28.0`
 
 ```text
 ISC License
@@ -2299,7 +2299,7 @@ SOFTWARE.
 
 ### L045
 
-Applies to: `rolldown@1.1.5`
+Applies to: `rolldown@1.2.1`
 
 ```text
 MIT License
@@ -2580,7 +2580,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### L056
 
-Applies to: `vite@8.1.5`
+Applies to: `vite@8.2.0`
 
 ```text
 # Vite core license
@@ -3804,6 +3804,13 @@ Repository: https://github.com/micromatch/is-glob
 
 ---------------------------------------
 
+## is-reference
+License: MIT
+By: Rich Harris
+Repository: https://github.com/Rich-Harris/is-reference
+
+---------------------------------------
+
 ## isexe, which
 License: ISC
 By: Isaac Z. Schlueter
@@ -4870,6 +4877,34 @@ Repository: https://github.com/websockets/ws
 > COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 > IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 > CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---------------------------------------
+
+## zimmerframe
+License: MIT
+Repository: https://github.com/sveltejs/zimmerframe
+
+> MIT License
+>
+> Copyright (c) 2023 [these people](https://github.com/Rich-Harris/zimmerframe/graphs/contributors)
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy
+> of this software and associated documentation files (the "Software"), to deal
+> in the Software without restriction, including without limitation the rights
+> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+> copies of the Software, and to permit persons to whom the Software is
+> furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+> SOFTWARE.
 ```
 
 ### L057
