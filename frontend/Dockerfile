@@ -16,7 +16,7 @@ ENV VITE_SOURCE_URL=${VITE_SOURCE_URL}
 ENV VITE_PUBLIC_SITE_URL=${VITE_PUBLIC_SITE_URL}
 RUN npm run build
 
-FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:18d67281256ded39ff65e010ae4f831be18f19356f83c60bc546492c7eb6dd23
+FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:59ccf0943b0b8e8d9e6ea9039a39555730f544701a655c596f7df7d096c593f5
 
 ARG APP_VERSION=0.0.0
 LABEL org.opencontainers.image.source="https://github.com/yutinglia/setlist" \
