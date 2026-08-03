@@ -88,24 +88,38 @@ jobs:
           set -euo pipefail
 
           tagged_commit="$(git rev-parse "${GITHUB_SHA}^{commit}")"
-          successful_runs="$(
-            gh api --paginate \
-              "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${tagged_commit}&status=success&per_page=100" \
-              --slurp
-          )"
-          if ! jq -e --arg sha "$tagged_commit" '
-            [.[] | .workflow_runs[] |
-              select(
-                .head_sha == $sha and
-                .conclusion == "success" and
-                (.event == "push" or .event == "workflow_dispatch")
-              )
-            ] |
-            length > 0
-          ' <<< "$successful_runs" > /dev/null; then
-            echo "::error::Release commit lacks a successful coverage-gated CI run."
-            exit 1
-          fi
+          max_attempts=12
+
+          for attempt in $(seq 1 "$max_attempts"); do
+            successful_runs="$(
+              gh api --paginate \
+                "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${tagged_commit}&status=success&per_page=100" \
+                --slurp
+            )"
+
+            if jq -e --arg sha "$tagged_commit" '
+              [.[] | .workflow_runs[] |
+                select(
+                  .head_sha == $sha and
+                  .conclusion == "success" and
+                  (.event == "push" or .event == "workflow_dispatch")
+                )
+              ] |
+              length > 0
+            ' <<< "$successful_runs" > /dev/null; then
+              echo "Found a successful coverage-gated CI run for ${tagged_commit}."
+              exit 0
+            fi
+
+            if (( attempt < max_attempts )); then
+              echo "CI run for ${tagged_commit} is not visible yet (attempt ${attempt}/${max_attempts}); retrying in 10 seconds."
+              sleep 10
+            fi
+          done
+
+          echo "::error::Release commit lacks a successful coverage-gated CI run after ${max_attempts} attempts."
+          echo "::error::Expected ci.yml to have a successful push or workflow_dispatch run for ${tagged_commit}."
+          exit 1
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
