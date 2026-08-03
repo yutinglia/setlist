@@ -1,0 +1,143 @@
+name: Publish maintainer release
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: maintainer-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.repository == 'yutinglia/setlist' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out tested main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Validate and publish maintainer release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          git fetch --force --tags origin main
+          local_sha="$(git rev-parse HEAD)"
+          remote_sha="$(gh api "repos/$REPOSITORY/commits/main" --jq .sha)"
+          if [[ "$local_sha" != "$TESTED_SHA" || "$remote_sha" != "$TESTED_SHA" ]]; then
+            echo "main advanced after this CI run; a newer run will retry."
+            exit 0
+          fi
+
+          version="$(tr -d '\r\n' < VERSION)"
+          if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error file=VERSION::VERSION must use MAJOR.MINOR.PATCH."
+            exit 1
+          fi
+
+          package_version="$(node -p "require('./frontend/package.json').version")"
+          lock_version="$(node -p "require('./frontend/package-lock.json').version")"
+          lock_root_version="$(node -p "require('./frontend/package-lock.json').packages[''].version")"
+          if [[ "$package_version" != "$version" ||
+                "$lock_version" != "$version" ||
+                "$lock_root_version" != "$version" ]]; then
+            echo "::error::Tracked application versions are not synchronized."
+            exit 1
+          fi
+
+          release_tag="v${version}"
+          if git show-ref --verify --quiet "refs/tags/$release_tag"; then
+            echo "$release_tag already exists."
+            exit 0
+          fi
+
+          version_commit="$(git log -1 --format=%H -- VERSION)"
+          release_prs="$(gh api "repos/$REPOSITORY/commits/$version_commit/pulls")"
+          matching_release_prs="$(
+            jq \
+              --arg sha "$version_commit" \
+              --arg head "release/$release_tag" \
+              --arg repository "$REPOSITORY" '
+              [
+                .[] |
+                select(
+                  .merged_at != null and
+                  .merge_commit_sha == $sha and
+                  .base.ref == "main" and
+                  .head.ref == $head and
+                  .head.repo.full_name == $repository and
+                  .user.login == "yutinglia"
+                )
+              ]
+            ' <<< "$release_prs"
+          )"
+          if [[ "$(jq 'length' <<< "$matching_release_prs")" != "1" ]]; then
+            echo "No unique trusted maintainer release PR matches $release_tag."
+            exit 0
+          fi
+
+          release_pr_number="$(jq -r '.[0].number' <<< "$matching_release_prs")"
+          release_pr_author="$(jq -r '.[0].user.login' <<< "$matching_release_prs")"
+
+          files_json="$(
+            gh api --paginate \
+              "repos/$REPOSITORY/pulls/$release_pr_number/files?per_page=100" \
+              --slurp
+          )"
+          if ! jq -e '
+            ([.[][] | .filename] | sort) ==
+            ([
+              "VERSION",
+              "frontend/package-lock.json",
+              "frontend/package.json"
+            ] | sort)
+          ' <<< "$files_json" > /dev/null; then
+            echo "::error::Release PR changed unexpected files."
+            exit 1
+          fi
+
+          reviews_json="$(
+            gh api --paginate \
+              "repos/$REPOSITORY/pulls/$release_pr_number/reviews?per_page=100" \
+              --slurp
+          )"
+          if ! jq -e --arg author "$release_pr_author" '
+            [.[][]] |
+            any(.[];
+              .state == "APPROVED" and
+              .user.login != $author and
+              .user.login != "github-actions[bot]"
+            )
+          ' <<< "$reviews_json" > /dev/null; then
+            echo "::error::Release PR lacks independent approval."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          node scripts/bump-version.mjs tag
+          git push origin "refs/tags/$release_tag"
+          gh workflow run release.yml --repo "$REPOSITORY" --ref "$release_tag"
+          echo "Dispatched $release_tag from maintainer release PR #$release_pr_number."
