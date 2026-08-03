@@ -1,0 +1,93 @@
+name: Prepare v0.5.5 release
+
+on:
+  push:
+    branches:
+      - release/v0.5.5
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: >-
+      github.repository == 'yutinglia/setlist' &&
+      github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Synchronize release version
+        shell: bash
+        env:
+          TARGET_VERSION: 0.5.5
+        run: |
+          set -euo pipefail
+
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs"
+
+          const target = process.env.TARGET_VERSION
+          const current = readFileSync("VERSION", "utf8").trim()
+          const packageJson = JSON.parse(
+            readFileSync("frontend/package.json", "utf8"),
+          )
+          const packageLock = JSON.parse(
+            readFileSync("frontend/package-lock.json", "utf8"),
+          )
+
+          if (current !== "0.5.4") {
+            throw new Error(`Expected VERSION 0.5.4, found ${current}`)
+          }
+          if (
+            packageJson.version !== current ||
+            packageLock.version !== current ||
+            packageLock.packages?.[""]?.version !== current
+          ) {
+            throw new Error("Tracked application versions are not synchronized")
+          }
+
+          packageJson.version = target
+          packageLock.version = target
+          packageLock.packages[""].version = target
+
+          writeFileSync("VERSION", `${target}\n`)
+          writeFileSync(
+            "frontend/package.json",
+            `${JSON.stringify(packageJson, null, 2)}\n`,
+          )
+          writeFileSync(
+            "frontend/package-lock.json",
+            `${JSON.stringify(packageLock, null, 2)}\n`,
+          )
+          NODE
+
+          git diff --check
+          mapfile -t changed_files < <(git diff --name-only | sort)
+          expected_files=(
+            VERSION
+            frontend/package-lock.json
+            frontend/package.json
+          )
+          mapfile -t expected_files < <(
+            printf '%s\n' "${expected_files[@]}" | sort
+          )
+
+          if [[ "$(printf '%s\n' "${changed_files[@]}")" != \
+                "$(printf '%s\n' "${expected_files[@]}")" ]]; then
+            echo "::error::Unexpected release file changes."
+            printf 'Changed: %s\n' "${changed_files[*]}"
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION frontend/package.json frontend/package-lock.json
+          git commit -m "chore(release): v0.5.5"
+          git push origin HEAD:release/v0.5.5
