@@ -59,8 +59,17 @@ class YouTubeVideoCommentScraper:
             ),
             "extractor_args": {
                 "youtube": {
-                    # max-comments, max-parents, max-replies, max-replies-per-thread
-                    "max_comments": [str(max_comments), str(max_comments), "0", "0"],
+                    # max-comments, max-parents, max-replies,
+                    # max-replies-per-thread, max-depth. yt-dlp numbers the
+                    # top-level comment collection as depth 1, so keep that
+                    # depth while disabling replies.
+                    "max_comments": [
+                        str(max_comments),
+                        str(max_comments),
+                        "0",
+                        "0",
+                        "1",
+                    ],
                     "comment_sort": ["top"],
                 }
             },

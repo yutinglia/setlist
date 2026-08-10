@@ -340,17 +340,19 @@ python run_updater_once.py
 python reanalyze_stored_data.py
 ```
 
-預設會在同一個 transaction 中執行 dry run，並且一律 rollback。檢查統計結果
-並完成資料庫備份後，才明確套用：
+預設會在同一個 transaction 中執行 dry run，並且一律 rollback。它會重新分類
+所有影片，但留言回放只會救回尚未成功的歌單，不會重寫既有成功歌單。檢查統計
+並完成資料庫備份後，可套用救回結果，並將其餘失敗項目交回正常的限速 queue：
 
 ```bash
-python reanalyze_stored_data.py --apply
+python reanalyze_stored_data.py --apply --requeue-unresolved
 ```
 
 此命令會沿用 updater 的跨程序鎖、重新分類所有既有影片、將新辨識出的
-karaoke archive 排入 queue，並且只在保存的原始留言產生「成功且有變更」的
-歌單時取代歌曲。負面結果不會清除舊成功資料，經 LLM 清理的歌單會跳過；尚未
-保存留言的影片仍交由正常、有限速的 yt-dlp queue 處理。
+karaoke archive 排入 queue，並在已保存的原始留言可由新規則解析時直接救回
+失敗歌單。`--requeue-unresolved` 只會重設仍未成功的 karaoke 項目；所有 YouTube
+請求仍由背景 updater 依原有上限與延遲執行。只有在另行檢查 dry-run 差異、確定
+要重寫既有成功歌單時才使用 `--include-successful`；LLM 清理過的歌單仍會受到保護。
 
 只有在確定要進行爬取時才啟用長時間背景服務：
 
@@ -441,6 +443,9 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&channel_id=UC_FIRST&channe
 | `DATA_UPDATE_INTERVAL` | `300` | Worker 心跳；只有到期工作才會呼叫 YouTube |
 | `UPDATE_STEADY_SCAN_INTERVAL` | `21600` | 一般頻道發現間隔 |
 | `UPDATE_MAX_COMMENT_SCRAPES` | `3` | 每個更新週期的留言爬取上限 |
+| `UPDATE_MAX_COMMENTS_PER_VIDEO` | `50` | 第一次分析抓取的熱門留言數 |
+| `UPDATE_MAX_RECHECK_COMMENTS_PER_VIDEO` | `200` | 後續嘗試使用的較深熱門留言視窗 |
+| `UPDATE_MAX_ANALYZE_ATTEMPTS` | `5` | 未解析 karaoke archive 的限速嘗試上限 |
 | `UPDATE_YOUTUBE_COOLDOWN_SECONDS` | `21600` | 疑似遭封鎖後的持久化冷卻時間 |
 | `YTDLP_OPERATION_TIMEOUT_SECONDS` | `300` | 單次 blocking yt-dlp 操作的硬性期限 |
 | `UPDATER_SHUTDOWN_GRACE_SECONDS` | `20` | 允許取消與 rollback 完成的時間 |

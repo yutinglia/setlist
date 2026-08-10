@@ -2,6 +2,7 @@
 
 from utils.video_type import (
     KARAOKE_MIN_DURATION_SECONDS,
+    SHORT_LIVE_KARAOKE_MIN_DURATION_SECONDS,
     VIDEO_TYPE_KARAOKE,
     VIDEO_TYPE_OTHER,
     VIDEO_TYPE_SONG,
@@ -36,6 +37,41 @@ class TestKaraokeTitles:
         outing = "tuki.ちゃんと星街すいせいでカラオケ行ってみた‼🌙✨（前編）"
         assert not is_karaoke_title(outing)
         assert classify_video_type(outing) == VIDEO_TYPE_OTHER
+        assert (
+            classify_video_type(
+                "カラオケ店でVtuber体験してきたよ！",
+                live_status="not_live",
+                duration=315,
+            )
+            == VIDEO_TYPE_OTHER
+        )
+
+    def test_non_singing_afterparty_and_mixed_gathering_are_not_karaoke(self):
+        afterparty = "【AFTER PARTY and MINECRAFT】Rap Karaoke Celebration!"
+        gathering = "ヒメヒナ帝国集会『最終回！歌も歌うよ！！！』#46"
+        assert (
+            classify_video_type(afterparty, live_status="was_live", duration=7200)
+            == VIDEO_TYPE_OTHER
+        )
+        assert (
+            classify_video_type(gathering, live_status="was_live", duration=7200)
+            == VIDEO_TYPE_OTHER
+        )
+
+    def test_singing_afterparty_remains_karaoke(self):
+        for title in (
+            "【歌枠】After Party Karaoke",
+            "≪AFTER PARTY KARAOKE≫ LET'S SING IN MY NEW CRIB!!",
+            "【Sing+Talk】After Party! Let's Sing and Talk!",
+        ):
+            assert (
+                classify_video_type(
+                    title,
+                    live_status="was_live",
+                    duration=3600,
+                )
+                == VIDEO_TYPE_KARAOKE
+            )
 
     def test_karaoke_stream_context(self):
         assert is_karaoke_title("今夜はカラオケ配信！")
@@ -133,6 +169,33 @@ class TestKaraokeSoftConfirms:
             == VIDEO_TYPE_KARAOKE
         )
 
+    def test_short_relay_slot_is_karaoke_once_archive_is_confirmed(self):
+        assert (
+            classify_video_type(
+                "【歌枠リレー】15 minute karaoke slot",
+                live_status="was_live",
+                duration=SHORT_LIVE_KARAOKE_MIN_DURATION_SECONDS,
+            )
+            == VIDEO_TYPE_KARAOKE
+        )
+
+    def test_mini_live_uses_short_performance_floor_without_live_metadata(self):
+        assert (
+            classify_video_type(
+                "プチロルライブ 2026",
+                duration=15 * 60,
+            )
+            == VIDEO_TYPE_KARAOKE
+        )
+        assert (
+            classify_video_type(
+                "【歌枠リレー】15 minute karaoke slot",
+                live_status="was_live",
+                duration=KARAOKE_MIN_DURATION_SECONDS - 1,
+            )
+            == VIDEO_TYPE_KARAOKE
+        )
+
     def test_strong_karaoke_keeps_not_live(self):
         # Videos-tab VODs / reuploads are often not_live; strong titles still count.
         assert (
@@ -154,9 +217,19 @@ class TestKaraokeSoftConfirms:
             classify_video_type(
                 "KARAOKE STREAM",
                 live_status="was_live",
-                duration=KARAOKE_MIN_DURATION_SECONDS - 1,
+                duration=SHORT_LIVE_KARAOKE_MIN_DURATION_SECONDS - 1,
             )
             == VIDEO_TYPE_OTHER
+        )
+
+    def test_long_vertical_karaoke_with_shorts_tag_remains_karaoke(self):
+        assert (
+            classify_video_type(
+                "【縦型歌枠】朝まで歌う #shorts",
+                live_status="was_live",
+                duration=3600,
+            )
+            == VIDEO_TYPE_KARAOKE
         )
 
     def test_cover_is_song_not_karaoke_when_short(self):
@@ -280,6 +353,72 @@ class TestClassifyVideoType:
             classify_video_type("【MV】新曲", duration=9 * 60 + 59) == VIDEO_TYPE_SONG
         )
         assert classify_video_type("【MV】新曲", duration=10 * 60) == VIDEO_TYPE_SONG
+
+    def test_short_non_live_performance_is_song(self):
+        for title in (
+            "歌枠切り抜き - Last song",
+            "アコギで弾いてみた",
+            "Birthday Live - Solo performance",
+            "Acoustic Live / One song",
+            "Artist - Song (Official Video)",
+            "Artist - Song (Official Visualizer)",
+            "Artist - Song (Official Live Video)",
+            "Artist - Song (Official Lyric Video)",
+            "Artist - Song (Studio Live Session)",
+            "Song - Artist (Live from 2026.8.10 Venue)",
+        ):
+            assert (
+                classify_video_type(
+                    title,
+                    live_status="not_live",
+                    duration=5 * 60,
+                )
+                == VIDEO_TYPE_SONG
+            )
+
+    def test_archived_performance_is_karaoke(self):
+        for title in (
+            "Birthday Live 2026",
+            "Birthday Live + 3D outfit & big announcements",
+            "C101 Special Live",
+            "YouTube Music Weekend",
+            "ワンマンライブ 2026",
+            "年の瀬ミニライブ 2026",
+            "プチロルライブ 2026",
+            "首次演唱會",
+        ):
+            assert (
+                classify_video_type(
+                    title,
+                    live_status="was_live",
+                    duration=3600,
+                )
+                == VIDEO_TYPE_KARAOKE
+            )
+
+    def test_performance_references_and_promos_are_other(self):
+        for title, duration in (
+            ("Birthday Live watchalong", 3600),
+            ("3D LIVE 振り返り雑談", 3600),
+            ("コンセプトライブ After Live", 3600),
+            ("Concert merch unboxing", 3600),
+            ("【萬聖節歌回預告】Coming soon", 149),
+            ("【告知PV】1st SOLO LIVE ANTHEM", 79),
+            ('"GriMoire" - 2nd Solo Concert Blu-Ray Release!', 61),
+            ("Karaoke Test", 45),
+            ("SOLO LIVE ダイジェスト映像 Blu-ray 受注受付中", 476),
+            ("1st 3D Live 完整感謝名單＆花絮影片", 505),
+            ("【ソロライブ直前】ドキュメンタリー", 294),
+            ("【3D LIVE】Death Game Ranking", 3600),
+        ):
+            assert (
+                classify_video_type(
+                    title,
+                    live_status="not_live",
+                    duration=duration,
+                )
+                == VIDEO_TYPE_OTHER
+            )
 
     def test_other(self):
         assert classify_video_type("Minecraft 実況") == VIDEO_TYPE_OTHER

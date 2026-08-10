@@ -74,6 +74,10 @@ def test_malformed_comment_items_are_dropped():
     assert _FakeYdl.options["socket_timeout"] == 30.0
     assert _FakeYdl.options["retries"] == 2
     assert _FakeYdl.options["extractor_retries"] == 2
+    assert _FakeYdl.options["extractor_args"]["youtube"] == {
+        "max_comments": ["10", "10", "0", "0", "1"],
+        "comment_sort": ["top"],
+    }
 
 
 def test_comment_scrape_exposes_existing_full_video_metadata():

@@ -174,14 +174,17 @@ class VideoAnalysisService:
         video: YouTubeVideo,
     ) -> Callable[[], VideoCommentScrapeResult]:
         scraper = self.scraper_factory.video_comments(video.url)
+        max_comments = (
+            self.policy.max_comments_per_video
+            if (video.analyze_attempts or 0) == 0
+            else self.policy.max_recheck_comments_per_video
+        )
         scrape = getattr(scraper, "scrape", None)
         if callable(scrape):
-            return partial(scrape, self.policy.max_comments_per_video)
+            return partial(scrape, max_comments)
 
         def scrape_compatibly() -> VideoCommentScrapeResult:
-            comments = scraper.get_video_top_comments(
-                self.policy.max_comments_per_video
-            )
+            comments = scraper.get_video_top_comments(max_comments)
             metadata = getattr(scraper, "video_metadata", {})
             return VideoCommentScrapeResult(
                 comments=comments,

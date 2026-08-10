@@ -243,6 +243,45 @@ class VideoRepository:
                 break
         return out
 
+    async def requeue_unresolved_karaoke(self, *, max_attempts: int) -> int:
+        """Make unresolved karaoke rows eligible for paced deep retries.
+
+        Existing source snapshots and successful setlists are untouched. The
+        prior attempt count is retained where possible so the next scrape uses
+        the deeper recheck window. The normal global queue remains responsible
+        for bounded YouTube work.
+        """
+        now = datetime.now(UTC).replace(tzinfo=None)
+        needs_reset = (
+            (func.coalesce(Videos.analyze_attempts, 0) > 0)
+            | Videos.analysis_status.is_distinct_from(ANALYSIS_PENDING)
+            | Videos.next_analysis_at.is_not(None)
+        )
+        stmt = (
+            update(Videos)
+            .where(
+                Videos.type == VIDEO_TYPE_KARAOKE,
+                Videos.has_song_list_comment.is_not(True),
+                needs_reset,
+            )
+            .values(
+                analyze_attempts=func.least(
+                    func.greatest(func.coalesce(Videos.analyze_attempts, 0), 1),
+                    max_attempts - 1,
+                ),
+                last_analyzed_at=None,
+                analysis_status=ANALYSIS_PENDING,
+                next_analysis_at=None,
+                updated_at=now,
+            )
+            .returning(Videos.id)
+        )
+        result = await self.session.execute(stmt)
+        video_ids = list(result.scalars().all())
+        if video_ids:
+            await self.session.flush()
+        return len(video_ids)
+
     async def reclassify_for_channel(self, channel_id: str) -> int:
         """Recompute ``type`` from list + full metadata for all channel videos.
 
@@ -301,10 +340,11 @@ class VideoRepository:
     ) -> list[str]:
         """Clear derived analysis state for videos that are not karaoke streams.
 
-        Also sets ``analyze_attempts`` to ``max_attempts`` so the background
-        updater never re-queues them. Raw comments and selected setlist inputs
-        are preserved for future reclassification/parser improvements. Does
-        not commit. Returns cleared video ids.
+        Rows with derived state are normalized and exhausted so the background
+        updater never re-queues them. Already-normalized skipped rows are left
+        untouched even when the configured attempt limit changes. Raw comments
+        and selected setlist inputs are preserved for future reclassification
+        or parser improvements. Does not commit. Returns cleared video ids.
         """
         return await self._clear_analysis_for_non_karaoke_rows(
             select(Videos).where(Videos.channel_id == channel_id),
@@ -359,10 +399,13 @@ class VideoRepository:
             needs_clear = any(
                 (
                     bool(row.has_song_list_comment),
-                    row.analyze_attempts != max_attempts,
+                    row.analyze_attempts in (None, 0),
                     bool(row.cleaning_attempts),
+                    row.cleaned_song_list_comment is not None,
                     row.last_analyzed_at is not None,
                     row.last_cleaned_at is not None,
+                    row.analysis_status != ANALYSIS_SKIPPED,
+                    row.next_analysis_at is not None,
                 )
             )
             if not needs_clear:

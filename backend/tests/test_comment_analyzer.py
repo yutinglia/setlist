@@ -95,6 +95,13 @@ class TestCommentAnalyzerDetection:
         )
         assert analyzer.has_song_list_comment() is False
 
+    def test_timestamped_localized_setlist_mention_does_not_lower_threshold(self):
+        analyzer = CommentAnalyzer(
+            [_comment("01:00 Song A\n05:00 Song B\n09:00 歌單不足")],
+            video_id=VIDEO_ID,
+        )
+        assert analyzer.has_song_list_comment() is False
+
     def test_invalid_timestamps_do_not_qualify(self):
         text = "1:99 nope\n2:77 nope\n3:60 nope"
         analyzer = CommentAnalyzer([_comment(text)], video_id=VIDEO_ID)
@@ -230,6 +237,11 @@ class TestCommentAnalyzerParsing:
         assert len(songs) == 1
         assert songs[0].title == "HINOTORI"
 
+    def test_circled_numbering_is_stripped(self):
+        songs = self._songs_from("① Song A 0:10")
+        assert len(songs) == 1
+        assert songs[0].title == "Song A"
+
     def test_numbered_title_dash_timestamp(self):
         songs = self._songs_from("1) 曲名 - 1:23")
         assert len(songs) == 1
@@ -247,6 +259,21 @@ class TestCommentAnalyzerParsing:
         assert len(songs) == 1
         assert songs[0].timestamp == "12:34"
         assert songs[0].title == "曲名"
+
+    def test_clock_time_in_title_is_not_a_second_timestamp(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set List",
+                "0:10 1:15 AM",
+                "3:20 Song B",
+                "7:30 Song C",
+            )
+        )
+        assert [(song.timestamp, song.title) for song in songs] == [
+            ("0:10", "1:15 AM"),
+            ("3:20", "Song B"),
+            ("7:30", "Song C"),
+        ]
 
     def test_compact_timestamp_first_setlist_on_one_line(self):
         songs = self._songs_from("0:10 Song A | 3:20 Song B | 7:30 Song C")
@@ -361,6 +388,115 @@ class TestCommentAnalyzerParsing:
             "Song C - Artist",
         ]
 
+    def test_unicode_and_localized_setlist_headers_are_recognized(self):
+        for header in ("ＳＥＴ ＬＩＳＴ", "歌單時間軸在此", "Set Rest"):
+            songs = self._songs_from(
+                _setlist(
+                    header,
+                    "0:10 Song A",
+                    "3:20 Song B",
+                    "7:30 Song C",
+                    "Talk Part",
+                    "1:00 greeting",
+                )
+            )
+            assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
+
+    def test_timestamped_mention_of_song_list_is_not_a_section_header(self):
+        songs = self._songs_from(
+            _setlist(
+                "0:10 Song A",
+                "3:20 Song B",
+                "7:30 Song C",
+                "9:00 歌單不足",
+            )
+        )
+        assert [song.title for song in songs][:3] == ["Song A", "Song B", "Song C"]
+
+    def test_setlist_preface_can_point_to_talk_notes_below(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set List",
+                "MC含め、雑談などは後ろに記載",
+                "0:10 Song A",
+                "3:20 Song B",
+                "7:30 Song C",
+                "More timestamps",
+                "1:00 greeting",
+            )
+        )
+        assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
+
+    def test_numbered_titles_can_put_timestamp_on_following_line(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set List",
+                "#1 Song A",
+                "0:10",
+                "2) Song B",
+                "3:20",
+                "EX. Song C",
+                "7:30",
+            )
+        )
+        assert [(song.timestamp, song.title) for song in songs] == [
+            ("0:10", "Song A"),
+            ("3:20", "Song B"),
+            ("7:30", "Song C"),
+        ]
+
+    def test_japanese_song_ordinals_are_not_mistaken_for_new_headers(self):
+        songs = self._songs_from(
+            _setlist(
+                "セトリ",
+                "1曲目 3:54 Song A",
+                "2曲目 10:17 Song B",
+                "【3曲目】15:21 Song C",
+            )
+        )
+        assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
+
+    def test_timestamp_range_uses_start_and_rejects_talk_rows(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set List",
+                "0:10 :_arrow: - :_arrow: 3:19 Song A",
+                "3:20 - 7:29 Song B",
+                "7:30 - 8:00 MC",
+            )
+        )
+        assert [(song.timestamp, song.title) for song in songs] == [
+            ("0:10", "Song A"),
+            ("3:20", "Song B"),
+        ]
+
+    def test_bracketed_talk_and_announcement_chapters_are_not_songs(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set List",
+                "0:10 【雑談】opening",
+                "3:20 Song A",
+                "7:30 4周年記念3Dライブの告知",
+                "9:00 Song B",
+            )
+        )
+        assert [song.title for song in songs] == ["Song A"]
+
+    def test_song_titles_starting_with_mc_or_talk_are_preserved(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set List",
+                "0:10 MC Hammer - U Can't Touch This",
+                "3:20 Talk That Talk",
+                "7:30 Song C",
+            )
+        )
+        assert [song.title for song in songs] == [
+            "MC Hammer - U Can't Touch This",
+            "Talk That Talk",
+            "Song C",
+        ]
+
     def test_explicit_setlist_keeps_encore_then_stops_at_announcement(self):
         text = _setlist(
             "♪ Set List ♪",
@@ -456,6 +592,65 @@ class TestCommentAnalyzerParsing:
         )
         assert [song.title for song in songs] == ["Song A", "Song B"]
 
+    def test_decorated_chapter_rows_are_skipped(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set list",
+                "0:10 🎤声入り",
+                "0:20 □start□",
+                "0:30 ★Chat",
+                "1:00 Song A",
+                "2:00 Talk 1",
+                "3:00 Song B",
+                "4:00 Outro+Superchat Talk",
+                "5:00 ★ED",
+            )
+        )
+        assert [song.title for song in songs] == ["Song A", "Song B"]
+
+    def test_decomposed_accent_is_not_treated_as_a_decorative_symbol(self):
+        songs = self._songs_from("0:10 Cafe\u0301")
+        assert songs[0].title == "Cafe\u0301"
+
+    def test_parenthesized_bilingual_start_row_is_skipped(self):
+        analyzer = CommentAnalyzer([], video_id=VIDEO_ID, minimum_timestamp_count=1)
+        songs = analyzer.extract_from_text("0:10 開始 (start)")
+        assert songs == []
+
+    def test_numbered_rows_take_precedence_in_unlabelled_mixed_chapters(self):
+        songs = self._songs_from(
+            _setlist(
+                "タイムスタンプ",
+                "0:10 開始",
+                "1:00 Chat",
+                "3:20 ① Song A",
+                "7:30 ② Song B",
+                "③ Song C 12:40",
+                "15:00 重大発表",
+            )
+        )
+        assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
+
+    def test_three_conventionally_numbered_rows_do_not_hide_other_songs(self):
+        songs = self._songs_from(
+            _setlist(
+                "0:10 1. Song A",
+                "3:20 2. Song B",
+                "7:30 3. Song C",
+                "12:40 Song D",
+                "16:00 Song E",
+                "20:00 Song F",
+            )
+        )
+        assert [song.title for song in songs] == [
+            "Song A",
+            "Song B",
+            "Song C",
+            "Song D",
+            "Song E",
+            "Song F",
+        ]
+
     def test_late_song_named_start_is_preserved(self):
         songs = self._songs_from("25:12 StaRt")
         assert songs[0].title == "StaRt"
@@ -491,9 +686,9 @@ class TestCommentAnalyzerParsing:
         )
         assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
 
-    def test_no_heading_keeps_existing_all_timestamp_behavior(self):
+    def test_no_heading_filters_exact_chat_chapter(self):
         songs = self._songs_from(_setlist("0:10 Song A", "0:20 chat", "0:30 Song B"))
-        assert [song.title for song in songs] == ["Song A", "chat", "Song B"]
+        assert [song.title for song in songs] == ["Song A", "Song B"]
 
     def test_long_title_is_bounded_to_database_limit(self):
         songs = self._songs_from("0:10 " + ("x" * 600))
