@@ -12,6 +12,11 @@ export const pageSearchSchema = z.object({
   page: z.coerce.number().int().min(0).max(MAX_PAGE).optional().catch(undefined),
 })
 
+/** Channel browse query (`?q=&page=`). */
+export const channelSearchSchema = pageSearchSchema.extend({
+  q: z.string().trim().max(200).optional().catch(undefined),
+})
+
 export const loginSearchSchema = z.object({
   returnTo: z
     .string()

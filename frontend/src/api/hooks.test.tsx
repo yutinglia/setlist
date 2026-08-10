@@ -19,6 +19,7 @@ import {
   useHealth,
   useLogin,
   useLogout,
+  useRecentUpdates,
   useSong,
   useSongSearch,
   useSongSuggestions,
@@ -51,6 +52,7 @@ function makeApi(overrides: Partial<ApiClient> = {}) {
     })),
     updaterStatus: vi.fn(async () => ({ phase: "idle" })),
     summaryReport: vi.fn(async () => ({ channels: 1 })),
+    recentUpdates: vi.fn(async () => ({ channels: [], songs: [] })),
     searchSongs: vi.fn(async () => ({
       items: [],
       total: 0,
@@ -146,6 +148,7 @@ describe("API context and query hooks", () => {
         health: useHealth(),
         updater: useUpdaterStatus(),
         summary: useSummaryReport(),
+        recent: useRecentUpdates(),
         search: useSongSearch("hello", 2, {
           channelIds: ["UC1"],
           type: "karaoke",
@@ -195,7 +198,7 @@ describe("API context and query hooks", () => {
       },
       expect.any(AbortSignal),
     )
-    expect(api.listChannels).toHaveBeenCalledWith(PAGE_SIZE, 40)
+    expect(api.listChannels).toHaveBeenCalledWith(PAGE_SIZE, 40, undefined)
     expect(api.listSetlistContributors).toHaveBeenCalledWith(PAGE_SIZE, 40)
     expect(api.listChannels).toHaveBeenCalledWith(100, 0)
     expect(api.listChannelVideos).toHaveBeenCalledWith(
@@ -350,6 +353,9 @@ describe("API context and query hooks", () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["channels"] })
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: ["channels", "options"],
+    })
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ["updates", "recent"],
     })
 
     await act(() => result.current.logout.mutateAsync())

@@ -66,6 +66,8 @@ class SongSearchResult(BaseModel):
     setlist_comment_author: str | None = None
     setlist_comment_author_id: str | None = None
     setlist_comment_id: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     @classmethod
     def from_parts(
@@ -95,7 +97,16 @@ class SongSearchResult(BaseModel):
             setlist_comment_author=setlist_comment_author,
             setlist_comment_author_id=setlist_comment_author_id,
             setlist_comment_id=setlist_comment_id,
+            created_at=song.created_at,
+            updated_at=song.updated_at,
         )
+
+
+class RecentUpdates(BaseModel):
+    """Fixed-size snapshot for the public recent-updates page."""
+
+    channels: list[ChannelRead]
+    songs: list[SongSearchResult]
 
 
 class SongSuggestion(BaseModel):

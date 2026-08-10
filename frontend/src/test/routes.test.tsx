@@ -71,6 +71,8 @@ const song: SongSearchResult = {
   setlist_comment_author: "@helper",
   setlist_comment_author_id: "UC-helper",
   setlist_comment_id: "comment-1",
+  created_at: "2026-07-20T00:00:00Z",
+  updated_at: "2026-07-21T00:00:00Z",
 }
 
 const contributor: SetlistContributor = {
@@ -172,6 +174,10 @@ function makeApi(
     })),
     updaterStatus: vi.fn(async () => updater),
     summaryReport: vi.fn(async () => summary),
+    recentUpdates: vi.fn(async () => ({
+      channels: [channel],
+      songs: [song],
+    })),
     searchSongs: vi.fn(async (_q, limit, offset) => ({
       items: [song],
       total: 1,
@@ -304,6 +310,7 @@ describe("application routes", () => {
     "/",
     "/search?q=Test%20Song",
     "/channels",
+    "/updates",
     "/channels/UC1",
     "/songs/1",
     "/videos/video1",
@@ -355,14 +362,71 @@ describe("application routes", () => {
     const api = makeApi(adminSession, { listChannels })
     const { router } = await renderRoute("/channels", api)
 
-    expect(listChannels).toHaveBeenCalledWith(20, 0)
+    expect(listChannels).toHaveBeenCalledWith(20, 0, undefined)
     await userEvent.click(
       screen.getByRole("button", { name: m.pagination_next() }),
     )
 
-    await waitFor(() => expect(listChannels).toHaveBeenCalledWith(20, 20))
+    await waitFor(() =>
+      expect(listChannels).toHaveBeenCalledWith(20, 20, undefined),
+    )
     expect(router.state.location.search).toMatchObject({ page: 1 })
     expect(screen.getByText("Test Singer 21")).toBeInTheDocument()
+  })
+
+  test("searches tracked channels by URL query and resets pagination", async () => {
+    const listChannels = vi.fn(
+      async (limit: number, offset: number, query?: string) => ({
+        items: query ? [{ ...channel, name: "Matched Singer" }] : [channel],
+        total: 1,
+        limit,
+        offset,
+      }),
+    )
+    const { router } = await renderRoute(
+      "/channels?page=3",
+      makeApi(adminSession, { listChannels }),
+    )
+
+    const input = screen.getByRole("searchbox", {
+      name: m.channels_search_label(),
+    })
+    await userEvent.type(input, "Singer %_")
+    await userEvent.click(
+      screen.getByRole("button", { name: m.channels_search_submit() }),
+    )
+
+    await waitFor(() =>
+      expect(listChannels).toHaveBeenCalledWith(20, 0, "Singer %_"),
+    )
+    expect(router.state.location.search).toMatchObject({ q: "Singer %_" })
+    expect(router.state.location.search).not.toHaveProperty("page")
+    expect(screen.getByText("Matched Singer")).toBeInTheDocument()
+
+    await userEvent.click(
+      screen.getByRole("button", { name: m.channels_search_clear() }),
+    )
+    await waitFor(() => expect(router.state.location.search).toEqual({}))
+  })
+
+  test("shows fixed recent channel and song sections", async () => {
+    const recentUpdates = vi.fn(async () => ({
+      channels: [channel],
+      songs: [song],
+    }))
+    await renderRoute(
+      "/updates",
+      makeApi(adminSession, { recentUpdates }),
+    )
+
+    expect(recentUpdates).toHaveBeenCalledOnce()
+    expect(
+      screen.getByRole("heading", { name: m.recent_channels_heading() }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: m.recent_songs_heading() }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByText(/2026/).length).toBeGreaterThan(0)
   })
 
   test("links guest channel requests to the dedicated issue form", async () => {

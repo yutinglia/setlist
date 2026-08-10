@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from models.search import (
     ChannelRead,
     Paginated,
+    RecentUpdates,
     SetlistContributor,
     SongSearchResult,
     VideoRead,
@@ -82,6 +83,9 @@ async def test_public_catalog_routes_return_paginated_projections():
                 offset=20,
             )
         ),
+        get_recent_updates=AsyncMock(
+            return_value=RecentUpdates(channels=[channel], songs=[detail])
+        ),
         get_video=AsyncMock(return_value=video),
         list_video_songs=AsyncMock(
             return_value=Paginated(
@@ -96,12 +100,20 @@ async def test_public_catalog_routes_return_paginated_projections():
     assert (await search.get_song(1, queries)).title == detail.title
     contributors = await search.list_setlist_contributors((20, 0), queries)
     assert contributors.items == [contributor]
-    channels = await search.list_channels((10, 20), queries)
+    channels = await search.list_channels("Test", (10, 20), queries)
+    recent = await search.get_recent_updates(queries)
     assert channels.items == [channel]
     assert (await search.get_video(video.id, queries)).id == video.id
     songs = await search.list_video_songs(video.id, (20, 40), queries)
     assert songs.items == [song]
-    queries.list_channels.assert_awaited_once_with(limit=10, offset=20)
+    assert recent.channels == [channel]
+    assert recent.songs == [detail]
+    queries.list_channels.assert_awaited_once_with(
+        limit=10,
+        offset=20,
+        query="Test",
+    )
+    queries.get_recent_updates.assert_awaited_once_with()
     queries.list_setlist_contributors.assert_awaited_once_with(limit=20, offset=0)
     queries.list_video_songs.assert_awaited_once_with(
         video.id,

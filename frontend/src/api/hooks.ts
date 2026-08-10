@@ -93,6 +93,15 @@ export function useSummaryReport() {
   })
 }
 
+export function useRecentUpdates() {
+  const api = useApi()
+  return useQuery({
+    queryKey: ["updates", "recent"],
+    queryFn: () => api.recentUpdates(),
+    staleTime: 60_000,
+  })
+}
+
 export type SongSearchFilters = {
   channelIds?: string[]
   type?: "karaoke" | "song"
@@ -225,12 +234,13 @@ export function useSetlistContributors(page: number) {
   })
 }
 
-export function useChannels(page: number) {
+export function useChannels(page: number, query = "") {
   const api = useApi()
   const offset = page * PAGE_SIZE
+  const normalizedQuery = query.trim()
   return useQuery({
-    queryKey: ["channels", page],
-    queryFn: () => api.listChannels(PAGE_SIZE, offset),
+    queryKey: ["channels", "browse", normalizedQuery, page],
+    queryFn: () => api.listChannels(PAGE_SIZE, offset, normalizedQuery || undefined),
     placeholderData: (prev) => prev,
   })
 }
@@ -253,6 +263,7 @@ export function useCreateChannel() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["channels"] })
       await queryClient.invalidateQueries({ queryKey: ["channels", "options"] })
+      await queryClient.invalidateQueries({ queryKey: ["updates", "recent"] })
     },
   })
 }
@@ -265,6 +276,7 @@ export function useCreateChannelsBulk() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["channels"] })
       await queryClient.invalidateQueries({ queryKey: ["channels", "options"] })
+      await queryClient.invalidateQueries({ queryKey: ["updates", "recent"] })
     },
   })
 }

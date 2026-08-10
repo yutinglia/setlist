@@ -26,7 +26,9 @@ metadata, reload a video's song list, and view live updater status.
 - YouTube deep links that open directly at each song's timestamp
 - Source-comment attribution on songs plus a public thank-you page that
   recognizes setlist contributors
-- Grid-based channel, video, song-detail, and database-summary browsing
+- Searchable channel browsing plus a recent-updates page for the latest 10
+  channel refreshes and 100 indexed songs
+- Grid-based video, song-detail, and database-summary browsing
 - English, Traditional Chinese, and Japanese UI
 - Pinned/uploader-aware setlist extraction with parsed-song scoring, mixed
   setlist/chapter boundaries, and several timestamp formats
@@ -407,7 +409,8 @@ List endpoints accept `limit` (1–100, default 20) and `offset`
 | `GET` | `/v1/songs/suggestions?q=` | Up to 10 distinct title suggestions; optional repeated channel/type/date filters |
 | `GET` | `/v1/songs/{id}` | Song detail and timestamped YouTube link |
 | `GET` | `/v1/contributors` | Paginated setlist-comment authors with song and video counts |
-| `GET` | `/v1/channels` | Tracked channels |
+| `GET` | `/v1/channels` | Tracked channels; optional literal `q` search by name or channel ID |
+| `GET` | `/v1/updates/recent` | Latest 10 updated channels and 100 indexed songs |
 | `GET` | `/v1/channels/{id}` | Public metadata for one tracked channel |
 | `GET` | `/v1/channels/{id}/videos` | Videos for one channel |
 | `GET` | `/v1/videos/{id}` | Video metadata |
@@ -431,6 +434,10 @@ The search UI waits 500 ms after at least two characters before requesting up
 to eight lightweight suggestions. Visitors can select up to 25 channels; the
 client sends each selection as a repeated `channel_id` parameter. Full search
 runs only after the visitor submits the form or selects a suggestion.
+
+Channel browse search also runs on form submission and stores its literal `q`
+value in the URL. `%` and `_` are treated as channel-name text, not SQL
+wildcards.
 
 ### Administrator-only endpoints
 

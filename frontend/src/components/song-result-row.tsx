@@ -4,6 +4,7 @@ import { Clock3, Info, Play } from "lucide-react"
 import type { SongSearchResult } from "@/api/types"
 import { SetlistAttribution } from "@/components/setlist-attribution"
 import { buttonVariants } from "@/components/ui/button"
+import { formatApiDateTime } from "@/lib/locale-format"
 import { cn } from "@/lib/utils"
 import { youtubeThumbnailUrl } from "@/lib/youtube"
 import { m } from "@/paraglide/messages"
@@ -11,9 +12,14 @@ import { m } from "@/paraglide/messages"
 type Props = {
   song: SongSearchResult
   index?: number
+  showUpdatedAt?: boolean
 }
 
-export function SongResultCard({ song, index = 0 }: Props) {
+export function SongResultCard({
+  song,
+  index = 0,
+  showUpdatedAt = false,
+}: Props) {
   const stagger = `stagger-${Math.min((index % 4) + 1, 4)}`
 
   return (
@@ -70,6 +76,17 @@ export function SongResultCard({ song, index = 0 }: Props) {
           <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
             {song.video_title}
           </p>
+        ) : null}
+        {showUpdatedAt && song.updated_at ? (
+          <time
+            dateTime={song.updated_at}
+            className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"
+          >
+            <Clock3 className="size-3.5 text-primary" aria-hidden />
+            {m.recent_updated_at({
+              when: formatApiDateTime(song.updated_at),
+            })}
+          </time>
         ) : null}
         <SetlistAttribution
           author={song.setlist_comment_author}

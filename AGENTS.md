@@ -33,7 +33,7 @@ setlist/
 │   │   └── yt_scraper/    # yt-dlp wrappers + ad-hoc test.py
 │   └── tests/             # pytest unit + PostgreSQL integration coverage
 ├── db/
-│   ├── migrations/        # Flyway SQL (V1–V12; schema source of truth)
+│   ├── migrations/        # Flyway SQL (V1–V13; schema source of truth)
 │   └── devscript/         # PowerShell one-shot Postgres + sqlacodegen
 ├── .devcontainer/         # Dev Container image/config (Python 3.14 + Node 26)
 ├── scripts/               # Repository checks, including credential scanning

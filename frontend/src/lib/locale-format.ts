@@ -18,3 +18,10 @@ export function formatInteger(value: number): string {
 export function formatDateTime(value: Date): string {
   return value.toLocaleString(currentIntlLocale())
 }
+
+/** Parse the API's UTC timestamps, including legacy values without a suffix. */
+export function formatApiDateTime(value: string): string {
+  const normalized = /(?:Z|[+-]\d{2}:\d{2})$/.test(value) ? value : `${value}Z`
+  const date = new Date(normalized)
+  return Number.isNaN(date.getTime()) ? value : formatDateTime(date)
+}

@@ -4,6 +4,7 @@ import type {
   ChannelVideoRefresh,
   HealthResponse,
   Paginated,
+  RecentUpdates,
   SetlistContributor,
   Song,
   SongSearchResult,
@@ -187,10 +188,18 @@ export function createApiClient(options: ApiClientOptions = {}) {
       `/v1/contributors?${pageQuery(limit, offset)}`,
     ),
 
-  listChannels: (limit: number, offset: number) =>
-    request<Paginated<YouTubeChannel>>(
-      `/v1/channels?${pageQuery(limit, offset)}`,
-    ),
+  listChannels: (limit: number, offset: number, q?: string) => {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset),
+    })
+    if (q?.trim()) params.set("q", q.trim())
+    return request<Paginated<YouTubeChannel>>(
+      `/v1/channels?${params.toString()}`,
+    )
+  },
+
+  recentUpdates: () => request<RecentUpdates>("/v1/updates/recent"),
 
   getChannel: (channelId: string) =>
     request<YouTubeChannel>(

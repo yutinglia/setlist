@@ -258,6 +258,30 @@ class SongRepository:
             total,
         )
 
+    async def get_recent(self, *, limit: int) -> list[SongSearchResult]:
+        """Return the most recently persisted songs with catalog context."""
+        stmt = (
+            select(Songs, Videos, Channels)
+            .join(Videos, Songs.video_id == Videos.id)
+            .join(Channels, Videos.channel_id == Channels.id)
+            .order_by(Songs.updated_at.desc().nulls_last(), Songs.id.desc())
+            .limit(limit)
+        )
+        rows = (await self.session.execute(stmt)).all()
+        return [
+            SongSearchResult.from_parts(
+                song=Song.model_validate(song),
+                video_title=video.title,
+                channel_id=channel.id,
+                channel_name=channel.name,
+                deep_link_url=youtube_url_with_timestamp(video.url, song.timestamp),
+                setlist_comment_author=video.setlist_comment_author,
+                setlist_comment_author_id=video.setlist_comment_author_id,
+                setlist_comment_id=video.setlist_comment_id,
+            )
+            for song, video, channel in rows
+        ]
+
     async def get_detail(self, song_id: int) -> SongSearchResult | None:
         """Song detail with video deep link and channel info."""
         stmt = (

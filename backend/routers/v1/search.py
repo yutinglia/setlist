@@ -23,6 +23,7 @@ from models.channel import (
 from models.search import (
     ChannelRead,
     Paginated,
+    RecentUpdates,
     SetlistContributor,
     SongSearchResult,
     SongSuggestion,
@@ -200,12 +201,26 @@ async def get_song(
 
 @router.get("/channels", response_model=Paginated[ChannelRead])
 async def list_channels(
+    q: str | None = Query(
+        None,
+        min_length=1,
+        max_length=200,
+        description="Literal substring match on channel name or id",
+    ),
     pagination: tuple[int, int] = Depends(pagination_params),
     queries: CatalogQueryService = Depends(get_catalog_query_service),
 ):
-    """List tracked channels."""
+    """List tracked channels, optionally filtered by name or channel id."""
     limit, offset = pagination
-    return await queries.list_channels(limit=limit, offset=offset)
+    return await queries.list_channels(limit=limit, offset=offset, query=q)
+
+
+@router.get("/updates/recent", response_model=RecentUpdates)
+async def get_recent_updates(
+    queries: CatalogQueryService = Depends(get_catalog_query_service),
+):
+    """Return the latest 10 channel updates and 100 indexed song updates."""
+    return await queries.get_recent_updates()
 
 
 @router.get("/channels/{channel_id}", response_model=ChannelRead)
