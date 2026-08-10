@@ -369,18 +369,23 @@ metadata and saved top comments without contacting YouTube:
 python reanalyze_stored_data.py
 ```
 
-The default is an atomic dry run and always rolls back. After reviewing the
-counts and taking a database backup, apply the same pass explicitly:
+The default is an atomic dry run and always rolls back. It reclassifies all
+stored videos but only recovers setlists for unresolved videos; existing
+successful setlists are not rewritten. After reviewing the counts and taking a
+database backup, apply that recovery pass and reset remaining failures for the
+normal paced queue:
 
 ```bash
-python reanalyze_stored_data.py --apply
+python reanalyze_stored_data.py --apply --requeue-unresolved
 ```
 
 The command shares the updater's cross-process lock, reclassifies every stored
-video, queues newly recognized karaoke archives, and replaces songs only when a
-saved raw comment produces a changed successful setlist. It preserves negative
-prior results and skips LLM-cleaned setlists; videos without saved comments
-remain for the normal paced yt-dlp queue.
+video, queues newly recognized karaoke archives, and immediately recovers a
+failed setlist when its saved raw comment is now parseable. The optional requeue
+resets only unresolved karaoke rows; the background updater still performs all
+YouTube work under its normal caps and delays. Use `--include-successful` only
+after separately reviewing its dry-run deltas when an intentional rewrite of
+existing successful setlists is required. LLM-cleaned setlists remain protected.
 
 Enable the long-running worker only when you intend to scrape:
 
@@ -474,6 +479,9 @@ Important settings:
 | `DATA_UPDATE_INTERVAL` | `300` | Worker heartbeat; only due work calls YouTube |
 | `UPDATE_STEADY_SCAN_INTERVAL` | `21600` | Normal per-channel discovery interval |
 | `UPDATE_MAX_COMMENT_SCRAPES` | `3` | Comment scrapes per update cycle |
+| `UPDATE_MAX_COMMENTS_PER_VIDEO` | `50` | Top comments fetched on the first analysis |
+| `UPDATE_MAX_RECHECK_COMMENTS_PER_VIDEO` | `200` | Deeper top-comment window on later attempts |
+| `UPDATE_MAX_ANALYZE_ATTEMPTS` | `5` | Maximum paced attempts for an unresolved karaoke archive |
 | `UPDATE_YOUTUBE_COOLDOWN_SECONDS` | `21600` | Persisted cooldown after a likely block |
 | `YTDLP_OPERATION_TIMEOUT_SECONDS` | `300` | Hard deadline for one blocking yt-dlp operation |
 | `UPDATER_SHUTDOWN_GRACE_SECONDS` | `20` | Time allowed for cancellation and rollback |

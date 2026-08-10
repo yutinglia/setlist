@@ -27,9 +27,15 @@ _KARAOKE_EXCLUDE_PHRASES: tuple[str, ...] = (
     "へ行って",
     "に行きたい",
     "カラオケデート",
+    "体験してきた",
     "went to karaoke",
     "karaoke trip",
     "karaoke date",
+)
+_KARAOKE_CONTEXT_EXCLUDE_RE = re.compile(
+    r"(?=.*(?:after\s*party|afterparty))"
+    r"(?=.*(?:minecraft|watch(?:[- ]?along|party)|雑談))",
+    flags=re.IGNORECASE,
 )
 
 # Weaker performance hints — accepted only for archived streams, not ordinary
@@ -57,10 +63,15 @@ _SONG_KEYWORDS: tuple[str, ...] = (
     "cover",
     "covered by",
     "music video",
+    "official video",
+    "official live video",
+    "official visualizer",
+    "lyric video",
     "official audio",
     "original song",
     "歌ってみた",
     "歌って踊ってみた",
+    "弾いてみた",
     "オリジナル曲",
     "official music video",
     "カバー",
@@ -72,6 +83,18 @@ _SONG_KEYWORDS: tuple[str, ...] = (
     "テーマソング",
     "主題曲",
     "主题曲",
+    "歌回剪輯",
+    "歌回剪辑",
+    "歌回純享",
+    "歌回纯享",
+    "歌唱剪輯",
+    "歌唱剪辑",
+    "歌枠切り抜き",
+    "karaoke clip",
+    "singing clip",
+    "performance clip",
+    "live cut",
+    "live session",
 )
 
 # English original-song uploads often use a bare bracketed/parenthesized
@@ -84,6 +107,10 @@ _SONG_PATTERNS: tuple[re.Pattern[str], ...] = (
         flags=re.IGNORECASE,
     ),
     re.compile(r"[/／]\s*original\s*(?:】|\])", flags=re.IGNORECASE),
+    re.compile(
+        r".+\s[-–—]\s.+\(\s*live(?:\s+from\b[^)]*)?\s*\)\s*$",
+        flags=re.IGNORECASE,
+    ),
 )
 
 # 3D concerts/lives are multi-song vocal performances and use the same setlist
@@ -95,16 +122,54 @@ _BRACKETED_PERFORMANCE_RE = re.compile(
     r"[^】\]\r\n]{0,80}(?:】|\])",
     flags=re.IGNORECASE,
 )
+_PERFORMANCE_RE = re.compile(
+    r"(?:"
+    r"\b(?:birthday|anniversary|acoustic|music|solo|one[- ]man|"
+    r"special|spacial)\s+live\b|"
+    r"\blive\s+(?:music\s+stream|tour)\b|"
+    r"\b(?:concert|youtube\s+music\s+weekend)\b|"
+    r"生(?:演奏|歌).*ライブ|音楽ライブ|"
+    r"(?:誕生日|バースデー|周年|ワンマン|ソロ|ミニ|コンセプト|"
+    r"スペシャル|プチロル?)ライブ|"
+    r"ライブツアー|コンサート|"
+    r"演唱[會会]|音[樂乐][會会]"
+    r")",
+    flags=re.IGNORECASE,
+)
+_MINI_LIVE_RE = re.compile(
+    r"(?:\bmini\s*live\b|ミニライブ|プチロル?ライブ)",
+    flags=re.IGNORECASE,
+)
 _PERFORMANCE_EXCLUDE_RE = re.compile(
     r"(?:"
-    r"\bwatch(?:along|party)\b|\bwatch\b.*\b(?:together|same\s+time)\b|"
-    r"振り返り|recap|after\s*talk|アフタートーク|"
-    r"直前(?:トーク|雑談)"
+    r"\b(?:re)?watch(?:ing|[- ]?a[- ]?long|along|party)?\b|"
+    r"同時視聴|"
+    r"振り返り|recap|after\s*(?:talk|live)|アフター(?:トーク|ライブ)|"
+    r"\bfree\s*talk\b|\bfreetalk\b|\bchat(?:ting)?\b|雑談|"
+    r"\b(?:teaser|trailer|preview|digest|highlights?|coming\s+soon|"
+    r"pre\W*concert|before\s+(?:the\s+)?concert|"
+    r"unbox(?:ing)?|merch|game|gaming|ring\s*fit|documentary|"
+    r"behind\s+the\s+scenes|vcr)\b|"
+    r"\b(?:concert|live)\s+announcements?\b|"
+    r"\bannouncements?\s+(?:for|about)\b|"
+    r"直前(?:トーク|雑談)?|ダイジェスト|ドキュメンタリー|"
+    r"花絮|感謝名單|感谢名单"
+    r")",
+    flags=re.IGNORECASE,
+)
+_PROMOTIONAL_VIDEO_RE = re.compile(
+    r"(?:"
+    r"\bcoming\s+soon\b|"
+    r"\bblu[- ]?ray\s+release\b|"
+    r"\b(?:karaoke|singing|microphone|mic)\s+tests?\b|"
+    r"(?:予告|預告|预告|告知)\s*(?:pv|映像|動画)|"
+    r"(?:歌回|karaoke|concert|live).{0,24}(?:予告|預告|预告)|"
+    r"(?:予告|預告|预告).{0,24}(?:歌回|karaoke|concert|live)"
     r")",
     flags=re.IGNORECASE,
 )
 _NON_SINGING_TOPIC_RE = re.compile(
-    r"(?:セトリ|set\s*list)\s*(?:を)?\s*(?:決め|考え|組)",
+    r"(?:(?:セトリ|set\s*list)\s*(?:を)?\s*(?:決め|考え|組)|集会)",
     flags=re.IGNORECASE,
 )
 _SINGER_SKILL_HASHTAG_RE = re.compile(r"#?歌うま")
@@ -137,8 +202,11 @@ VIDEO_TYPE_OTHER = "other"
 # be incomplete, so discovery waits for ``was_live``.
 ACTIVE_LIVE_STATUSES = frozenset({"is_live", "is_upcoming", "post_live"})
 
-# Karaoke streams are usually long; short clips with karaoke words are not archives.
+# General archives normally meet this floor. Confirmed ``was_live`` records
+# and explicit mini lives may be shorter because those formats commonly run
+# 5-20 minutes.
 KARAOKE_MIN_DURATION_SECONDS = 20 * 60
+SHORT_LIVE_KARAOKE_MIN_DURATION_SECONDS = 5 * 60
 
 # Standalone song / MV / cover uploads are usually short.
 SONG_MAX_DURATION_SECONDS = 10 * 60
@@ -160,11 +228,14 @@ def _title_has_any(title: str, keywords: tuple[str, ...]) -> bool:
 
 
 def is_karaoke_outing_title(title: str) -> bool:
-    """True for 'went to karaoke' style titles (not stream archives)."""
+    """True for karaoke mentions whose actual topic is not a singing stream."""
     if not title:
         return False
     folded = title.casefold()
-    return any(phrase.casefold() in folded for phrase in _KARAOKE_EXCLUDE_PHRASES)
+    return (
+        any(phrase.casefold() in folded for phrase in _KARAOKE_EXCLUDE_PHRASES)
+        or _KARAOKE_CONTEXT_EXCLUDE_RE.search(title) is not None
+    )
 
 
 def is_strong_karaoke_title(title: str) -> bool:
@@ -179,7 +250,15 @@ def is_strong_karaoke_title(title: str) -> bool:
         _BRACKETED_PERFORMANCE_RE.search(title) is not None
         and _PERFORMANCE_EXCLUDE_RE.search(title) is None
     )
-    return _title_has_any(title, _STRONG_KARAOKE_KEYWORDS) or bracketed_performance
+    performance = (
+        _PERFORMANCE_RE.search(title) is not None
+        and _PERFORMANCE_EXCLUDE_RE.search(title) is None
+    )
+    return (
+        _title_has_any(title, _STRONG_KARAOKE_KEYWORDS)
+        or bracketed_performance
+        or performance
+    )
 
 
 def is_weak_karaoke_title(title: str) -> bool:
@@ -211,7 +290,10 @@ def is_non_singing_branded_title(title: str) -> bool:
     has_independent_singing_marker = (
         _title_has_any(content_title, _STRONG_KARAOKE_KEYWORDS)
         or _title_has_any(content_title, _WEAK_KARAOKE_KEYWORDS)
-        or _BRACKETED_PERFORMANCE_RE.search(content_title) is not None
+        or (
+            _BRACKETED_PERFORMANCE_RE.search(content_title) is not None
+            and _PERFORMANCE_EXCLUDE_RE.search(content_title) is None
+        )
     )
     return (
         not has_independent_singing_marker
@@ -230,7 +312,12 @@ def _karaoke_live_status_ok(live_status: str | None) -> bool:
     return live_status == "was_live"
 
 
-def _karaoke_duration_ok(duration: float | int | None) -> bool:
+def _karaoke_duration_ok(
+    duration: float | int | None,
+    *,
+    live_status: str | None,
+    title: str,
+) -> bool:
     """Soft confirm: unknown OK; known short clips rejected."""
     if duration is None:
         return True
@@ -238,7 +325,13 @@ def _karaoke_duration_ok(duration: float | int | None) -> bool:
         seconds = float(duration)
     except (TypeError, ValueError):
         return True
-    return seconds >= KARAOKE_MIN_DURATION_SECONDS
+    minimum = (
+        SHORT_LIVE_KARAOKE_MIN_DURATION_SECONDS
+        if (live_status or "").casefold() == "was_live"
+        or _MINI_LIVE_RE.search(title) is not None
+        else KARAOKE_MIN_DURATION_SECONDS
+    )
+    return seconds >= minimum
 
 
 def _song_duration_ok(duration: float | int | None) -> bool:
@@ -284,7 +377,7 @@ def is_karaoke_stream(
     """
     if (live_status or "").casefold() in ACTIVE_LIVE_STATUSES:
         return False
-    if not _karaoke_duration_ok(duration):
+    if not _karaoke_duration_ok(duration, live_status=live_status, title=title):
         return False
     if is_non_singing_branded_title(title):
         return False
@@ -321,13 +414,25 @@ def classify_video_type(
 ) -> str:
     """Return ``karaoke``, ``song``, or ``other``.
 
-    Karaoke: strong stream/performance keywords + soft ``>= 20 min`` when
-    duration is known. Weak singing phrases also need soft ``was_live``.
+    Karaoke: strong stream/performance keywords + a soft duration floor when
+    duration is known (5 minutes for confirmed archives and explicit mini
+    lives, otherwise 20). Weak singing phrases also need soft ``was_live``.
     Song: MV/cover/official/… keywords + soft ``< 10 min``.
     Missing duration does not block either class (flat-extract gaps).
     """
     if is_karaoke_stream(title, live_status=live_status, duration=duration):
         return VIDEO_TYPE_KARAOKE
     if is_song_video(title, duration=duration):
+        return VIDEO_TYPE_SONG
+    # A short non-live upload with an otherwise strong singing marker is a
+    # standalone performance/clip, not a multi-song archive to scrape.
+    if (
+        (live_status or "").casefold() != "was_live"
+        and is_strong_karaoke_title(title)
+        and _PERFORMANCE_EXCLUDE_RE.search(title) is None
+        and _PROMOTIONAL_VIDEO_RE.search(title) is None
+        and _song_duration_ok(duration)
+        and duration is not None
+    ):
         return VIDEO_TYPE_SONG
     return VIDEO_TYPE_OTHER

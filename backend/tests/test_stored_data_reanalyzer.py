@@ -94,10 +94,12 @@ async def test_dry_run_reclassifies_replays_and_rolls_back():
     assert result.reclassified_videos == 3
     assert result.cleared_non_karaoke_videos == 1
     assert result.stored_comment_videos == 3
-    assert result.detected_setlists == 2
+    assert result.detected_setlists == 1
     assert result.recovered_setlists == 1
     assert result.changed_setlists == 1
-    assert result.skipped_cleaned_setlists == 1
+    assert result.skipped_existing_setlists == 2
+    assert result.skipped_cleaned_setlists == 0
+    assert result.requeued_unresolved_videos == 0
     assert result.songs_before == 2
     assert result.songs_after == 4
     session.rollback.assert_awaited_once()
@@ -128,3 +130,58 @@ async def test_apply_commits_complete_empty_pass():
     assert result.applied is True
     session.commit.assert_awaited_once()
     session.rollback.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_successful_setlists_are_rewritten_only_when_explicitly_enabled():
+    successful = _video(
+        "successful",
+        [{"text": "0:10 New A\n0:20 New B\n0:30 New C"}],
+        has_setlist=True,
+    )
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    video_repo = SimpleNamespace(
+        get_with_stored_comments=AsyncMock(return_value=[successful]),
+        update_analysis=AsyncMock(),
+    )
+    song_repo = SimpleNamespace(
+        get_by_video_id=AsyncMock(
+            return_value=[Song(title="Old", timestamp="0:10", video_id="successful")]
+        ),
+        replace_for_video=AsyncMock(return_value=[]),
+    )
+    service = StoredDataReanalyzer(
+        session,
+        SimpleNamespace(get_all=AsyncMock(return_value=[])),
+        video_repo,
+        song_repo,
+        max_analysis_attempts=5,
+    )
+
+    result = await service.run(apply=False, include_successful=True)
+
+    assert result.changed_setlists == 1
+    assert result.skipped_existing_setlists == 0
+    assert result.recovered_setlists == 0
+    video_repo.update_analysis.assert_awaited_once_with(successful)
+
+
+@pytest.mark.asyncio
+async def test_unresolved_requeue_is_explicit_and_reported():
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    video_repo = SimpleNamespace(
+        get_with_stored_comments=AsyncMock(return_value=[]),
+        requeue_unresolved_karaoke=AsyncMock(return_value=12),
+    )
+    service = StoredDataReanalyzer(
+        session,
+        SimpleNamespace(get_all=AsyncMock(return_value=[])),
+        video_repo,
+        SimpleNamespace(),
+        max_analysis_attempts=5,
+    )
+
+    result = await service.run(apply=False, requeue_unresolved=True)
+
+    assert result.requeued_unresolved_videos == 12
+    video_repo.requeue_unresolved_karaoke.assert_awaited_once_with(max_attempts=5)

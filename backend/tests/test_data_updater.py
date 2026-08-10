@@ -24,6 +24,7 @@ from services.updater_runtime_state import (
 from services.updater_status import UpdaterPhase, updater_status
 from services.yt_scraper.channel_video_scraper import ChannelVideoPageResult
 from services.yt_scraper.errors import YouTubeAccessBlocked
+from services.yt_scraper.video_comment_scraper import VideoCommentScrapeResult
 
 
 def _channel(channel_id: str) -> YouTubeChannel:
@@ -374,6 +375,45 @@ async def test_successful_no_setlist_is_delayed_instead_of_immediate_retry():
     assert video.next_analysis_at is not None
     assert video.next_analysis_at >= before + timedelta(seconds=3599)
     assert video.analyze_attempts == 1
+
+
+@pytest.mark.parametrize(("prior_attempts", "expected_limit"), [(0, 7), (1, 19)])
+@pytest.mark.asyncio
+async def test_comment_rechecks_use_deeper_top_comment_window(
+    prior_attempts,
+    expected_limit,
+):
+    seen_limits: list[int] = []
+
+    class CommentScraper:
+        def scrape(self, max_comments: int) -> VideoCommentScrapeResult:
+            seen_limits.append(max_comments)
+            return VideoCommentScrapeResult(
+                comments=[],
+                comments_available=True,
+                metadata_raw_data={},
+                scraped_at=datetime.now(UTC).replace(tzinfo=None),
+            )
+
+    policy = replace(
+        SCRAPE_POLICY,
+        max_comments_per_video=7,
+        max_recheck_comments_per_video=19,
+    )
+    updater = DataUpdater(
+        SimpleNamespace(),
+        SimpleNamespace(),
+        SimpleNamespace(update_analysis=AsyncMock()),
+        SimpleNamespace(replace_for_video=AsyncMock(return_value=[])),
+        policy=policy,
+        **_comment_scraper_dependencies(CommentScraper()),
+    )
+    video = _video()
+    video.analyze_attempts = prior_attempts
+
+    await updater._analyze_video(video)
+
+    assert seen_limits == [expected_limit]
 
 
 @pytest.mark.asyncio

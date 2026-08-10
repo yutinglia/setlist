@@ -24,6 +24,7 @@ class ScrapePolicy:
     backfill_channels_per_cycle: int
     comment_scrapes_per_cycle: int
     max_comments_per_video: int
+    max_recheck_comments_per_video: int
     max_analysis_attempts: int
     analysis_recheck_seconds: int
     analysis_retry_base_seconds: int

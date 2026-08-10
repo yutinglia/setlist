@@ -290,6 +290,89 @@ async def test_non_karaoke_cleanup_preserves_expensive_source_observations(
     assert preserved.cleaned_song_list_comment is None
     assert preserved.analyze_attempts == 3
 
+    # Raising the configured max must not rewrite every already-safe skipped
+    # row or delete its songs again during a later maintenance pass.
+    assert (
+        await video_repo.clear_analysis_for_non_karaoke(
+            channel_id,
+            max_attempts=5,
+        )
+        == []
+    )
+    preserved = await video_repo.get_by_id(video_id)
+    assert preserved is not None
+    assert preserved.analyze_attempts == 3
+
+    await session.rollback()
+
+
+@pytest.mark.asyncio
+async def test_requeue_unresolved_karaoke_preserves_success_and_pending_rows(
+    session: AsyncSession,
+):
+    suffix = uuid.uuid4().hex[:8]
+    channel_id = f"ch_requeue_{suffix}"
+    repo = VideoRepository(session)
+    await ChannelRepository(session).create(
+        YouTubeChannel(
+            id=channel_id,
+            name="Requeue Test",
+            url=f"https://www.youtube.com/channel/{channel_id}",
+        )
+    )
+
+    async def create(
+        video_id: str,
+        *,
+        attempts: int,
+        status: str,
+        success: bool,
+    ) -> None:
+        video = await repo.upsert(
+            YouTubeVideo(
+                id=video_id,
+                title="Karaoke Test",
+                url=f"https://www.youtube.com/watch?v={video_id}",
+                channel_id=channel_id,
+                type="karaoke",
+                raw_data={"duration": 3600, "live_status": "was_live"},
+            )
+        )
+        video.analyze_attempts = attempts
+        video.analysis_status = status
+        video.has_song_list_comment = success
+        video.last_analyzed_at = datetime.now(UTC).replace(tzinfo=None)
+        await repo.update_analysis(video)
+
+    exhausted_id = f"vid_exhausted_{suffix}"
+    retry_id = f"vid_retry_{suffix}"
+    successful_id = f"vid_successful_{suffix}"
+    pending_id = f"vid_pending_{suffix}"
+    await create(exhausted_id, attempts=5, status="exhausted", success=False)
+    await create(retry_id, attempts=2, status="retry", success=False)
+    await create(successful_id, attempts=5, status="done", success=True)
+    await create(pending_id, attempts=0, status="pending", success=False)
+
+    assert await repo.requeue_unresolved_karaoke(max_attempts=5) == 2
+
+    exhausted = await repo.get_by_id(exhausted_id)
+    retry = await repo.get_by_id(retry_id)
+    successful = await repo.get_by_id(successful_id)
+    pending = await repo.get_by_id(pending_id)
+    assert exhausted is not None
+    assert exhausted.analyze_attempts == 4
+    assert exhausted.analysis_status == "pending"
+    assert exhausted.last_analyzed_at is None
+    assert retry is not None
+    assert retry.analyze_attempts == 2
+    assert retry.analysis_status == "pending"
+    assert successful is not None
+    assert successful.analyze_attempts == 5
+    assert successful.analysis_status == "done"
+    assert pending is not None
+    assert pending.analyze_attempts == 0
+    assert pending.analysis_status == "pending"
+
     await session.rollback()
 
 

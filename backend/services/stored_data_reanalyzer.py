@@ -35,7 +35,9 @@ class StoredDataReanalysisResult:
     detected_setlists: int
     recovered_setlists: int
     changed_setlists: int
+    skipped_existing_setlists: int
     skipped_cleaned_setlists: int
+    requeued_unresolved_videos: int
     songs_before: int
     songs_after: int
 
@@ -48,7 +50,9 @@ class _ReanalysisStats:
     detected_setlists: int = 0
     recovered_setlists: int = 0
     changed_setlists: int = 0
+    skipped_existing_setlists: int = 0
     skipped_cleaned_setlists: int = 0
+    requeued_unresolved_videos: int = 0
     songs_before: int = 0
     songs_after: int = 0
 
@@ -61,7 +65,9 @@ class _ReanalysisStats:
             detected_setlists=self.detected_setlists,
             recovered_setlists=self.recovered_setlists,
             changed_setlists=self.changed_setlists,
+            skipped_existing_setlists=self.skipped_existing_setlists,
             skipped_cleaned_setlists=self.skipped_cleaned_setlists,
+            requeued_unresolved_videos=self.requeued_unresolved_videos,
             songs_before=self.songs_before,
             songs_after=self.songs_after,
         )
@@ -95,14 +101,24 @@ class StoredDataReanalyzer:
         self.operations = operations or default_youtube_operation_coordinator
         self.cache = cache
 
-    async def run(self, *, apply: bool = False) -> StoredDataReanalysisResult:
+    async def run(
+        self,
+        *,
+        apply: bool = False,
+        include_successful: bool = False,
+        requeue_unresolved: bool = False,
+    ) -> StoredDataReanalysisResult:
         async with self.operations.guard(self.session) as acquired:
             if not acquired:
                 raise YouTubeUpdaterBusyError(
                     "Another updater process is currently using scraper data"
                 )
             try:
-                result = await self._run_without_lock(apply=apply)
+                result = await self._run_without_lock(
+                    apply=apply,
+                    include_successful=include_successful,
+                    requeue_unresolved=requeue_unresolved,
+                )
                 if apply:
                     await self.session.commit()
                     if self.cache is not None:
@@ -118,10 +134,21 @@ class StoredDataReanalyzer:
         self,
         *,
         apply: bool,
+        include_successful: bool,
+        requeue_unresolved: bool,
     ) -> StoredDataReanalysisResult:
         stats = _ReanalysisStats()
         await self._reclassify_stored_videos(stats)
-        await self._replay_stored_comments(stats)
+        await self._replay_stored_comments(
+            stats,
+            include_successful=include_successful,
+        )
+        if requeue_unresolved:
+            stats.requeued_unresolved_videos = (
+                await self.video_repo.requeue_unresolved_karaoke(
+                    max_attempts=self.max_analysis_attempts
+                )
+            )
         return stats.result(applied=apply)
 
     async def _reclassify_stored_videos(
@@ -147,10 +174,17 @@ class StoredDataReanalyzer:
     async def _replay_stored_comments(
         self,
         stats: _ReanalysisStats,
+        *,
+        include_successful: bool,
     ) -> None:
         analyzed_at = datetime.now(UTC).replace(tzinfo=None)
         for video in await self.video_repo.get_with_stored_comments():
-            await self._replay_video(video, stats, analyzed_at=analyzed_at)
+            await self._replay_video(
+                video,
+                stats,
+                analyzed_at=analyzed_at,
+                include_successful=include_successful,
+            )
 
     async def _replay_video(
         self,
@@ -158,6 +192,7 @@ class StoredDataReanalyzer:
         stats: _ReanalysisStats,
         *,
         analyzed_at: datetime,
+        include_successful: bool,
     ) -> None:
         if video.type != VIDEO_TYPE_KARAOKE:
             return
@@ -168,6 +203,10 @@ class StoredDataReanalyzer:
         stats.stored_comment_videos += 1
         existing_songs = await self.song_repo.get_by_video_id(video.id)
         stats.songs_before += len(existing_songs)
+        if video.has_song_list_comment and not include_successful:
+            stats.skipped_existing_setlists += 1
+            stats.songs_after += len(existing_songs)
+            return
         analyzer = CommentAnalyzer(comments, video_id=video.id)
         if not analyzer.has_song_list_comment():
             stats.songs_after += len(existing_songs)

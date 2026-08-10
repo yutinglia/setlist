@@ -64,9 +64,23 @@ def test_generate_admin_password_hash_prints_argon2id_hash(monkeypatch, capsys):
 
 def test_reanalysis_cli_arguments(monkeypatch):
     monkeypatch.setattr("sys.argv", ["reanalyze_stored_data.py"])
-    assert reanalyze_stored_data.parse_args().apply is False
-    monkeypatch.setattr("sys.argv", ["reanalyze_stored_data.py", "--apply"])
-    assert reanalyze_stored_data.parse_args().apply is True
+    args = reanalyze_stored_data.parse_args()
+    assert args.apply is False
+    assert args.include_successful is False
+    assert args.requeue_unresolved is False
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "reanalyze_stored_data.py",
+            "--apply",
+            "--include-successful",
+            "--requeue-unresolved",
+        ],
+    )
+    args = reanalyze_stored_data.parse_args()
+    assert args.apply is True
+    assert args.include_successful is True
+    assert args.requeue_unresolved is True
 
 
 @pytest.mark.asyncio
@@ -82,7 +96,9 @@ async def test_reanalysis_cli_runs_service_prints_result_and_closes(
         detected_setlists=4,
         recovered_setlists=5,
         changed_setlists=6,
+        skipped_existing_setlists=7,
         skipped_cleaned_setlists=7,
+        requeued_unresolved_videos=8,
         songs_before=8,
         songs_after=9,
     )
@@ -100,7 +116,13 @@ async def test_reanalysis_cli_runs_service_prints_result_and_closes(
     monkeypatch.setattr(
         reanalyze_stored_data,
         "parse_args",
-        Mock(return_value=Namespace(apply=True)),
+        Mock(
+            return_value=Namespace(
+                apply=True,
+                include_successful=False,
+                requeue_unresolved=True,
+            )
+        ),
     )
 
     await reanalyze_stored_data.main()
@@ -108,7 +130,11 @@ async def test_reanalysis_cli_runs_service_prints_result_and_closes(
     output = capsys.readouterr().out
     assert "APPLIED" in output
     assert "songs_after: 9" in output
-    service.run.assert_awaited_once_with(apply=True)
+    service.run.assert_awaited_once_with(
+        apply=True,
+        include_successful=False,
+        requeue_unresolved=True,
+    )
     container.close.assert_awaited_once()
 
 
@@ -122,7 +148,9 @@ async def test_reanalysis_cli_reports_dry_run(monkeypatch, capsys):
         detected_setlists=0,
         recovered_setlists=0,
         changed_setlists=0,
+        skipped_existing_setlists=0,
         skipped_cleaned_setlists=0,
+        requeued_unresolved_videos=0,
         songs_before=0,
         songs_after=0,
     )
@@ -141,7 +169,13 @@ async def test_reanalysis_cli_reports_dry_run(monkeypatch, capsys):
     monkeypatch.setattr(
         reanalyze_stored_data,
         "parse_args",
-        Mock(return_value=Namespace(apply=False)),
+        Mock(
+            return_value=Namespace(
+                apply=False,
+                include_successful=False,
+                requeue_unresolved=False,
+            )
+        ),
     )
 
     await reanalyze_stored_data.main()
