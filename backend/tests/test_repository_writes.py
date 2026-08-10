@@ -830,7 +830,6 @@ async def test_channel_repository_preserves_cursors_and_persists_schedules(
     assert refreshed.raw_data == {"source": "refresh"}
     assert refreshed.video_backfill_status == "pending"
     assert refreshed.video_backfill_offset == 7
-
     backfill = await repo.update_video_backfill(
         channel_id,
         status="running",

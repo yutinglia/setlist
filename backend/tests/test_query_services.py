@@ -116,6 +116,7 @@ async def test_catalog_query_service_loads_every_public_projection():
     channel_repo = SimpleNamespace(
         get_all=AsyncMock(return_value=[channel]),
         count_all=AsyncMock(return_value=1),
+        get_recent=AsyncMock(return_value=[channel]),
         get_by_id=AsyncMock(return_value=channel),
     )
     video_repo = SimpleNamespace(
@@ -128,6 +129,7 @@ async def test_catalog_query_service_loads_every_public_projection():
         suggest_titles=AsyncMock(return_value=[suggestion]),
         get_detail=AsyncMock(return_value=detail),
         list_setlist_contributors=AsyncMock(return_value=([contributor], 1)),
+        get_recent=AsyncMock(return_value=[detail]),
         get_by_video_id=AsyncMock(return_value=[song]),
         count_by_video_id=AsyncMock(return_value=1),
     )
@@ -154,6 +156,7 @@ async def test_catalog_query_service_loads_every_public_projection():
     assert (await service.get_song(1)) == detail
     contributors = await service.list_setlist_contributors(limit=20, offset=0)
     channels = await service.list_channels(limit=20, offset=0)
+    recent = await service.get_recent_updates()
     assert (await service.get_channel(channel.id)).id == channel.id
     videos = await service.list_channel_videos(
         channel.id,
@@ -171,16 +174,21 @@ async def test_catalog_query_service_loads_every_public_projection():
     assert contributors.items == [contributor]
     assert contributors.total == 1
     assert channels.items[0].id == channel.id
+    assert recent.channels[0].id == channel.id
+    assert recent.songs == [detail]
     assert videos.items[0].id == video.id
     assert songs.items == [song]
     song_repo.search_by_title.assert_awaited_once()
     song_repo.suggest_titles.assert_awaited_once()
+    channel_repo.get_recent.assert_awaited_once_with(limit=10)
+    song_repo.get_recent.assert_awaited_once_with(limit=100)
     assert cache.remembered == [
         (SEARCH_CACHE_NAMESPACE, "search_songs"),
         (SEARCH_CACHE_NAMESPACE, "suggest_songs"),
         (CATALOG_CACHE_NAMESPACE, "get_song"),
         (CATALOG_CACHE_NAMESPACE, "list_setlist_contributors"),
         (CATALOG_CACHE_NAMESPACE, "list_channels"),
+        (CATALOG_CACHE_NAMESPACE, "get_recent_updates"),
         (CATALOG_CACHE_NAMESPACE, "get_channel"),
         (CATALOG_CACHE_NAMESPACE, "list_channel_videos"),
         (CATALOG_CACHE_NAMESPACE, "get_video"),
@@ -209,6 +217,37 @@ async def test_catalog_query_service_returns_none_for_missing_relations():
     )
     assert await service.get_video("missing") is None
     assert await service.list_video_songs("missing", limit=20, offset=0) is None
+
+
+@pytest.mark.asyncio
+async def test_channel_search_uses_literal_query_repository_path_and_search_cache():
+    channel = YouTubeChannel(
+        id="UC-search",
+        name="Search Result",
+        url="https://www.youtube.com/@search",
+    )
+    channel_repo = SimpleNamespace(
+        get_all=AsyncMock(return_value=[channel]),
+        count_all=AsyncMock(return_value=1),
+    )
+    cache = _RecordingCache()
+    service = CatalogQueryService(
+        channel_repo,
+        SimpleNamespace(),
+        SimpleNamespace(),
+        cache,
+    )
+
+    result = await service.list_channels(limit=20, offset=0, query="Search %_")
+
+    assert result.items[0].id == channel.id
+    channel_repo.get_all.assert_awaited_once_with(
+        limit=20,
+        offset=0,
+        query="Search %_",
+    )
+    channel_repo.count_all.assert_awaited_once_with(query="Search %_")
+    assert cache.remembered == [(SEARCH_CACHE_NAMESPACE, "list_channels")]
 
 
 @pytest.mark.asyncio

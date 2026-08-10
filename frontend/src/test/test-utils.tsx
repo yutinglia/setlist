@@ -29,6 +29,7 @@ export function makeTestApi(overrides: Partial<ApiClient> = {}) {
     logout: vi.fn(async () => ({ ...session })),
     updaterStatus: vi.fn(async () => ({ phase: "idle" })),
     summaryReport: vi.fn(async () => ({ channels: 0 })),
+    recentUpdates: vi.fn(async () => ({ channels: [], songs: [] })),
     searchSongs: vi.fn(async () => ({
       items: [],
       total: 0,

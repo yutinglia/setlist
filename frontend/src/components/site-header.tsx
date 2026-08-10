@@ -11,6 +11,7 @@ import {
   LogOut,
   Moon,
   Radio,
+  RefreshCw,
   Search,
   ShieldCheck,
   Sun,
@@ -74,6 +75,7 @@ export function SiteHeader() {
         <nav className="scrollbar-none order-3 flex w-full items-center gap-1 overflow-x-auto text-sm lg:order-2 lg:w-auto">
           <NavLink to="/search" label={m.nav_search()} icon={Search} exact />
           <NavLink to="/channels" label={m.nav_channels()} icon={Radio} />
+          <NavLink to="/updates" label={m.nav_recent()} icon={RefreshCw} />
           <NavLink to="/summary" label={m.nav_summary()} icon={BarChart3} />
           <NavLink to="/thanks" label={m.nav_thanks()} icon={HeartHandshake} />
           <NavLink
@@ -211,6 +213,7 @@ function NavLink({
   to:
     | "/search"
     | "/channels"
+    | "/updates"
     | "/summary"
     | "/thanks"
     | "/how-to-use"

@@ -80,6 +80,8 @@ const song = {
   setlist_comment_author: "@helper",
   setlist_comment_author_id: "UC-helper",
   setlist_comment_id: "comment-1",
+  created_at: null,
+  updated_at: null,
 }
 
 beforeEach(() => {

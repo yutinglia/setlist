@@ -32,6 +32,11 @@ const song = {
   channel_id: channel.id,
   channel_name: channel.name,
   analyzed_by_llm: false,
+  setlist_comment_author: null,
+  setlist_comment_author_id: null,
+  setlist_comment_id: null,
+  created_at: "2026-07-20T00:00:00Z",
+  updated_at: "2026-07-21T00:00:00Z",
 }
 
 const summary = {
@@ -147,6 +152,9 @@ async function installApiStub(page: Page) {
       return json(route, [{ title: song.title, occurrences: 1 }])
     }
     if (path === "/v1/songs/1") return json(route, song)
+    if (path === "/v1/updates/recent") {
+      return json(route, { channels: [channel], songs: [song] })
+    }
     if (path === "/v1/channels") {
       return json(route, { items: [channel], total: 1, limit: 100, offset: 0 })
     }
@@ -218,6 +226,25 @@ test("renders a video setlist with a timestamped YouTube link", async ({
   await expect(
     page.getByRole("link", { name: `Play from ${song.timestamp}` }),
   ).toHaveAttribute("href", song.video_url)
+})
+
+test("searches channels and browses recent catalog updates", async ({ page }) => {
+  await page.goto("/channels")
+
+  await page.getByRole("searchbox", { name: "Search channels" }).fill(
+    "Test Singer",
+  )
+  await page.getByRole("button", { name: "Search" }).click()
+  await expect(page).toHaveURL(/\/channels\?.*q=Test(?:\+|%20)Singer/)
+  await expect(page.getByText(channel.name)).toBeVisible()
+
+  await page.getByRole("link", { name: "Recent" }).click()
+  await expect(page).toHaveURL(/\/updates$/)
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Recent updates" }),
+  ).toBeVisible()
+  await expect(page.getByText(song.title)).toBeVisible()
+  await expect(page.getByText(channel.name).first()).toBeVisible()
 })
 
 test("redirects a guest to login before showing administrator status", async ({

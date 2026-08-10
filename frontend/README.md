@@ -110,7 +110,8 @@ proxy.
 | `/search` | Grid results from `GET /v1/songs/search`; 500 ms debounced suggestions while typing; repeated channel, type, and date filters apply to both requests |
 | `/songs/$songId` | `GET /v1/songs/{id}`; contextual back navigation restores the prior search or video page |
 | `/thanks` | `GET /v1/contributors`; credits public YouTube commenters whose selected timestamped setlists supply indexed songs |
-| `/channels` | Grid view from `GET /v1/channels` |
+| `/channels` | Searchable grid from `GET /v1/channels`; the literal `q` value and page are shareable URL state |
+| `/updates` | Latest 10 updated channels and 100 indexed songs from `GET /v1/updates/recent` |
 | `/channels/new` | Administrator-only `POST /v1/channels` |
 | `/channels/$channelId` | Grid view from `GET /v1/channels/{id}` + `/videos`; cards open details and expose a separate untimestamped YouTube action |
 | `/videos/$videoId` | `GET /v1/videos/{id}` + `/songs`; timestamped setlist rows open YouTube and expose a separate song-detail action |

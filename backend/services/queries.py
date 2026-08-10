@@ -6,6 +6,7 @@ from models.report import SummaryReport
 from models.search import (
     ChannelRead,
     Paginated,
+    RecentUpdates,
     SetlistContributor,
     SongSearchResult,
     SongSuggestion,
@@ -174,10 +175,15 @@ class CatalogQueryService:
         *,
         limit: int,
         offset: int,
+        query: str | None = None,
     ) -> Paginated[ChannelRead]:
         async def load() -> Paginated[ChannelRead]:
-            channels = await self.channel_repo.get_all(limit=limit, offset=offset)
-            total = await self.channel_repo.count_all()
+            channels = await self.channel_repo.get_all(
+                limit=limit,
+                offset=offset,
+                query=query,
+            )
+            total = await self.channel_repo.count_all(query=query)
             return Paginated(
                 items=[ChannelRead.model_validate(item) for item in channels],
                 total=total,
@@ -185,10 +191,32 @@ class CatalogQueryService:
                 offset=offset,
             )
 
+        namespace = SEARCH_CACHE_NAMESPACE if query else CATALOG_CACHE_NAMESPACE
+        return await self.cache.remember(
+            namespace,
+            {
+                "operation": "list_channels",
+                "limit": limit,
+                "offset": offset,
+                "query": query,
+            },
+            Paginated[ChannelRead],
+            load,
+        )
+
+    async def get_recent_updates(self) -> RecentUpdates:
+        async def load() -> RecentUpdates:
+            channels = await self.channel_repo.get_recent(limit=10)
+            songs = await self.song_repo.get_recent(limit=100)
+            return RecentUpdates(
+                channels=[ChannelRead.model_validate(item) for item in channels],
+                songs=songs,
+            )
+
         return await self.cache.remember(
             CATALOG_CACHE_NAMESPACE,
-            {"operation": "list_channels", "limit": limit, "offset": offset},
-            Paginated[ChannelRead],
+            {"operation": "get_recent_updates"},
+            RecentUpdates,
             load,
         )
 

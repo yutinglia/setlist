@@ -20,6 +20,13 @@ export type SongSearchResult = {
   setlist_comment_author: string | null
   setlist_comment_author_id: string | null
   setlist_comment_id: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export type RecentUpdates = {
+  channels: YouTubeChannel[]
+  songs: SongSearchResult[]
 }
 
 export type SongSuggestion = {

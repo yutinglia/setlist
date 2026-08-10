@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
-import { MessageSquarePlus, Plus } from "lucide-react"
-import { useCallback } from "react"
+import { MessageSquarePlus, Plus, Search, X } from "lucide-react"
+import { type FormEvent, useCallback, useEffect, useState } from "react"
 
 import { PAGE_SIZE, useAuthSession, useChannels } from "@/api/hooks"
 import { ChannelCard } from "@/components/channel-card"
@@ -8,23 +8,25 @@ import { ChannelRequestNotice } from "@/components/channel-request-notice"
 import { PaginationControls } from "@/components/pagination-controls"
 import { PageMetadata } from "@/components/page-metadata"
 import { QueryState } from "@/components/query-state"
-import { buttonVariants } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useClampPage } from "@/hooks/use-clamp-page"
 import { formatInteger } from "@/lib/locale-format"
 import { CHANNEL_REQUEST_URL } from "@/lib/public-config"
-import { pageSearchSchema } from "@/lib/search-schemas"
+import { channelSearchSchema } from "@/lib/search-schemas"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
 
 export const Route = createFileRoute("/channels/")({
-  validateSearch: pageSearchSchema,
+  validateSearch: channelSearchSchema,
   component: ChannelsPage,
 })
 
 function ChannelsPage() {
-  const { page = 0 } = Route.useSearch()
+  const { page = 0, q = "" } = Route.useSearch()
   const navigate = Route.useNavigate()
-  const query = useChannels(page)
+  const [draftQuery, setDraftQuery] = useState(q)
+  const query = useChannels(page, q)
   const auth = useAuthSession()
   const isAdmin =
     auth.data?.authenticated === true && auth.data.role === "admin"
@@ -32,13 +34,35 @@ function ChannelsPage() {
   const changePage = useCallback(
     (next: number) => {
       void navigate({
-        search: { page: next || undefined },
+        search: { q: q || undefined, page: next || undefined },
         replace: true,
       })
     },
-    [navigate],
+    [navigate, q],
   )
   useClampPage(page, query.data?.total, PAGE_SIZE, changePage)
+
+  useEffect(() => setDraftQuery(q), [q])
+
+  const submitSearch = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+      const next = draftQuery.trim()
+      void navigate({
+        search: { q: next || undefined, page: undefined },
+        replace: true,
+      })
+    },
+    [draftQuery, navigate],
+  )
+
+  const clearSearch = useCallback(() => {
+    setDraftQuery("")
+    void navigate({
+      search: { q: undefined, page: undefined },
+      replace: true,
+    })
+  }, [navigate])
 
   return (
     <section className="animate-fade py-10 sm:py-14">
@@ -46,7 +70,7 @@ function ChannelsPage() {
         path="/channels"
         title={`${m.channels_heading()} | Setlist`}
         description={m.channels_hint()}
-        noIndex={page > 0}
+        noIndex={page > 0 || Boolean(q)}
       />
       <header className="flex flex-col gap-5 border-b border-border/70 pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -89,12 +113,50 @@ function ChannelsPage() {
         </div>
       </header>
 
+      <form
+        role="search"
+        aria-label={m.channels_search_label()}
+        className="mt-7 flex max-w-2xl flex-col gap-2 sm:flex-row"
+        onSubmit={submitSearch}
+      >
+        <label htmlFor="channel-search" className="sr-only">
+          {m.channels_search_label()}
+        </label>
+        <div className="relative min-w-0 flex-1">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            id="channel-search"
+            type="search"
+            value={draftQuery}
+            maxLength={200}
+            placeholder={m.channels_search_placeholder()}
+            className="pl-9"
+            onChange={(event) => setDraftQuery(event.target.value)}
+          />
+        </div>
+        <Button type="submit">
+          <Search aria-hidden />
+          {m.channels_search_submit()}
+        </Button>
+        {q ? (
+          <Button type="button" variant="outline" onClick={clearSearch}>
+            <X aria-hidden />
+            {m.channels_search_clear()}
+          </Button>
+        ) : null}
+      </form>
+
       <div className="mt-8">
         <QueryState
           isLoading={query.isLoading}
           isError={query.isError}
           isEmpty={query.isSuccess && query.data.items.length === 0}
-          emptyMessage={m.channels_empty()}
+          emptyMessage={
+            q ? m.channels_search_empty({ query: q }) : m.channels_empty()
+          }
           onRetry={() => void query.refetch()}
           loadingLayout="grid"
         >

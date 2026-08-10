@@ -126,6 +126,7 @@ describe("createApiClient", () => {
 
     await client.updaterStatus()
     await client.summaryReport()
+    await client.recentUpdates()
     await client.searchSongs("song name", 20, 40, {
       channelIds: ["UC one", "UC/two"],
       type: "karaoke",
@@ -157,6 +158,7 @@ describe("createApiClient", () => {
     expect(urls).toEqual([
       "/api/v1/updater/status",
       "/api/v1/report/summary",
+      "/api/v1/updates/recent",
       "/api/v1/songs/search?q=song+name&limit=20&offset=40&channel_id=UC+one&channel_id=UC%2Ftwo&type=karaoke&upload_date_from=20260101&upload_date_to=20261231",
       "/api/v1/songs/suggestions?q=song&limit=8&channel_id=UC1&type=song&upload_date_from=20260101&upload_date_to=20261231",
       "/api/v1/songs/7",
@@ -168,7 +170,7 @@ describe("createApiClient", () => {
       "/api/v1/videos/vid%20%2F%20one/songs?limit=20&offset=40",
       "/api/v1/videos/vid%20%2F%20one",
     ])
-    expect(fetch.mock.calls[3]?.[1]?.signal).toBe(controller.signal)
+    expect(fetch.mock.calls[4]?.[1]?.signal).toBe(controller.signal)
   })
 
   test("covers login, logout, bulk add, refresh, and reload mutations", async () => {
@@ -223,12 +225,14 @@ describe("createApiClient", () => {
     await client.searchSongs("plain", 10, 0)
     await client.suggestSongs("plain", 5)
     await client.listChannelVideos("UC1", 10, 0, "karaoke", false)
+    await client.listChannels(10, 0, " Singer / ID ")
 
     expect(fetch.mock.calls.map(([url]) => String(url))).toEqual([
       "/v1/health",
       "/v1/songs/search?q=plain&limit=10&offset=0",
       "/v1/songs/suggestions?q=plain&limit=5",
       "/v1/channels/UC1/videos?limit=10&offset=0&type=karaoke&has_song_list=false",
+      "/v1/channels?limit=10&offset=0&q=Singer+%2F+ID",
     ])
   })
 })

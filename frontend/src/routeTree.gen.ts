@@ -19,6 +19,7 @@ import { Route as StatusRouteImport } from './routes/status'
 import { Route as SummaryRouteImport } from './routes/summary'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ThanksRouteImport } from './routes/thanks'
+import { Route as UpdatesRouteImport } from './routes/updates'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as ChannelsIndexRouteImport } from './routes/channels.index'
 import { Route as ChannelsChannelIdRouteImport } from './routes/channels.$channelId'
@@ -76,6 +77,11 @@ const ThanksRoute = ThanksRouteImport.update({
   path: '/thanks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UpdatesRoute = UpdatesRouteImport.update({
+  id: '/updates',
+  path: '/updates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/summary': typeof SummaryRoute
   '/terms': typeof TermsRoute
   '/thanks': typeof ThanksRoute
+  '/updates': typeof UpdatesRoute
   '/admin/login': typeof AdminLoginRoute
   '/channels/$channelId': typeof ChannelsChannelIdRoute
   '/channels/new': typeof ChannelsNewRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/summary': typeof SummaryRoute
   '/terms': typeof TermsRoute
   '/thanks': typeof ThanksRoute
+  '/updates': typeof UpdatesRoute
   '/admin/login': typeof AdminLoginRoute
   '/channels/$channelId': typeof ChannelsChannelIdRoute
   '/channels/new': typeof ChannelsNewRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/summary': typeof SummaryRoute
   '/terms': typeof TermsRoute
   '/thanks': typeof ThanksRoute
+  '/updates': typeof UpdatesRoute
   '/admin/login': typeof AdminLoginRoute
   '/channels/$channelId': typeof ChannelsChannelIdRoute
   '/channels/new': typeof ChannelsNewRoute
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
     | '/summary'
     | '/terms'
     | '/thanks'
+    | '/updates'
     | '/admin/login'
     | '/channels/$channelId'
     | '/channels/new'
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/summary'
     | '/terms'
     | '/thanks'
+    | '/updates'
     | '/admin/login'
     | '/channels/$channelId'
     | '/channels/new'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/summary'
     | '/terms'
     | '/thanks'
+    | '/updates'
     | '/admin/login'
     | '/channels/$channelId'
     | '/channels/new'
@@ -230,6 +242,7 @@ export interface RootRouteChildren {
   SummaryRoute: typeof SummaryRoute
   TermsRoute: typeof TermsRoute
   ThanksRoute: typeof ThanksRoute
+  UpdatesRoute: typeof UpdatesRoute
   AdminLoginRoute: typeof AdminLoginRoute
   ChannelsChannelIdRoute: typeof ChannelsChannelIdRoute
   ChannelsNewRoute: typeof ChannelsNewRoute
@@ -310,6 +323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ThanksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/updates': {
+      id: '/updates'
+      path: '/updates'
+      fullPath: '/updates'
+      preLoaderRoute: typeof UpdatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/login': {
       id: '/admin/login'
       path: '/admin/login'
@@ -366,6 +386,7 @@ const rootRouteChildren: RootRouteChildren = {
   SummaryRoute: SummaryRoute,
   TermsRoute: TermsRoute,
   ThanksRoute: ThanksRoute,
+  UpdatesRoute: UpdatesRoute,
   AdminLoginRoute: AdminLoginRoute,
   ChannelsChannelIdRoute: ChannelsChannelIdRoute,
   ChannelsNewRoute: ChannelsNewRoute,

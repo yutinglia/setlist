@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,9 +23,13 @@ class ChannelRepository:
         *,
         limit: int | None = None,
         offset: int = 0,
+        query: str | None = None,
     ) -> list[YouTubeChannel]:
-        """從資料庫取得頻道列表 (optional pagination)."""
+        """從資料庫取得頻道列表 (optional pagination and literal search)."""
         stmt = select(Channels).order_by(Channels.name)
+        search_filter = self._search_filter(query)
+        if search_filter is not None:
+            stmt = stmt.where(search_filter)
         if limit is not None:
             stmt = stmt.limit(limit).offset(offset)
         elif offset:
@@ -34,10 +38,38 @@ class ChannelRepository:
         channels = result.scalars().all()
         return [YouTubeChannel.model_validate(channel) for channel in channels]
 
-    async def count_all(self) -> int:
-        """Total number of tracked channels."""
-        result = await self.session.execute(select(func.count()).select_from(Channels))
+    async def count_all(self, *, query: str | None = None) -> int:
+        """Total number of tracked channels matching an optional search."""
+        stmt = select(func.count()).select_from(Channels)
+        search_filter = self._search_filter(query)
+        if search_filter is not None:
+            stmt = stmt.where(search_filter)
+        result = await self.session.execute(stmt)
         return int(result.scalar_one())
+
+    async def get_recent(self, *, limit: int) -> list[YouTubeChannel]:
+        """Return channels ordered by their latest persisted update."""
+        result = await self.session.execute(
+            select(Channels)
+            .order_by(Channels.updated_at.desc().nulls_last(), Channels.id)
+            .limit(limit)
+        )
+        return [
+            YouTubeChannel.model_validate(channel) for channel in result.scalars().all()
+        ]
+
+    @staticmethod
+    def _search_filter(query: str | None):
+        if query is None or not (normalized := query.strip()):
+            return None
+        escaped = (
+            normalized.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        )
+        pattern = f"%{escaped}%"
+        return or_(
+            Channels.name.ilike(pattern, escape="\\"),
+            Channels.id.ilike(pattern, escape="\\"),
+        )
 
     async def get_by_id(self, channel_id: str) -> YouTubeChannel | None:
         """根據 ID 取得單一頻道"""

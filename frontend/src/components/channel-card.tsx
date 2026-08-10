@@ -1,15 +1,21 @@
 import { Link } from "@tanstack/react-router"
-import { ArrowRight, ExternalLink, Radio } from "lucide-react"
+import { ArrowRight, Clock3, ExternalLink, Radio } from "lucide-react"
 
 import type { YouTubeChannel } from "@/api/types"
+import { formatApiDateTime } from "@/lib/locale-format"
 import { m } from "@/paraglide/messages"
 
 type Props = {
   channel: YouTubeChannel
   index?: number
+  showUpdatedAt?: boolean
 }
 
-export function ChannelCard({ channel, index = 0 }: Props) {
+export function ChannelCard({
+  channel,
+  index = 0,
+  showUpdatedAt = false,
+}: Props) {
   return (
     <li
       className={`media-card animate-rise stagger-${Math.min((index % 4) + 1, 4)}`}
@@ -47,6 +53,17 @@ export function ChannelCard({ channel, index = 0 }: Props) {
             <Radio className="size-3.5 text-primary" aria-hidden />
             {m.channel_content_label()}
           </p>
+          {showUpdatedAt && channel.updated_at ? (
+            <time
+              dateTime={channel.updated_at}
+              className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"
+            >
+              <Clock3 className="size-3.5 text-primary" aria-hidden />
+              {m.recent_updated_at({
+                when: formatApiDateTime(channel.updated_at),
+              })}
+            </time>
+          ) : null}
           <div className="mt-auto flex items-center justify-between gap-3 pt-4">
             <a
               href={channel.url}
