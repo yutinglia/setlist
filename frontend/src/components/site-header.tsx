@@ -53,7 +53,12 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex min-h-16 w-full max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2 sm:px-6 lg:flex-nowrap lg:px-8">
+      <div
+        className={cn(
+          "mx-auto flex min-h-16 w-full max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2 sm:px-6 lg:px-8",
+          !isAdmin && "lg:flex-nowrap",
+        )}
+      >
         <Link
           to="/"
           className="group flex shrink-0 items-center gap-2.5"
@@ -72,7 +77,12 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="scrollbar-none order-3 flex w-full items-center gap-1 overflow-x-auto text-sm lg:order-2 lg:w-auto">
+        <nav
+          className={cn(
+            "scrollbar-none order-3 flex w-full items-center gap-1 overflow-x-auto text-sm",
+            isAdmin ? "lg:justify-center" : "lg:order-2 lg:w-auto",
+          )}
+        >
           <NavLink to="/search" label={m.nav_search()} icon={Search} exact />
           <NavLink to="/channels" label={m.nav_channels()} icon={Radio} />
           <NavLink to="/updates" label={m.nav_recent()} icon={RefreshCw} />
@@ -88,7 +98,12 @@ export function SiteHeader() {
           ) : null}
         </nav>
 
-        <div className="order-2 ml-auto flex items-center gap-1.5 lg:order-3">
+        <div
+          className={cn(
+            "order-2 ml-auto flex items-center gap-1.5",
+            !isAdmin && "lg:order-3",
+          )}
+        >
           {isAdmin ? (
             <>
               <span className="hidden items-center gap-1.5 rounded-full border border-primary/20 bg-primary/8 px-2.5 py-1 text-[0.68rem] font-semibold text-primary sm:inline-flex">

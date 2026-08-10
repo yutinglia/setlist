@@ -262,4 +262,17 @@ test("redirects a guest to login before showing administrator status", async ({
     page.getByRole("heading", { level: 1, name: "Updater status" }),
   ).toBeVisible()
   await expect(page.getByText("Waiting for the next cycle")).toBeVisible()
+
+  for (const width of [1280, 1024]) {
+    await page.setViewportSize({ width, height: 720 })
+    const headerNav = page.getByRole("banner").getByRole("navigation")
+    await expect(
+      headerNav.getByRole("link", { name: "Status" }),
+    ).toBeInViewport()
+    const navWidths = await headerNav.evaluate((element) => ({
+      client: element.clientWidth,
+      scroll: element.scrollWidth,
+    }))
+    expect(navWidths.scroll).toBeLessThanOrEqual(navWidths.client)
+  }
 })
