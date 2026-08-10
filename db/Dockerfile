@@ -1,4 +1,4 @@
-FROM flyway/flyway:13-alpine@sha256:0ac8d526acfaa11bef99926cabf9d7247d2469e488aded8e3b86ec380bb76e83
+FROM flyway/flyway:13-alpine@sha256:a7186681b355e409adda7965b1751d36cb0de486b5a2601d8d95129ffcd07a51
 
 # Keep only the PostgreSQL driver and remove optional network/database clients
 # that are not used by this image. Upgrade the pinned Alpine base to the latest
