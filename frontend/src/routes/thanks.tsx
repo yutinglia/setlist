@@ -33,7 +33,7 @@ function ThanksPage() {
   useClampPage(page, query.data?.total, PAGE_SIZE, changePage)
 
   return (
-    <section className="animate-fade py-10 sm:py-14">
+    <section className="animate-fade py-7 sm:py-10">
       <PageMetadata
         path="/thanks"
         title={`${m.thanks_heading()} | Setlist`}
@@ -41,18 +41,18 @@ function ThanksPage() {
       />
 
       <header className="mx-auto max-w-4xl text-center">
-        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+        <span className="mx-auto grid size-14 place-items-center rounded-full bg-primary/10 text-primary">
           <HeartHandshake className="size-7" aria-hidden />
         </span>
         <p className="eyebrow mt-5">{m.thanks_eyebrow()}</p>
-        <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-6xl">
+        <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">
           {m.thanks_heading()}
         </h1>
         <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-muted-foreground">
           {m.thanks_intro()}
         </p>
         {query.data ? (
-          <p className="mt-3 font-mono text-xs tracking-wide text-muted-foreground">
+          <p className="mt-3 text-xs tracking-wide text-muted-foreground tabular-nums">
             {m.thanks_total({
               count: formatInteger(query.data.total),
             })}
@@ -85,7 +85,7 @@ function ThanksPage() {
                   })}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate font-display text-lg font-bold tracking-tight transition-colors group-hover:text-primary">
+                    <span className="block truncate text-lg font-bold tracking-tight transition-colors group-hover:text-primary">
                       {contributor.author}
                     </span>
                     <span className="mt-1 block text-xs text-muted-foreground">
@@ -103,7 +103,7 @@ function ThanksPage() {
                       <ListMusic className="size-3.5" aria-hidden />
                       {m.thanks_songs()}
                     </dt>
-                    <dd className="mt-1 font-mono text-lg font-semibold">
+                    <dd className="mt-1 text-lg font-semibold tabular-nums">
                       {formatInteger(contributor.song_count)}
                     </dd>
                   </div>
@@ -112,7 +112,7 @@ function ThanksPage() {
                       <Video className="size-3.5" aria-hidden />
                       {m.thanks_setlists()}
                     </dt>
-                    <dd className="mt-1 font-mono text-lg font-semibold">
+                    <dd className="mt-1 text-lg font-semibold tabular-nums">
                       {formatInteger(contributor.video_count)}
                     </dd>
                   </div>

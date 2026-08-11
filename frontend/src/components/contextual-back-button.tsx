@@ -20,7 +20,7 @@ export function ContextualBackButton({
     <button
       type="button"
       className={cn(
-        "inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary",
+        "inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         className,
       )}
       onClick={() => {

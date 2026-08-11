@@ -477,12 +477,24 @@ describe("header and contextual navigation", () => {
       { api, initialEntries: ["/previous", "/"] },
     )
     await waitFor(() =>
-      expect(screen.getByLabelText(m.auth_sign_out())).toBeInTheDocument(),
+      expect(screen.getByLabelText(m.nav_more())).toBeInTheDocument(),
     )
-    await userEvent.click(screen.getByLabelText(m.theme_switch_dark()))
+    await userEvent.click(screen.getByLabelText(m.nav_more()))
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: m.theme_switch_dark() }),
+    )
     expect(document.documentElement.classList.contains("dark")).toBe(true)
-    await userEvent.click(screen.getByText(m.locale_en()))
-    await userEvent.click(screen.getByLabelText(m.auth_sign_out()))
+    await userEvent.click(screen.getByLabelText(m.nav_more()))
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: m.locale_label() }),
+    )
+    await userEvent.click(
+      screen.getByRole("menuitemradio", { name: m.locale_en() }),
+    )
+    await userEvent.click(screen.getByLabelText(m.nav_more()))
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: m.auth_sign_out() }),
+    )
     expect(logout).toHaveBeenCalled()
 
     await userEvent.click(screen.getByText("Back"))

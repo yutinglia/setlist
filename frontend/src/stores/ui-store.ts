@@ -16,9 +16,11 @@ export type Theme = "light" | "dark"
 type UiState = {
   locale: Locale
   theme: Theme
+  sidebarCollapsed: boolean
   recentSearches: string[]
   setLocalePref: (locale: Locale) => void
   toggleTheme: () => void
+  toggleSidebar: () => void
   addRecentSearch: (q: string) => void
   clearRecentSearches: () => void
 }
@@ -32,6 +34,7 @@ export const useUiStore = create<UiState>()(
     (set, get) => ({
       locale: getLocale(),
       theme: DEFAULT_THEME,
+      sidebarCollapsed: false,
       recentSearches: [],
       setLocalePref: (locale) => {
         if (get().locale === locale) return
@@ -42,6 +45,8 @@ export const useUiStore = create<UiState>()(
         set((state) => ({
           theme: state.theme === "dark" ? "light" : "dark",
         })),
+      toggleSidebar: () =>
+        set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       addRecentSearch: (q) => {
         const trimmed = q.trim().slice(0, MAX_QUERY_LENGTH)
         if (!trimmed) return
@@ -62,6 +67,7 @@ export const useUiStore = create<UiState>()(
       partialize: (state) => ({
         locale: state.locale,
         theme: state.theme,
+        sidebarCollapsed: state.sidebarCollapsed,
         recentSearches: state.recentSearches,
       }),
       onRehydrateStorage: () => (state) => {

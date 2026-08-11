@@ -392,8 +392,13 @@ describe("application routes", () => {
       name: m.channels_search_label(),
     })
     await userEvent.type(input, "Singer %_")
+    const channelSearch = screen.getByRole("search", {
+      name: m.channels_search_label(),
+    })
     await userEvent.click(
-      screen.getByRole("button", { name: m.channels_search_submit() }),
+      within(channelSearch).getByRole("button", {
+        name: m.channels_search_submit(),
+      }),
     )
 
     await waitFor(() =>
@@ -605,7 +610,9 @@ describe("application routes", () => {
       expect(router.state.location.search.page).toBe(1),
     )
 
-    const searchInput = screen.getByLabelText(m.search_placeholder())
+    const searchInput = screen.getByRole("combobox", {
+      name: m.search_placeholder(),
+    })
     await userEvent.clear(searchInput)
     await userEvent.type(searchInput, "Another{Enter}")
     await waitFor(() =>
@@ -685,7 +692,9 @@ describe("application routes", () => {
     expect(
       await screen.findByRole("button", { name: m.reload_failed() }),
     ).toBeInTheDocument()
-    expect(screen.getByRole("status")).toHaveTextContent(m.reload_failed())
+    expect(
+      screen.getByText(m.reload_failed(), { selector: "p" }),
+    ).toHaveAttribute("role", "status")
   })
 
   test("reloads a karaoke video's songs and links timestamped results", async () => {
@@ -741,7 +750,9 @@ describe("application routes", () => {
 
   test("submits only non-empty home searches", async () => {
     const { router } = await renderRoute("/")
-    const input = screen.getByLabelText(m.search_placeholder())
+    const input = screen.getByRole("combobox", {
+      name: m.search_placeholder(),
+    })
     await userEvent.type(input, "   {Enter}")
     expect(router.state.location.pathname).toBe("/")
 

@@ -48,7 +48,7 @@ export function SetlistAttribution({
           href={youtubeCommentUrl(videoId, commentId)}
           target="_blank"
           rel="noreferrer"
-          className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+          className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label={m.setlist_source_comment()}
           title={m.setlist_source_comment()}
         >

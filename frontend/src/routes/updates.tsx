@@ -19,16 +19,16 @@ function RecentUpdatesPage() {
   const songs = query.data?.songs ?? []
 
   return (
-    <section className="animate-fade flex flex-1 flex-col py-10 sm:py-14">
+    <section className="animate-fade flex flex-1 flex-col py-7 sm:py-10">
       <PageMetadata
         path="/updates"
         title={`${m.recent_updates_heading()} | Setlist`}
         description={m.recent_updates_intro()}
       />
 
-      <header className="max-w-3xl border-b border-border/70 pb-8">
+      <header className="max-w-3xl border-b border-border pb-7">
         <p className="eyebrow">{m.recent_updates_eyebrow()}</p>
-        <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">
+        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
           {m.recent_updates_heading()}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -55,7 +55,7 @@ function RecentUpdatesPage() {
                   </p>
                   <h2
                     id="recent-channels-heading"
-                    className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl"
+                    className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl"
                   >
                     {m.recent_channels_heading()}
                   </h2>
@@ -63,7 +63,7 @@ function RecentUpdatesPage() {
                     {m.recent_channels_hint()}
                   </p>
                 </div>
-                <p className="font-mono text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground tabular-nums">
                   {m.recent_channels_count({
                     count: formatInteger(channels.length),
                   })}
@@ -95,7 +95,7 @@ function RecentUpdatesPage() {
                   </p>
                   <h2
                     id="recent-songs-heading"
-                    className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl"
+                    className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl"
                   >
                     {m.recent_songs_heading()}
                   </h2>
@@ -103,7 +103,7 @@ function RecentUpdatesPage() {
                     {m.recent_songs_hint()}
                   </p>
                 </div>
-                <p className="font-mono text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground tabular-nums">
                   {m.recent_songs_count({
                     count: formatInteger(songs.length),
                   })}

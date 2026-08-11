@@ -95,7 +95,7 @@ function HowToStep({
         {number.padStart(2, "0")}
       </span>
       <Icon className="size-5 text-primary" aria-hidden />
-      <h3 className="mt-3 font-display font-bold text-foreground">{title}</h3>
+      <h3 className="mt-3 font-bold text-foreground">{title}</h3>
       <p className="mt-1.5 leading-6">{body}</p>
     </li>
   )

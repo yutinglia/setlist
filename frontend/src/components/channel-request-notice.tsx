@@ -13,13 +13,13 @@ import { m } from "@/paraglide/messages"
 export function ChannelRequestNotice({ className }: { className?: string }) {
   return (
     <aside className={cn("surface overflow-hidden", className)}>
-      <div className="border-b border-border/70 bg-primary/5 p-5 sm:p-6">
+      <div className="border-b border-border bg-primary/5 p-5 sm:p-6">
         <div className="flex items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
             <ShieldCheck className="size-5" aria-hidden />
           </span>
           <div>
-            <h2 className="font-display text-xl font-bold tracking-tight">
+            <h2 className="text-xl font-bold tracking-tight">
               {m.channel_request_title()}
             </h2>
             <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
@@ -29,10 +29,10 @@ export function ChannelRequestNotice({ className }: { className?: string }) {
         </div>
       </div>
 
-      <div className="grid gap-px bg-border/70 sm:grid-cols-2">
+      <div className="grid gap-px bg-border sm:grid-cols-2">
         <section className="bg-card p-5 sm:p-6">
           <MessageSquarePlus className="size-5 text-primary" aria-hidden />
-          <h3 className="mt-3 font-display font-bold">
+          <h3 className="mt-3 font-bold">
             {m.channel_request_contact_title()}
           </h3>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -54,7 +54,7 @@ export function ChannelRequestNotice({ className }: { className?: string }) {
 
         <section className="bg-card p-5 sm:p-6">
           <Server className="size-5 text-primary" aria-hidden />
-          <h3 className="mt-3 font-display font-bold">
+          <h3 className="mt-3 font-bold">
             {m.channel_request_host_title()}
           </h3>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">

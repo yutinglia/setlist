@@ -1,0 +1,17 @@
+{
+  "name": "Setlist — VTuber Karaoke Search",
+  "short_name": "Setlist",
+  "description": "Search VTuber karaoke setlists and open performances at the saved timestamp.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9f9f9",
+  "theme_color": "#f40035",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

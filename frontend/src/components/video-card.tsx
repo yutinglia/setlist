@@ -43,19 +43,19 @@ export function VideoCard({ video, index = 0 }: Props) {
           className="size-full object-cover transition-transform duration-300 group-hover/thumbnail:scale-[1.025]"
           loading="lazy"
         />
-        <span className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+        <span className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
         <span className="absolute inset-0 grid place-items-center opacity-0 transition-opacity group-hover/thumbnail:opacity-100 group-focus-visible/thumbnail:opacity-100">
-          <span className="grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-xl">
+          <span className="grid size-12 place-items-center rounded-full bg-brand text-white shadow-xl">
             <Info className="size-5" aria-hidden />
           </span>
         </span>
       </Link>
 
-      <div className="flex min-w-0 flex-1 flex-col px-1 pt-3">
+      <div className="flex min-w-0 flex-1 flex-col pt-3">
         <Link
           to="/videos/$videoId"
           params={{ videoId: video.id }}
-          className="line-clamp-2 font-display text-base leading-snug font-bold tracking-tight transition-colors hover:text-primary"
+          className="line-clamp-2 text-base leading-snug font-semibold tracking-[-0.01em] transition-colors hover:text-primary"
         >
           {video.title}
         </Link>
@@ -71,7 +71,7 @@ export function VideoCard({ video, index = 0 }: Props) {
               video.upload_date,
               video.upload_date_precision,
             )}
-            className="font-mono text-[0.68rem] leading-relaxed text-muted-foreground tabular-nums"
+            className="text-xs leading-relaxed text-muted-foreground tabular-nums"
           >
             {dateLabel ?? m.video_date_unknown()}
           </time>
@@ -81,7 +81,7 @@ export function VideoCard({ video, index = 0 }: Props) {
               target="_blank"
               rel="noreferrer"
               className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
+              buttonVariants({ variant: "ghost", size: "sm" }),
                 "shrink-0",
               )}
               aria-label={m.open_youtube()}
@@ -93,7 +93,7 @@ export function VideoCard({ video, index = 0 }: Props) {
               to="/videos/$videoId"
               params={{ videoId: video.id }}
               className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
+              buttonVariants({ variant: "ghost", size: "sm" }),
                 "shrink-0",
               )}
             >

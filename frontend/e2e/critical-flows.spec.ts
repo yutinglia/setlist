@@ -206,10 +206,9 @@ test("searches from the home page and opens a song detail", async ({ page }) => 
   await expect(
     page.getByRole("heading", { level: 1, name: "Test Song" }),
   ).toBeVisible()
-  await expect(page.getByRole("link", { name: "Open on YouTube" })).toHaveAttribute(
-    "href",
-    song.video_url,
-  )
+  await expect(
+    page.getByRole("link", { name: "Open on YouTube" }).last(),
+  ).toHaveAttribute("href", song.video_url)
 })
 
 test("renders a video setlist with a timestamped YouTube link", async ({
@@ -234,7 +233,10 @@ test("searches channels and browses recent catalog updates", async ({ page }) =>
   await page.getByRole("searchbox", { name: "Search channels" }).fill(
     "Test Singer",
   )
-  await page.getByRole("button", { name: "Search" }).click()
+  await page
+    .getByRole("search", { name: "Search channels" })
+    .getByRole("button", { name: "Search" })
+    .click()
   await expect(page).toHaveURL(/\/channels\?.*q=Test(?:\+|%20)Singer/)
   await expect(page.getByText(channel.name)).toBeVisible()
 
@@ -265,11 +267,12 @@ test("redirects a guest to login before showing administrator status", async ({
 
   for (const width of [1280, 1024]) {
     await page.setViewportSize({ width, height: 720 })
-    const headerNav = page.getByRole("banner").getByRole("navigation")
+    const sidebar = page.getByRole("complementary")
+    const sidebarNav = sidebar.getByRole("navigation")
     await expect(
-      headerNav.getByRole("link", { name: "Status" }),
+      sidebarNav.getByRole("link", { name: "Status" }),
     ).toBeInViewport()
-    const navWidths = await headerNav.evaluate((element) => ({
+    const navWidths = await sidebar.evaluate((element) => ({
       client: element.clientWidth,
       scroll: element.scrollWidth,
     }))

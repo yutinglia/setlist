@@ -16,147 +16,146 @@ MIT License. The packages below remain subject to their respective terms.
 - `@floating-ui/react-dom@2.1.9` — MIT; full text L001 — atomiks — https://floating-ui.com/docs/react-dom
 - `@floating-ui/utils@0.2.12` — MIT; full text L001 — atomiks — https://floating-ui.com
 - `@fontsource-variable/figtree@5.3.0` — OFL-1.1; full text L002 — Google Inc. — https://fontsource.org/fonts/figtree
-- `@fontsource-variable/syne@5.3.0` — OFL-1.1; full text L003 — Google Inc. — https://fontsource.org/fonts/syne
-- `@inlang/paraglide-js@2.23.2` — MIT; full text L004 — inlang <hello@inlang.com> (https://inlang.com/) — https://paraglidejs.com
-- `@inlang/recommend-sherlock@0.2.1` — MIT; full text L004
-- `@inlang/sdk@2.10.2` — MIT; full text L005 — https://inlang.com/documentation/sdk
-- `@jridgewell/gen-mapping@0.3.13` — MIT; full text L006 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/gen-mapping
-- `@jridgewell/remapping@2.3.5` — MIT; full text L006 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/remapping
-- `@jridgewell/resolve-uri@3.1.2` — MIT; full text L007 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/resolve-uri
-- `@jridgewell/sourcemap-codec@1.5.5` — MIT; full text L006 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/sourcemap-codec
-- `@jridgewell/trace-mapping@0.3.31` — MIT; full text L006 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/trace-mapping
-- `@lix-js/sdk@0.4.10` — Apache-2.0; full text L005
-- `@lix-js/server-protocol-schema@0.1.1` — Apache-2.0; full text L005
-- `@oxc-project/types@0.142.0` — MIT; full text L008 — Boshen and oxc contributors — https://oxc.rs
-- `@radix-ui/number@1.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/primitive@1.1.7` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-accessible-icon@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-accordion@1.2.20` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-alert-dialog@1.1.23` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-arrow@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-aspect-ratio@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-avatar@1.2.6` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-checkbox@1.3.11` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-collapsible@1.1.20` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-collection@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-compose-refs@1.1.5` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-context-menu@2.3.7` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-context@1.2.2` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-dialog@1.1.23` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-direction@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-dismissable-layer@1.1.19` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-dropdown-menu@2.1.24` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-focus-guards@1.1.6` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-focus-scope@1.1.16` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-form@0.1.16` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-hover-card@1.1.23` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-id@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-label@2.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-menu@2.1.24` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-menubar@1.1.24` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-navigation-menu@1.2.22` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-one-time-password-field@0.1.16` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-password-toggle-field@0.1.11` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-popover@1.1.23` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-popper@1.3.7` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-portal@1.1.17` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-presence@1.1.10` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-primitive@2.1.10` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-progress@1.1.16` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-radio-group@1.4.7` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-roving-focus@1.1.19` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-scroll-area@1.2.18` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-select@2.3.7` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-separator@1.1.15` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-slider@1.4.7` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-slot@1.3.3` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-switch@1.3.7` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-tabs@1.1.21` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-toast@1.2.23` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-toggle-group@1.1.19` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-toggle@1.1.18` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-toolbar@1.1.19` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-tooltip@1.2.16` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-callback-ref@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-controllable-state@1.2.6` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-effect-event@0.0.5` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-escape-keydown@1.1.5` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-is-hydrated@0.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-layout-effect@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-previous@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-rect@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-size@1.1.4` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/react-visually-hidden@1.2.11` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@radix-ui/rect@1.1.3` — MIT; full text L009 — https://radix-ui.com/primitives
-- `@rolldown/pluginutils@1.0.1` — MIT; full text L010 — https://github.com/rolldown/plugins/tree/main/packages/pluginutils#readme
-- `@sinclair/typebox@0.31.30` — MIT; full text L011 — sinclairzx81 — https://github.com/sinclairzx81/sinclair-typebox
-- `@sqlite.org/sqlite-wasm@3.48.0-build4` — Apache-2.0; full text L012 — Thomas Steiner (tomac@google.com) — https://github.com/sqlite/sqlite-wasm#readme
-- `@tanstack/history@1.162.1` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/router
-- `@tanstack/query-core@5.101.4` — MIT; full text L013 — tannerlinsley — https://tanstack.com/query
-- `@tanstack/react-query@5.101.4` — MIT; full text L013 — tannerlinsley — https://tanstack.com/query
-- `@tanstack/react-router@1.170.22` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/router
-- `@tanstack/react-store@0.9.3` — MIT; full text L014 — Tanner Linsley — https://tanstack.com/store
-- `@tanstack/router-core@1.171.19` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/router
-- `@tanstack/store@0.9.3` — MIT; full text L014 — Tanner Linsley — https://tanstack.com/store
-- `@types/node@26.1.2` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
-- `@types/react-dom@19.2.4` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
-- `@types/react@19.2.18` — MIT; full text L015 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
-- `acorn@8.17.0` — MIT; full text L016 — https://github.com/acornjs/acorn
-- `aria-hidden@1.2.6` — MIT; full text L017 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/aria-hidden#readme
-- `array-timsort@1.0.3` — MIT; full text L018 — https://github.com/kaelzhang/node-array-timsort
-- `class-variance-authority@0.7.1` — Apache-2.0; full text L019 — Joe Bell (https://joebell.co.uk) — https://github.com/joe-bell/cva#readme
-- `clsx@2.1.1` — MIT; full text L020 — Luke Edwards — lukeed/clsx
-- `commander@11.1.0` — MIT; full text L021 — TJ Holowaychuk <tj@vision-media.ca> — https://github.com/tj/commander.js
-- `comment-json@4.6.2` — MIT; full text L022 — kaelzhang — git://github.com/kaelzhang/node-comment-json
-- `consola@3.4.0` — MIT; full text L023 — unjs/consola
-- `cookie-es@3.1.1` — MIT; full text L024 — unjs/cookie-es
-- `csstype@3.2.3` — MIT; full text L025 — Fredrik Nicol <fredrik.nicol@gmail.com> — https://github.com/frenic/csstype
-- `dedent@1.5.1` — MIT; full text L026 — Desmond Brand — https://github.com/dmnd/dedent
-- `detect-libc@2.1.2` — Apache-2.0; full text L027 — Lovell Fuller <npm@lovell.info> — git://github.com/lovell/detect-libc
-- `detect-node-es@1.1.0` — MIT; full text L028 — Ilya Kantor — https://github.com/thekashey/detect-node
-- `esprima@4.0.1` — BSD-2-Clause; full text L029 — Ariya Hidayat — http://esprima.org
-- `fdir@6.5.0` — MIT; full text L030 — thecodrr <thecodrr@protonmail.com> — https://github.com/thecodrr/fdir#readme
-- `get-nonce@1.0.1` — MIT; full text L031 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/get-nonce
-- `human-id@4.2.0` — MIT; full text L032 — RienNeVaPlus <?@rienneva.plus> — https://github.com/RienNeVaPlus/human-id#readme
-- `isbot@5.2.1` — Unlicense; full text L033 — https://isbot.js.org
-- `jiti@2.7.0` — MIT; full text L034 — unjs/jiti
-- `js-sha256@0.11.1` — MIT; full text L035 — Chen, Yi-Cyuan <emn178@gmail.com> — https://github.com/emn178/js-sha256
-- `json5@2.2.3` — MIT; full text L036 — Aseem Kishore <aseem.kishore@gmail.com> — http://json5.org/
-- `kysely@0.28.17` — MIT; full text L037 — Sami Koskimäki <sami@jakso.me> — https://kysely.dev
-- `lightningcss@1.33.0` — MPL-2.0; full text L038 — https://github.com/parcel-bundler/lightningcss
-- `lucide-react@1.30.0` — ISC; full text L039 — Eric Fennis — https://lucide.dev
-- `nanoid@3.3.18` — MIT; full text L040 — Andrey Sitnik <andrey@sitnik.ru> — ai/nanoid
-- `picocolors@1.1.1` — ISC; full text L041 — Alexey Raspopov — alexeyraspopov/picocolors
-- `picomatch@4.0.5` — MIT; full text L042 — Jon Schlinkert (https://github.com/jonschlinkert) — https://github.com/micromatch/picomatch
-- `postcss@8.5.26` — MIT; full text L043 — Andrey Sitnik <andrey@sitnik.es> — https://postcss.org/
-- `radix-ui@1.6.7` — MIT; full text L009 — https://radix-ui.com/primitives
-- `react-dom@19.2.8` — MIT; full text L044 — https://react.dev/
-- `react-remove-scroll-bar@2.3.8` — MIT; full text L017 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll-bar
-- `react-remove-scroll@2.7.2` — MIT; full text L017 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll
-- `react-style-singleton@2.2.3` — MIT; full text L017 — Anton Korzunov (thekashey@gmail.com) — https://github.com/theKashey/react-style-singleton#readme
-- `react@19.2.8` — MIT; full text L044 — https://react.dev/
-- `rolldown@1.2.1` — MIT; full text L045 — https://rolldown.rs/
-- `scheduler@0.27.0` — MIT; full text L044 — https://react.dev/
-- `seroval-plugins@1.6.2` — MIT; full text L046 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/plugins
-- `seroval@1.6.2` — MIT; full text L046 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/seroval
-- `source-map-js@1.2.1` — BSD-3-Clause; full text L047 — Valentin 7rulnik Semirulnik <v7rulnik@gmail.com> — https://github.com/7rulnik/source-map-js
-- `sqlite-wasm-kysely@0.3.0` — Not declared; full text L005
-- `tailwind-merge@3.6.0` — MIT; full text L048 — Dany Castillo — https://github.com/dcastil/tailwind-merge
-- `tinyglobby@0.2.17` — MIT; full text L049 — Superchupu — https://superchupu.dev/tinyglobby
-- `tslib@2.8.1` — 0BSD; full text L050 — Microsoft Corp. — https://www.typescriptlang.org/
-- `tw-animate-css@1.4.0` — MIT; full text L051 — Luca Bosin — https://github.com/Wombosvideo/tw-animate-css#readme
-- `typescript@6.0.3` — Apache-2.0; full text L012 — Microsoft Corp. — https://www.typescriptlang.org/
-- `undici-types@8.3.0` — MIT; full text L052 — https://undici.nodejs.org
-- `unplugin@2.3.11` — MIT; full text L053 — https://unplugin.unjs.io
-- `urlpattern-polyfill@10.1.0` — MIT; full text L054 — https://github.com/kenchris/urlpattern-polyfill
-- `use-callback-ref@1.3.3` — MIT; full text L017 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-callback-ref/
-- `use-sidecar@1.1.3` — MIT; full text L017 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-sidecar
-- `use-sync-external-store@1.6.0` — MIT; full text L044 — https://github.com/facebook/react
-- `uuid@14.0.1` — MIT; full text L055 — https://github.com/uuidjs/uuid
-- `vite@8.2.1` — MIT; full text L056 — Evan You — https://vite.dev
-- `webpack-virtual-modules@0.6.2` — MIT; full text L057 — SysGears INC — https://github.com/sysgears/webpack-virtual-modules#readme
-- `zod@4.4.3` — MIT; full text L058 — Colin McDonnell <zod@colinhacks.com> — https://zod.dev
-- `zustand@5.0.14` — MIT; full text L059 — Paul Henschel — https://github.com/pmndrs/zustand
+- `@inlang/paraglide-js@2.23.2` — MIT; full text L003 — inlang <hello@inlang.com> (https://inlang.com/) — https://paraglidejs.com
+- `@inlang/recommend-sherlock@0.2.1` — MIT; full text L003
+- `@inlang/sdk@2.10.2` — MIT; full text L004 — https://inlang.com/documentation/sdk
+- `@jridgewell/gen-mapping@0.3.13` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/gen-mapping
+- `@jridgewell/remapping@2.3.5` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/remapping
+- `@jridgewell/resolve-uri@3.1.2` — MIT; full text L006 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/resolve-uri
+- `@jridgewell/sourcemap-codec@1.5.5` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/sourcemap-codec
+- `@jridgewell/trace-mapping@0.3.31` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/trace-mapping
+- `@lix-js/sdk@0.4.10` — Apache-2.0; full text L004
+- `@lix-js/server-protocol-schema@0.1.1` — Apache-2.0; full text L004
+- `@oxc-project/types@0.142.0` — MIT; full text L007 — Boshen and oxc contributors — https://oxc.rs
+- `@radix-ui/number@1.1.3` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/primitive@1.1.7` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-accessible-icon@1.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-accordion@1.2.20` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-alert-dialog@1.1.23` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-arrow@1.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-aspect-ratio@1.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-avatar@1.2.6` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-checkbox@1.3.11` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-collapsible@1.1.20` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-collection@1.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-compose-refs@1.1.5` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-context-menu@2.3.7` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-context@1.2.2` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-dialog@1.1.23` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-direction@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-dismissable-layer@1.1.19` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-dropdown-menu@2.1.24` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-focus-guards@1.1.6` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-focus-scope@1.1.16` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-form@0.1.16` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-hover-card@1.1.23` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-id@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-label@2.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-menu@2.1.24` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-menubar@1.1.24` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-navigation-menu@1.2.22` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-one-time-password-field@0.1.16` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-password-toggle-field@0.1.11` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-popover@1.1.23` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-popper@1.3.7` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-portal@1.1.17` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-presence@1.1.10` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-primitive@2.1.10` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-progress@1.1.16` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-radio-group@1.4.7` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-roving-focus@1.1.19` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-scroll-area@1.2.18` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-select@2.3.7` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-separator@1.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-slider@1.4.7` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-slot@1.3.3` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-switch@1.3.7` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-tabs@1.1.21` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-toast@1.2.23` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-toggle-group@1.1.19` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-toggle@1.1.18` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-toolbar@1.1.19` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-tooltip@1.2.16` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-callback-ref@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-controllable-state@1.2.6` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-effect-event@0.0.5` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-escape-keydown@1.1.5` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-is-hydrated@0.1.3` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-layout-effect@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-previous@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-rect@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-size@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-visually-hidden@1.2.11` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/rect@1.1.3` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@rolldown/pluginutils@1.0.1` — MIT; full text L009 — https://github.com/rolldown/plugins/tree/main/packages/pluginutils#readme
+- `@sinclair/typebox@0.31.30` — MIT; full text L010 — sinclairzx81 — https://github.com/sinclairzx81/sinclair-typebox
+- `@sqlite.org/sqlite-wasm@3.48.0-build4` — Apache-2.0; full text L011 — Thomas Steiner (tomac@google.com) — https://github.com/sqlite/sqlite-wasm#readme
+- `@tanstack/history@1.162.1` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/query-core@5.101.4` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
+- `@tanstack/react-query@5.101.4` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
+- `@tanstack/react-router@1.170.22` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/react-store@0.9.3` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
+- `@tanstack/router-core@1.171.19` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/store@0.9.3` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
+- `@types/node@26.1.2` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
+- `@types/react-dom@19.2.4` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
+- `@types/react@19.2.18` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
+- `acorn@8.17.0` — MIT; full text L015 — https://github.com/acornjs/acorn
+- `aria-hidden@1.2.6` — MIT; full text L016 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/aria-hidden#readme
+- `array-timsort@1.0.3` — MIT; full text L017 — https://github.com/kaelzhang/node-array-timsort
+- `class-variance-authority@0.7.1` — Apache-2.0; full text L018 — Joe Bell (https://joebell.co.uk) — https://github.com/joe-bell/cva#readme
+- `clsx@2.1.1` — MIT; full text L019 — Luke Edwards — lukeed/clsx
+- `commander@11.1.0` — MIT; full text L020 — TJ Holowaychuk <tj@vision-media.ca> — https://github.com/tj/commander.js
+- `comment-json@4.6.2` — MIT; full text L021 — kaelzhang — git://github.com/kaelzhang/node-comment-json
+- `consola@3.4.0` — MIT; full text L022 — unjs/consola
+- `cookie-es@3.1.1` — MIT; full text L023 — unjs/cookie-es
+- `csstype@3.2.3` — MIT; full text L024 — Fredrik Nicol <fredrik.nicol@gmail.com> — https://github.com/frenic/csstype
+- `dedent@1.5.1` — MIT; full text L025 — Desmond Brand — https://github.com/dmnd/dedent
+- `detect-libc@2.1.2` — Apache-2.0; full text L026 — Lovell Fuller <npm@lovell.info> — git://github.com/lovell/detect-libc
+- `detect-node-es@1.1.0` — MIT; full text L027 — Ilya Kantor — https://github.com/thekashey/detect-node
+- `esprima@4.0.1` — BSD-2-Clause; full text L028 — Ariya Hidayat — http://esprima.org
+- `fdir@6.5.0` — MIT; full text L029 — thecodrr <thecodrr@protonmail.com> — https://github.com/thecodrr/fdir#readme
+- `get-nonce@1.0.1` — MIT; full text L030 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/get-nonce
+- `human-id@4.2.0` — MIT; full text L031 — RienNeVaPlus <?@rienneva.plus> — https://github.com/RienNeVaPlus/human-id#readme
+- `isbot@5.2.1` — Unlicense; full text L032 — https://isbot.js.org
+- `jiti@2.7.0` — MIT; full text L033 — unjs/jiti
+- `js-sha256@0.11.1` — MIT; full text L034 — Chen, Yi-Cyuan <emn178@gmail.com> — https://github.com/emn178/js-sha256
+- `json5@2.2.3` — MIT; full text L035 — Aseem Kishore <aseem.kishore@gmail.com> — http://json5.org/
+- `kysely@0.28.17` — MIT; full text L036 — Sami Koskimäki <sami@jakso.me> — https://kysely.dev
+- `lightningcss@1.33.0` — MPL-2.0; full text L037 — https://github.com/parcel-bundler/lightningcss
+- `lucide-react@1.30.0` — ISC; full text L038 — Eric Fennis — https://lucide.dev
+- `nanoid@3.3.18` — MIT; full text L039 — Andrey Sitnik <andrey@sitnik.ru> — ai/nanoid
+- `picocolors@1.1.1` — ISC; full text L040 — Alexey Raspopov — alexeyraspopov/picocolors
+- `picomatch@4.0.5` — MIT; full text L041 — Jon Schlinkert (https://github.com/jonschlinkert) — https://github.com/micromatch/picomatch
+- `postcss@8.5.26` — MIT; full text L042 — Andrey Sitnik <andrey@sitnik.es> — https://postcss.org/
+- `radix-ui@1.6.7` — MIT; full text L008 — https://radix-ui.com/primitives
+- `react-dom@19.2.8` — MIT; full text L043 — https://react.dev/
+- `react-remove-scroll-bar@2.3.8` — MIT; full text L016 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll-bar
+- `react-remove-scroll@2.7.2` — MIT; full text L016 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll
+- `react-style-singleton@2.2.3` — MIT; full text L016 — Anton Korzunov (thekashey@gmail.com) — https://github.com/theKashey/react-style-singleton#readme
+- `react@19.2.8` — MIT; full text L043 — https://react.dev/
+- `rolldown@1.2.1` — MIT; full text L044 — https://rolldown.rs/
+- `scheduler@0.27.0` — MIT; full text L043 — https://react.dev/
+- `seroval-plugins@1.6.2` — MIT; full text L045 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/plugins
+- `seroval@1.6.2` — MIT; full text L045 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/seroval
+- `source-map-js@1.2.1` — BSD-3-Clause; full text L046 — Valentin 7rulnik Semirulnik <v7rulnik@gmail.com> — https://github.com/7rulnik/source-map-js
+- `sqlite-wasm-kysely@0.3.0` — Not declared; full text L004
+- `tailwind-merge@3.6.0` — MIT; full text L047 — Dany Castillo — https://github.com/dcastil/tailwind-merge
+- `tinyglobby@0.2.17` — MIT; full text L048 — Superchupu — https://superchupu.dev/tinyglobby
+- `tslib@2.8.1` — 0BSD; full text L049 — Microsoft Corp. — https://www.typescriptlang.org/
+- `tw-animate-css@1.4.0` — MIT; full text L050 — Luca Bosin — https://github.com/Wombosvideo/tw-animate-css#readme
+- `typescript@6.0.3` — Apache-2.0; full text L011 — Microsoft Corp. — https://www.typescriptlang.org/
+- `undici-types@8.3.0` — MIT; full text L051 — https://undici.nodejs.org
+- `unplugin@2.3.11` — MIT; full text L052 — https://unplugin.unjs.io
+- `urlpattern-polyfill@10.1.0` — MIT; full text L053 — https://github.com/kenchris/urlpattern-polyfill
+- `use-callback-ref@1.3.3` — MIT; full text L016 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-callback-ref/
+- `use-sidecar@1.1.3` — MIT; full text L016 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-sidecar
+- `use-sync-external-store@1.6.0` — MIT; full text L043 — https://github.com/facebook/react
+- `uuid@14.0.1` — MIT; full text L054 — https://github.com/uuidjs/uuid
+- `vite@8.2.1` — MIT; full text L055 — Evan You — https://vite.dev
+- `webpack-virtual-modules@0.6.2` — MIT; full text L056 — SysGears INC — https://github.com/sysgears/webpack-virtual-modules#readme
+- `zod@4.4.3` — MIT; full text L057 — Colin McDonnell <zod@colinhacks.com> — https://zod.dev
+- `zustand@5.0.14` — MIT; full text L058 — Paul Henschel — https://github.com/pmndrs/zustand
 
 ## License texts
 
@@ -289,106 +288,6 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ### L003
 
-Applies to: `@fontsource-variable/syne@5.3.0`
-
-```text
-Copyright 2019 The Syne Project Authors (https://gitlab.com/bonjour-monde/fonderie/syne-typeface)
-
-This Font Software is licensed under the SIL Open Font License, Version 1.1.
-This license is copied below, and is also available with a FAQ at:
-http://scripts.sil.org/OFL
-
-
------------------------------------------------------------
-SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
------------------------------------------------------------
-
-PREAMBLE
-The goals of the Open Font License (OFL) are to stimulate worldwide
-development of collaborative font projects, to support the font creation
-efforts of academic and linguistic communities, and to provide a free and
-open framework in which fonts may be shared and improved in partnership
-with others.
-
-The OFL allows the licensed fonts to be used, studied, modified and
-redistributed freely as long as they are not sold by themselves. The
-fonts, including any derivative works, can be bundled, embedded,
-redistributed and/or sold with any software provided that any reserved
-names are not used by derivative works. The fonts and derivatives,
-however, cannot be released under any other type of license. The
-requirement for fonts to remain under this license does not apply
-to any document created using the fonts or their derivatives.
-
-DEFINITIONS
-"Font Software" refers to the set of files released by the Copyright
-Holder(s) under this license and clearly marked as such. This may
-include source files, build scripts and documentation.
-
-"Reserved Font Name" refers to any names specified as such after the
-copyright statement(s).
-
-"Original Version" refers to the collection of Font Software components as
-distributed by the Copyright Holder(s).
-
-"Modified Version" refers to any derivative made by adding to, deleting,
-or substituting -- in part or in whole -- any of the components of the
-Original Version, by changing formats or by porting the Font Software to a
-new environment.
-
-"Author" refers to any designer, engineer, programmer, technical
-writer or other person who contributed to the Font Software.
-
-PERMISSION & CONDITIONS
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of the Font Software, to use, study, copy, merge, embed, modify,
-redistribute, and sell modified and unmodified copies of the Font
-Software, subject to the following conditions:
-
-1) Neither the Font Software nor any of its individual components,
-in Original or Modified Versions, may be sold by itself.
-
-2) Original or Modified Versions of the Font Software may be bundled,
-redistributed and/or sold with any software, provided that each copy
-contains the above copyright notice and this license. These can be
-included either as stand-alone text files, human-readable headers or
-in the appropriate machine-readable metadata fields within text or
-binary files as long as those fields can be easily viewed by the user.
-
-3) No Modified Version of the Font Software may use the Reserved Font
-Name(s) unless explicit written permission is granted by the corresponding
-Copyright Holder. This restriction only applies to the primary font name as
-presented to the users.
-
-4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
-Software shall not be used to promote, endorse or advertise any
-Modified Version, except to acknowledge the contribution(s) of the
-Copyright Holder(s) and the Author(s) or with their explicit written
-permission.
-
-5) The Font Software, modified or unmodified, in part or in whole,
-must be distributed entirely under this license, and must not be
-distributed under any other license. The requirement for fonts to
-remain under this license does not apply to any document created
-using the Font Software.
-
-TERMINATION
-This license becomes null and void if any of the above conditions are
-not met.
-
-DISCLAIMER
-THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
-OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
-COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
-DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
-OTHER DEALINGS IN THE FONT SOFTWARE.
-```
-
-### L004
-
 Applies to: `@inlang/paraglide-js@2.23.2`, `@inlang/recommend-sherlock@0.2.1`
 
 ```text
@@ -415,7 +314,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L005
+### L004
 
 Applies to: `@inlang/sdk@2.10.2`, `@lix-js/sdk@0.4.10`, `@lix-js/server-protocol-schema@0.1.1`, `sqlite-wasm-kysely@0.3.0`
 
@@ -443,7 +342,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L006
+### L005
 
 Applies to: `@jridgewell/gen-mapping@0.3.13`, `@jridgewell/remapping@2.3.5`, `@jridgewell/sourcemap-codec@1.5.5`, `@jridgewell/trace-mapping@0.3.31`
 
@@ -469,7 +368,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L007
+### L006
 
 Applies to: `@jridgewell/resolve-uri@3.1.2`
 
@@ -495,7 +394,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L008
+### L007
 
 Applies to: `@oxc-project/types@0.142.0`
 
@@ -524,7 +423,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L009
+### L008
 
 Applies to: `@radix-ui/number@1.1.3`, `@radix-ui/primitive@1.1.7`, `@radix-ui/react-accessible-icon@1.1.15`, `@radix-ui/react-accordion@1.2.20`, `@radix-ui/react-alert-dialog@1.1.23`, `@radix-ui/react-arrow@1.1.15`, `@radix-ui/react-aspect-ratio@1.1.15`, `@radix-ui/react-avatar@1.2.6`, `@radix-ui/react-checkbox@1.3.11`, `@radix-ui/react-collapsible@1.1.20`, `@radix-ui/react-collection@1.1.15`, `@radix-ui/react-compose-refs@1.1.5`, `@radix-ui/react-context@1.2.2`, `@radix-ui/react-context-menu@2.3.7`, `@radix-ui/react-dialog@1.1.23`, `@radix-ui/react-direction@1.1.4`, `@radix-ui/react-dismissable-layer@1.1.19`, `@radix-ui/react-dropdown-menu@2.1.24`, `@radix-ui/react-focus-guards@1.1.6`, `@radix-ui/react-focus-scope@1.1.16`, `@radix-ui/react-form@0.1.16`, `@radix-ui/react-hover-card@1.1.23`, `@radix-ui/react-id@1.1.4`, `@radix-ui/react-label@2.1.15`, `@radix-ui/react-menu@2.1.24`, `@radix-ui/react-menubar@1.1.24`, `@radix-ui/react-navigation-menu@1.2.22`, `@radix-ui/react-one-time-password-field@0.1.16`, `@radix-ui/react-password-toggle-field@0.1.11`, `@radix-ui/react-popover@1.1.23`, `@radix-ui/react-popper@1.3.7`, `@radix-ui/react-portal@1.1.17`, `@radix-ui/react-presence@1.1.10`, `@radix-ui/react-primitive@2.1.10`, `@radix-ui/react-progress@1.1.16`, `@radix-ui/react-radio-group@1.4.7`, `@radix-ui/react-roving-focus@1.1.19`, `@radix-ui/react-scroll-area@1.2.18`, `@radix-ui/react-select@2.3.7`, `@radix-ui/react-separator@1.1.15`, `@radix-ui/react-slider@1.4.7`, `@radix-ui/react-slot@1.3.3`, `@radix-ui/react-switch@1.3.7`, `@radix-ui/react-tabs@1.1.21`, `@radix-ui/react-toast@1.2.23`, `@radix-ui/react-toggle@1.1.18`, `@radix-ui/react-toggle-group@1.1.19`, `@radix-ui/react-toolbar@1.1.19`, `@radix-ui/react-tooltip@1.2.16`, `@radix-ui/react-use-callback-ref@1.1.4`, `@radix-ui/react-use-controllable-state@1.2.6`, `@radix-ui/react-use-effect-event@0.0.5`, `@radix-ui/react-use-escape-keydown@1.1.5`, `@radix-ui/react-use-is-hydrated@0.1.3`, `@radix-ui/react-use-layout-effect@1.1.4`, `@radix-ui/react-use-previous@1.1.4`, `@radix-ui/react-use-rect@1.1.4`, `@radix-ui/react-use-size@1.1.4`, `@radix-ui/react-visually-hidden@1.2.11`, `@radix-ui/rect@1.1.3`, `radix-ui@1.6.7`
 
@@ -552,7 +451,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L010
+### L009
 
 Applies to: `@rolldown/pluginutils@1.0.1`
 
@@ -580,7 +479,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L011
+### L010
 
 Applies to: `@sinclair/typebox@0.31.30`
 
@@ -610,7 +509,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### L012
+### L011
 
 Applies to: `@sqlite.org/sqlite-wasm@3.48.0-build4`, `typescript@6.0.3`
 
@@ -672,7 +571,7 @@ If the Work includes a "NOTICE" text file as part of its distribution, then any 
 END OF TERMS AND CONDITIONS
 ```
 
-### L013
+### L012
 
 Applies to: `@tanstack/history@1.162.1`, `@tanstack/query-core@5.101.4`, `@tanstack/react-query@5.101.4`, `@tanstack/react-router@1.170.22`, `@tanstack/router-core@1.171.19`
 
@@ -700,7 +599,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L014
+### L013
 
 Applies to: `@tanstack/react-store@0.9.3`, `@tanstack/store@0.9.3`
 
@@ -728,7 +627,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L015
+### L014
 
 Applies to: `@types/node@26.1.2`, `@types/react@19.2.18`, `@types/react-dom@19.2.4`
 
@@ -756,7 +655,7 @@ MIT License
     SOFTWARE
 ```
 
-### L016
+### L015
 
 Applies to: `acorn@8.17.0`
 
@@ -784,7 +683,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### L017
+### L016
 
 Applies to: `aria-hidden@1.2.6`, `react-remove-scroll@2.7.2`, `react-remove-scroll-bar@2.3.8`, `react-style-singleton@2.2.3`, `use-callback-ref@1.3.3`, `use-sidecar@1.1.3`
 
@@ -812,7 +711,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L018
+### L017
 
 Applies to: `array-timsort@1.0.3`
 
@@ -840,7 +739,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### L019
+### L018
 
 Applies to: `class-variance-authority@0.7.1`
 
@@ -1037,7 +936,7 @@ Apache License
    limitations under the License.
 ```
 
-### L020
+### L019
 
 Applies to: `clsx@2.1.1`
 
@@ -1053,7 +952,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L021
+### L020
 
 Applies to: `commander@11.1.0`
 
@@ -1082,7 +981,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L022
+### L021
 
 Applies to: `comment-json@4.6.2`
 
@@ -1110,7 +1009,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L023
+### L022
 
 Applies to: `consola@3.4.0`
 
@@ -1164,7 +1063,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L024
+### L023
 
 Applies to: `cookie-es@3.1.1`
 
@@ -1199,7 +1098,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L025
+### L024
 
 Applies to: `csstype@3.2.3`
 
@@ -1225,7 +1124,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L026
+### L025
 
 Applies to: `dedent@1.5.1`
 
@@ -1253,7 +1152,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### L027
+### L026
 
 Applies to: `detect-libc@2.1.2`
 
@@ -1461,7 +1360,7 @@ Apache License
    limitations under the License.
 ```
 
-### L028
+### L027
 
 Applies to: `detect-node-es@1.1.0`
 
@@ -1489,7 +1388,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L029
+### L028
 
 Applies to: `esprima@4.0.1`
 
@@ -1517,7 +1416,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### L030
+### L029
 
 Applies to: `fdir@6.5.0`
 
@@ -1531,7 +1430,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L031
+### L030
 
 Applies to: `get-nonce@1.0.1`
 
@@ -1559,7 +1458,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L032
+### L031
 
 Applies to: `human-id@4.2.0`
 
@@ -1587,7 +1486,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L033
+### L032
 
 Applies to: `isbot@5.2.1`
 
@@ -1620,7 +1519,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org/>
 ```
 
-### L034
+### L033
 
 Applies to: `jiti@2.7.0`
 
@@ -1648,7 +1547,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L035
+### L034
 
 Applies to: `js-sha256@0.11.1`
 
@@ -1677,7 +1576,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L036
+### L035
 
 Applies to: `json5@2.2.3`
 
@@ -1707,7 +1606,7 @@ SOFTWARE.
 [others]: https://github.com/json5/json5/contributors
 ```
 
-### L037
+### L036
 
 Applies to: `kysely@0.28.17`
 
@@ -1735,7 +1634,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L038
+### L037
 
 Applies to: `lightningcss@1.33.0`
 
@@ -2115,7 +2014,7 @@ This Source Code Form is "Incompatible With Secondary Licenses", as
 defined by the Mozilla Public License, v. 2.0.
 ```
 
-### L039
+### L038
 
 Applies to: `lucide-react@1.30.0`
 
@@ -2165,7 +2064,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L040
+### L039
 
 Applies to: `nanoid@3.3.18`
 
@@ -2192,7 +2091,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L041
+### L040
 
 Applies to: `picocolors@1.1.1`
 
@@ -2214,7 +2113,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### L042
+### L041
 
 Applies to: `picomatch@4.0.5`
 
@@ -2242,7 +2141,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### L043
+### L042
 
 Applies to: `postcss@8.5.26`
 
@@ -2269,7 +2168,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L044
+### L043
 
 Applies to: `react@19.2.8`, `react-dom@19.2.8`, `scheduler@0.27.0`, `use-sync-external-store@1.6.0`
 
@@ -2297,7 +2196,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L045
+### L044
 
 Applies to: `rolldown@1.2.1`
 
@@ -2329,7 +2228,7 @@ end of terms and conditions
 The licenses of externally maintained libraries from which parts of the Software is derived are listed [here](https://github.com/rolldown/rolldown/blob/main/THIRD-PARTY-LICENSE).
 ```
 
-### L046
+### L045
 
 Applies to: `seroval@1.6.2`, `seroval-plugins@1.6.2`
 
@@ -2343,7 +2242,7 @@ The above copyright notice and this permission notice (including the next paragr
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L047
+### L046
 
 Applies to: `source-map-js@1.2.1`
 
@@ -2377,7 +2276,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### L048
+### L047
 
 Applies to: `tailwind-merge@3.6.0`
 
@@ -2405,7 +2304,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L049
+### L048
 
 Applies to: `tinyglobby@0.2.17`
 
@@ -2433,7 +2332,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L050
+### L049
 
 Applies to: `tslib@2.8.1`
 
@@ -2452,7 +2351,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### L051
+### L050
 
 Applies to: `tw-animate-css@1.4.0`
 
@@ -2480,7 +2379,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L052
+### L051
 
 Applies to: `undici-types@8.3.0`
 
@@ -2508,7 +2407,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L053
+### L052
 
 Applies to: `unplugin@2.3.11`
 
@@ -2536,7 +2435,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L054
+### L053
 
 Applies to: `urlpattern-polyfill@10.1.0`
 
@@ -2562,7 +2461,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### L055
+### L054
 
 Applies to: `uuid@14.0.1`
 
@@ -2578,7 +2477,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L056
+### L055
 
 Applies to: `vite@8.2.1`
 
@@ -4907,7 +4806,7 @@ Repository: https://github.com/sveltejs/zimmerframe
 > SOFTWARE.
 ```
 
-### L057
+### L056
 
 Applies to: `webpack-virtual-modules@0.6.2`
 
@@ -4935,7 +4834,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L058
+### L057
 
 Applies to: `zod@4.4.3`
 
@@ -4963,7 +4862,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L059
+### L058
 
 Applies to: `zustand@5.0.14`
 

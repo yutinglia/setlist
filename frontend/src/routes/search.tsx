@@ -94,7 +94,7 @@ function SearchPage() {
   )
 
   return (
-    <section className="animate-fade flex flex-1 flex-col py-10 sm:py-14">
+    <section className="animate-fade flex flex-1 flex-col py-7 sm:py-10">
       <PageMetadata
         path="/search"
         title={`${m.search_page_heading()} | Setlist`}
@@ -104,7 +104,7 @@ function SearchPage() {
 
       <header className="max-w-3xl">
         <p className="eyebrow">{m.search_page_eyebrow()}</p>
-        <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">
+        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
           {m.search_page_heading()}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -112,7 +112,7 @@ function SearchPage() {
         </p>
       </header>
 
-      <div className="mt-7 max-w-5xl">
+      <div className="mt-6 max-w-5xl">
         <SearchForm
           initialQuery={q}
           onQuerySubmit={setQuery}
@@ -135,18 +135,18 @@ function SearchPage() {
         />
       </div>
 
-      <div className="mt-10 border-t border-border/70 pt-8 sm:mt-12 sm:pt-10">
+      <div className="mt-9 border-t border-border pt-7 sm:mt-10 sm:pt-8">
         {q ? (
           <>
             <div className="mb-7 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="eyebrow">{m.results_heading()}</p>
-                <h2 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
+                <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
                   {m.results_for({ query: q })}
                 </h2>
               </div>
               {query.data ? (
-                <p className="font-mono text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground tabular-nums">
                   {m.results_count({ total: formatInteger(query.data.total) })}
                 </p>
               ) : null}
@@ -177,12 +177,12 @@ function SearchPage() {
             </QueryState>
           </>
         ) : (
-          <div className="surface grid min-h-64 place-items-center px-6 py-12 text-center">
+          <div className="grid min-h-60 place-items-center rounded-2xl border border-dashed border-border bg-card/50 px-6 py-12 text-center">
             <div className="max-w-md">
-              <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <span className="mx-auto grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
                 <Search className="size-5" aria-hidden />
               </span>
-              <h2 className="mt-4 font-display text-xl font-bold">
+              <h2 className="mt-4 text-xl font-bold">
                 {m.search_empty_heading()}
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

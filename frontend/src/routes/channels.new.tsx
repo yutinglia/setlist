@@ -78,7 +78,7 @@ function AddChannelPage() {
   const isTooMany = urls.length > MAX_BULK_CHANNELS
 
   return (
-    <section className="animate-fade mx-auto w-full max-w-3xl py-10 sm:py-14">
+    <section className="animate-fade mx-auto w-full max-w-3xl py-7 sm:py-10">
       <PageMetadata
         path="/channels/new"
         title={`${m.channel_add_heading()} | Setlist`}
@@ -93,7 +93,7 @@ function AddChannelPage() {
       />
 
       <p className="eyebrow mt-8">{m.channel_library_eyebrow()}</p>
-      <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">
+      <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
         {m.channel_add_heading()}
       </h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -116,7 +116,7 @@ function AddChannelPage() {
       <div className="surface mt-6 overflow-hidden">
         <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-secondary/35 px-5 py-4">
           <div className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
+            <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-primary">
               <Radio className="size-4" aria-hidden />
             </span>
             <p className="text-sm font-semibold">{m.channel_add_url_label()}</p>
@@ -208,7 +208,7 @@ function TipCard({
   return (
     <div className="rounded-xl border border-border/70 bg-card/55 p-4">
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+        <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
           <Icon className="size-4" aria-hidden />
         </span>
         <div>
@@ -226,7 +226,7 @@ function BulkResult({ result }: { result: ChannelBulkAddResponse }) {
   return (
     <div className="surface mt-6 overflow-hidden" aria-live="polite">
       <div className="flex items-start gap-3 border-b border-border/60 bg-secondary/35 px-5 py-4">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
           {result.failed || result.skipped ? (
             <AlertTriangle className="size-4" aria-hidden />
           ) : (
