@@ -54,7 +54,7 @@ function AdminLoginPage() {
   }
 
   return (
-    <section className="animate-fade mx-auto flex w-full max-w-md flex-1 items-center py-12 sm:py-20">
+    <section className="animate-fade mx-auto flex w-full max-w-md flex-1 items-center py-10 sm:py-16">
       <PageMetadata
         path="/admin/login"
         title={`${m.auth_login_heading()} | Setlist`}
@@ -62,12 +62,12 @@ function AdminLoginPage() {
         noIndex
       />
       <div className="surface w-full overflow-hidden">
-        <div className="border-b border-border/60 bg-secondary/35 px-6 py-6">
-          <span className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary">
+        <div className="border-b border-border bg-secondary/45 px-6 py-6">
+          <span className="grid size-11 place-items-center rounded-full bg-primary/10 text-primary">
             <ShieldCheck className="size-5" aria-hidden />
           </span>
           <p className="eyebrow mt-5">{m.auth_admin_only()}</p>
-          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight">
             {m.auth_login_heading()}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

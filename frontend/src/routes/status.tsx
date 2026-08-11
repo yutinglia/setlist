@@ -99,16 +99,16 @@ function StatusPage() {
     Boolean(data?.is_stalled)
 
   return (
-    <section className="animate-fade py-10 sm:py-14">
+    <section className="animate-fade py-7 sm:py-10">
       <PageMetadata
         path="/status"
         title={`${m.status_heading()} | Setlist`}
         description={m.status_hint()}
         noIndex
       />
-      <header className="border-b border-border/70 pb-8">
+      <header className="border-b border-border pb-7">
         <p className="eyebrow">{m.home_library_live()}</p>
-        <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">
+        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
           {m.status_heading()}
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -143,7 +143,7 @@ function StatusPage() {
                     aria-hidden
                   />
                   <div>
-                    <p className="font-display text-2xl font-bold tracking-tight">
+                    <p className="text-2xl font-bold tracking-tight">
                       {phaseLabel(phase)}
                     </p>
                     {data.detail ? (
@@ -153,7 +153,7 @@ function StatusPage() {
                     ) : null}
                   </div>
                 </div>
-                <p className="relative font-mono text-xs text-muted-foreground">
+                <p className="relative text-xs text-muted-foreground tabular-nums">
                   {m.status_updated_at({ when: formatWhen(data.updated_at) })}
                 </p>
               </div>
@@ -295,7 +295,7 @@ function StatusField({
 }) {
   return (
     <div className="surface min-w-0 p-4">
-      <dt className="font-mono text-[0.65rem] font-semibold tracking-[0.13em] text-muted-foreground uppercase">
+      <dt className="text-[0.68rem] font-semibold tracking-[0.11em] text-muted-foreground uppercase">
         {label}
       </dt>
       <dd className="mt-2 break-words text-sm font-medium text-foreground">

@@ -47,11 +47,11 @@ export function SearchFilters({ filters, onChange }: Props) {
   }, [activeCount])
 
   return (
-    <section className="mt-4 overflow-hidden rounded-xl border border-border/70 bg-card/55">
-      <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-4">
+    <section className="mt-4 overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="flex min-h-12 items-center justify-between gap-3 px-3 sm:px-4">
         <button
           type="button"
-          className="flex min-w-0 items-center gap-2 text-sm font-semibold"
+          className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl px-1 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
         >
@@ -74,7 +74,7 @@ export function SearchFilters({ filters, onChange }: Props) {
         {activeCount > 0 ? (
           <button
             type="button"
-            className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            className="min-h-9 shrink-0 rounded-full px-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
             onClick={() =>
               onChange({
                 channel_ids: undefined,
@@ -90,9 +90,9 @@ export function SearchFilters({ filters, onChange }: Props) {
       </div>
 
       {open ? (
-        <div className="animate-fade border-t border-border/60 px-3 pt-4 pb-4 sm:px-4">
+        <div className="animate-fade border-t border-border px-3 pt-4 pb-4 sm:px-4">
           <div
-            className="inline-flex rounded-lg bg-secondary/70 p-1"
+            className="inline-flex rounded-full bg-secondary p-1"
             role="group"
             aria-label={m.search_type_label()}
           >
@@ -216,7 +216,7 @@ function ChannelMultiSelect({
           <Popover.Content
             align="start"
             sideOffset={6}
-            className="z-[70] w-[var(--radix-popover-trigger-width)] min-w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-xl outline-none"
+            className="z-[70] w-[var(--radix-popover-trigger-width)] min-w-72 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-xl outline-none"
           >
             <div className="relative">
               <Search

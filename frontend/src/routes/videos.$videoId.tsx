@@ -31,7 +31,7 @@ import { useClampPage } from "@/hooks/use-clamp-page"
 import { pageSearchSchema } from "@/lib/search-schemas"
 import { formatUploadDate, uploadDateTimeAttr } from "@/lib/upload-date"
 import { cn } from "@/lib/utils"
-import { youtubeUrlAtTimestamp } from "@/lib/youtube"
+import { youtubeThumbnailUrl, youtubeUrlAtTimestamp } from "@/lib/youtube"
 import { m } from "@/paraglide/messages"
 
 export const Route = createFileRoute("/videos/$videoId")({
@@ -122,7 +122,7 @@ function VideoDetailPage() {
     : m.meta_video_description_fallback()
 
   return (
-    <section className="animate-fade py-10 sm:py-14">
+    <section className="animate-fade py-7 sm:py-10">
       <PageMetadata
         path={`/videos/${encodeURIComponent(videoId)}`}
         title={metadataTitle}
@@ -153,10 +153,28 @@ function VideoDetailPage() {
         >
           {videoQuery.data ? (
             <article className="animate-rise">
-              <header className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 p-6 sm:p-8 lg:p-10">
-                <div className="absolute -top-28 -right-20 size-72 rounded-full bg-primary/12 blur-3xl" />
-                <div className="relative max-w-4xl">
-                  <h1 className="font-display text-3xl leading-tight font-bold tracking-tight sm:text-5xl">
+              <header className="grid gap-5 rounded-2xl border border-border bg-card p-4 sm:p-5 lg:grid-cols-[minmax(18rem,0.85fr)_minmax(0,1.15fr)] lg:items-center lg:gap-7">
+                <a
+                  href={videoQuery.data.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group relative aspect-video overflow-hidden rounded-xl bg-secondary outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={m.open_youtube()}
+                >
+                  <img
+                    src={youtubeThumbnailUrl(videoQuery.data.id)}
+                    alt=""
+                    className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  />
+                  <span className="absolute inset-0 grid place-items-center bg-black/10 transition-colors group-hover:bg-black/20">
+                    <span className="grid size-14 place-items-center rounded-full bg-brand text-white shadow-xl">
+                      <Play className="size-6 fill-current" aria-hidden />
+                    </span>
+                  </span>
+                </a>
+                <div className="min-w-0 py-1 lg:pr-4">
+                  <p className="eyebrow">{m.video_songs_heading()}</p>
+                  <h1 className="mt-3 text-2xl leading-tight font-bold tracking-tight sm:text-3xl lg:text-4xl">
                     {videoQuery.data.title}
                   </h1>
                   <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
@@ -165,7 +183,7 @@ function VideoDetailPage() {
                         videoQuery.data.upload_date,
                         videoQuery.data.upload_date_precision,
                       )}
-                      className="inline-flex items-center gap-1.5 font-mono tabular-nums"
+                      className="inline-flex items-center gap-1.5 tabular-nums"
                     >
                       <CalendarDays className="size-3.5" aria-hidden />
                       {uploadDateLabel ?? m.video_date_unknown()}
@@ -183,7 +201,7 @@ function VideoDetailPage() {
                 <div>
                   {isSong ? (
                     <div className="surface flex min-h-44 flex-col items-center justify-center px-6 py-10 text-center">
-                      <span className="grid size-12 place-items-center rounded-2xl bg-secondary text-primary">
+                      <span className="grid size-12 place-items-center rounded-full bg-secondary text-primary">
                         <Radio className="size-5" aria-hidden />
                       </span>
                       <p className="mt-4 max-w-md text-sm text-muted-foreground">
@@ -193,7 +211,7 @@ function VideoDetailPage() {
                   ) : (
                     <section className="surface overflow-hidden">
                       <div className="border-b border-border/60 px-5 py-5 sm:px-6">
-                        <h2 className="font-display text-xl font-bold tracking-tight sm:text-2xl">
+                        <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
                           {m.video_songs_heading()}
                         </h2>
                         <p className="mt-1.5 text-sm text-muted-foreground">
@@ -225,7 +243,7 @@ function VideoDetailPage() {
                                   song.id ??
                                   `${song.title}-${song.timestamp}-${index}`
                                 }
-                                className={`animate-rise flex items-center gap-1 rounded-xl border border-transparent p-1 transition-colors hover:border-border/60 hover:bg-secondary/30 stagger-${Math.min((index % 4) + 1, 4)}`}
+                                className={`animate-rise flex items-center gap-1 rounded-xl border border-transparent p-1 transition-colors hover:border-border hover:bg-secondary/60 stagger-${Math.min((index % 4) + 1, 4)}`}
                               >
                                 <a
                                   href={
@@ -247,7 +265,7 @@ function VideoDetailPage() {
                                       : `${song.title} — ${m.open_youtube()}`
                                   }
                                 >
-                                  <span className="w-7 shrink-0 text-right font-mono text-xs text-muted-foreground">
+                                  <span className="w-7 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
                                     {String(
                                       page * PAGE_SIZE + index + 1,
                                     ).padStart(2, "0")}
@@ -255,7 +273,7 @@ function VideoDetailPage() {
                                   <span className="min-w-0 flex-1 truncate font-semibold transition-colors group-hover:text-primary">
                                     {song.title}
                                   </span>
-                                  <span className="flex w-fit shrink-0 items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 font-mono text-xs font-semibold text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                                  <span className="flex w-fit shrink-0 items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                                     <Play
                                       className="size-3 fill-current"
                                       aria-hidden

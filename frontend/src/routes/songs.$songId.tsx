@@ -1,11 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
-import {
-  Clock3,
-  ExternalLink,
-  Play,
-  Radio,
-  Video,
-} from "lucide-react"
+import { Clock3, ExternalLink, Play, Radio, Video } from "lucide-react"
 
 import { useSong } from "@/api/hooks"
 import { ContextualBackButton } from "@/components/contextual-back-button"
@@ -14,6 +8,7 @@ import { QueryState } from "@/components/query-state"
 import { SetlistAttribution } from "@/components/setlist-attribution"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { youtubeThumbnailUrl } from "@/lib/youtube"
 import { m } from "@/paraglide/messages"
 
 export const Route = createFileRoute("/songs/$songId")({
@@ -40,7 +35,7 @@ function SongDetailPage() {
     : m.meta_song_description_fallback()
 
   return (
-    <section className="animate-fade mx-auto w-full max-w-5xl py-10 sm:py-14">
+    <section className="animate-fade mx-auto w-full max-w-6xl py-7 sm:py-10">
       <PageMetadata
         path={`/songs/${songId}`}
         title={metadataTitle}
@@ -61,7 +56,7 @@ function SongDetailPage() {
         }}
       />
 
-      <div className="mt-7">
+      <div className="mt-5">
         <QueryState
           isLoading={query.isLoading}
           isError={query.isError}
@@ -70,23 +65,42 @@ function SongDetailPage() {
           onRetry={() => void query.refetch()}
         >
           {query.data ? (
-            <article className="surface animate-rise relative overflow-hidden">
-              <div className="absolute -top-28 -right-24 size-80 rounded-full bg-primary/15 blur-3xl" />
-              <div className="absolute -bottom-32 -left-20 size-72 rounded-full bg-accent/10 blur-3xl" />
+            <article className="surface animate-rise overflow-hidden">
+              <div className="grid lg:grid-cols-[minmax(19rem,0.9fr)_minmax(0,1.1fr)] lg:items-stretch">
+                <a
+                  href={query.data.video_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group relative aspect-video min-h-full overflow-hidden bg-secondary outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:aspect-auto"
+                  aria-label={m.open_youtube()}
+                >
+                  <img
+                    src={youtubeThumbnailUrl(query.data.video_id)}
+                    alt=""
+                    className="size-full min-h-64 object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  />
+                  <span className="absolute inset-0 grid place-items-center bg-black/15 transition-colors group-hover:bg-black/25">
+                    <span className="grid size-14 place-items-center rounded-full bg-brand text-white shadow-xl">
+                      <Play className="size-6 fill-current" aria-hidden />
+                    </span>
+                  </span>
+                  {query.data.timestamp ? (
+                    <span className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-md bg-black/85 px-2.5 py-1.5 text-xs font-semibold text-white tabular-nums">
+                      <Clock3 className="size-3.5" aria-hidden />
+                      {query.data.timestamp}
+                    </span>
+                  ) : null}
+                </a>
 
-              <div className="relative grid gap-8 p-6 sm:p-10 lg:grid-cols-[minmax(0,1fr)_18rem] lg:p-12">
-                <div>
+                <div className="flex flex-col justify-center p-6 sm:p-9 lg:p-12">
                   <p className="eyebrow">{m.song_detail_eyebrow()}</p>
-                  <h1 className="mt-4 font-display text-4xl leading-tight font-bold tracking-[-0.04em] sm:text-6xl">
+                  <h1 className="mt-4 text-4xl leading-tight font-bold tracking-[-0.04em] sm:text-5xl">
                     {query.data.title}
                   </h1>
-
-                  {query.data.timestamp ? (
-                    <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-2 font-mono text-sm font-semibold text-primary">
-                      <Clock3 className="size-4" aria-hidden />
-                      {query.data.timestamp}
-                    </div>
-                  ) : null}
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    {query.data.channel_name}
+                    {query.data.video_title ? ` · ${query.data.video_title}` : ""}
+                  </p>
 
                   <a
                     href={query.data.video_url}
@@ -94,68 +108,68 @@ function SongDetailPage() {
                     rel="noreferrer"
                     className={cn(
                       buttonVariants({ size: "lg" }),
-                      "mt-8 flex w-fit",
+                      "mt-8 w-fit",
                     )}
                   >
-                    <span className="grid size-6 place-items-center rounded-full bg-primary-foreground/15">
-                      <Play className="size-3 fill-current" aria-hidden />
-                    </span>
+                    <Play className="fill-current" aria-hidden />
                     {m.open_youtube()}
                     <ExternalLink className="size-3.5" aria-hidden />
                   </a>
                 </div>
-
-                <aside className="rounded-2xl border border-border/60 bg-background/45 p-5 backdrop-blur-sm">
-                  <dl className="space-y-5 text-sm">
-                    <div className="border-b border-border/60 pb-4">
-                      <dt className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                        <Radio className="size-3.5" aria-hidden />
-                        {m.song_channel()}
-                      </dt>
-                      <dd className="mt-2">
-                        <Link
-                          to="/channels/$channelId"
-                          params={{ channelId: query.data.channel_id }}
-                          className="font-semibold text-primary underline-offset-2 hover:underline"
-                        >
-                          {query.data.channel_name}
-                        </Link>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                        <Video className="size-3.5" aria-hidden />
-                        {m.song_video()}
-                      </dt>
-                      <dd className="mt-2 leading-relaxed">
-                        <Link
-                          to="/videos/$videoId"
-                          params={{ videoId: query.data.video_id }}
-                          className="font-medium underline-offset-2 hover:text-primary hover:underline"
-                        >
-                          {query.data.video_title ?? query.data.video_id}
-                        </Link>
-                      </dd>
-                    </div>
-                    {query.data.setlist_comment_author ? (
-                      <div className="border-t border-border/60 pt-4">
-                        <dt className="text-xs font-medium text-muted-foreground">
-                          {m.song_setlist_credit()}
-                        </dt>
-                        <dd className="mt-2">
-                          <SetlistAttribution
-                            author={query.data.setlist_comment_author}
-                            authorId={query.data.setlist_comment_author_id}
-                            commentId={query.data.setlist_comment_id}
-                            videoId={query.data.video_id}
-                            className="text-sm"
-                          />
-                        </dd>
-                      </div>
-                    ) : null}
-                  </dl>
-                </aside>
               </div>
+
+              <aside className="border-t border-border bg-secondary/35 p-5 sm:p-6">
+                <dl className="grid gap-5 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="min-w-0">
+                    <dt className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                      <Radio className="size-3.5" aria-hidden />
+                      {m.song_channel()}
+                    </dt>
+                    <dd className="mt-2 truncate">
+                      <Link
+                        to="/channels/$channelId"
+                        params={{ channelId: query.data.channel_id }}
+                        className="font-semibold text-foreground underline-offset-2 hover:text-primary hover:underline"
+                      >
+                        {query.data.channel_name}
+                      </Link>
+                    </dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                      <Video className="size-3.5" aria-hidden />
+                      {m.song_video()}
+                    </dt>
+                    <dd className="mt-2 leading-relaxed">
+                      <Link
+                        to="/videos/$videoId"
+                        params={{ videoId: query.data.video_id }}
+                        className="font-medium underline-offset-2 hover:text-primary hover:underline"
+                      >
+                        {query.data.video_title ?? query.data.video_id}
+                      </Link>
+                    </dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-xs font-medium text-muted-foreground">
+                      {m.song_setlist_credit()}
+                    </dt>
+                    <dd className="mt-2">
+                      {query.data.setlist_comment_author ? (
+                        <SetlistAttribution
+                          author={query.data.setlist_comment_author}
+                          authorId={query.data.setlist_comment_author_id}
+                          commentId={query.data.setlist_comment_id}
+                          videoId={query.data.video_id}
+                          className="text-sm"
+                        />
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              </aside>
             </article>
           ) : null}
         </QueryState>

@@ -191,7 +191,7 @@ function ChannelVideosPage() {
   const videos = sortVideosByUploadDateDesc(query.data?.items ?? [])
 
   return (
-    <section className="animate-fade py-10 sm:py-14">
+    <section className="animate-fade py-7 sm:py-10">
       <PageMetadata
         path={`/channels/${encodeURIComponent(channelId)}`}
         title={m.meta_channel_title({
@@ -209,28 +209,28 @@ function ChannelVideosPage() {
         }
       />
 
-      <header className="mt-7 flex flex-col gap-5 border-b border-border/70 pb-8 sm:flex-row sm:items-end sm:justify-between">
+      <header className="surface mt-5 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex min-w-0 items-center gap-4 sm:gap-5">
           {channelQuery.data?.thumbnail_url ? (
             <img
               src={channelQuery.data.thumbnail_url}
               alt=""
-              className="size-18 shrink-0 rounded-full object-cover ring-2 ring-border sm:size-22"
+              className="size-18 shrink-0 rounded-full object-cover ring-2 ring-border sm:size-20"
             />
           ) : (
-            <span className="grid size-18 shrink-0 place-items-center rounded-full bg-primary/10 font-display text-2xl font-bold text-primary sm:size-22">
+            <span className="grid size-18 shrink-0 place-items-center rounded-full bg-primary/10 text-2xl font-bold text-primary ring-2 ring-border sm:size-20">
               {channelQuery.data?.name.slice(0, 1) ?? "—"}
             </span>
           )}
           <div className="min-w-0">
             <p className="eyebrow">{m.channel_library_eyebrow()}</p>
-            <h1 className="mt-2 truncate font-display text-3xl font-bold tracking-tight sm:text-5xl">
+            <h1 className="mt-2 truncate text-3xl font-bold tracking-tight sm:text-4xl">
               {channelQuery.data?.name ?? m.channel_videos_heading()}
             </h1>
             {channelQuery.data ? (
               <p className="mt-2 text-xs text-muted-foreground">
                 <span className="font-medium">{m.channel_id_label()}:</span>{" "}
-                <span className="break-all font-mono">{channelId}</span>
+                <span className="break-all">{channelId}</span>
               </p>
             ) : null}
           </div>
@@ -250,44 +250,44 @@ function ChannelVideosPage() {
           ) : null}
           {canManage ? (
             <div className="flex max-w-sm flex-col items-start gap-1 sm:items-end">
-            <Button
-              type="button"
-              variant={reloadStatus === "error" ? "destructive" : "outline"}
-              size="sm"
-              disabled={isReloading}
-              aria-busy={isReloading}
-              title={m.reload_hint()}
-              onClick={() => void handleReload()}
-            >
-              {reloadStatus === "done" ? (
-                <Check aria-hidden />
-              ) : (
-                <RefreshCw
-                  className={isReloading ? "animate-spin" : undefined}
-                  aria-hidden
-                />
-              )}
-              {reloadLabel}
-            </Button>
-            <p
-              className="min-h-4 text-right text-xs text-muted-foreground"
-              aria-live="polite"
-              role="status"
-            >
-              {isReloading
-                ? m.reload_loading()
-              : reloadDetail
-                  ? reloadDetail
-                  : m.reload_hint()}
-            </p>
+              <Button
+                type="button"
+                variant={reloadStatus === "error" ? "destructive" : "outline"}
+                size="sm"
+                disabled={isReloading}
+                aria-busy={isReloading}
+                title={m.reload_hint()}
+                onClick={() => void handleReload()}
+              >
+                {reloadStatus === "done" ? (
+                  <Check aria-hidden />
+                ) : (
+                  <RefreshCw
+                    className={isReloading ? "animate-spin" : undefined}
+                    aria-hidden
+                  />
+                )}
+                {reloadLabel}
+              </Button>
+              <p
+                className="min-h-4 text-right text-xs text-muted-foreground"
+                aria-live="polite"
+                role="status"
+              >
+                {isReloading
+                  ? m.reload_loading()
+                  : reloadDetail
+                    ? reloadDetail
+                    : m.reload_hint()}
+              </p>
             </div>
           ) : null}
         </div>
       </header>
 
-      <div className="surface mt-7 flex flex-col gap-4 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+      <div className="mt-5 flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div
-          className="inline-flex self-start rounded-lg bg-secondary/70 p-1"
+          className="inline-flex self-start rounded-full bg-secondary p-1"
           role="tablist"
           aria-label={m.channel_tabs_label()}
         >
@@ -346,7 +346,7 @@ function ChannelVideosPage() {
 
       <div className="mt-7" role="tabpanel">
         {query.data ? (
-          <p className="mb-4 font-mono text-xs text-muted-foreground">
+          <p className="mb-4 text-xs text-muted-foreground tabular-nums">
             {m.videos_count({ total: String(query.data.total) })}
           </p>
         ) : null}

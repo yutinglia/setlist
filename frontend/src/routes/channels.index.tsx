@@ -65,17 +65,17 @@ function ChannelsPage() {
   }, [navigate])
 
   return (
-    <section className="animate-fade py-10 sm:py-14">
+    <section className="animate-fade py-7 sm:py-10">
       <PageMetadata
         path="/channels"
         title={`${m.channels_heading()} | Setlist`}
         description={m.channels_hint()}
         noIndex={page > 0 || Boolean(q)}
       />
-      <header className="flex flex-col gap-5 border-b border-border/70 pb-8 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-5 border-b border-border pb-7 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="eyebrow">{m.home_explore_title()}</p>
-          <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
             {m.channels_heading()}
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -84,7 +84,7 @@ function ChannelsPage() {
         </div>
         <div className="flex items-center gap-3">
           {query.data ? (
-            <span className="font-mono text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground tabular-nums">
               {m.channels_count({ total: formatInteger(query.data.total) })}
             </span>
           ) : null}
@@ -116,7 +116,7 @@ function ChannelsPage() {
       <form
         role="search"
         aria-label={m.channels_search_label()}
-        className="mt-7 flex max-w-2xl flex-col gap-2 sm:flex-row"
+        className="mt-6 flex max-w-2xl flex-col gap-2 sm:flex-row"
         onSubmit={submitSearch}
       >
         <label htmlFor="channel-search" className="sr-only">

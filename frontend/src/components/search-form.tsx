@@ -139,7 +139,7 @@ export function SearchForm({
       <div className="flex gap-2.5">
         <div className="relative min-w-0 flex-1">
           <Search
-            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-primary"
+            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
             aria-hidden
           />
           <Input
@@ -194,9 +194,9 @@ export function SearchForm({
             placeholder={m.search_placeholder()}
             maxLength={200}
             className={cn(
-              "h-14 rounded-xl border-border/80 bg-card pr-20 pl-12 text-base shadow-[0_18px_50px_-34px_rgba(40,30,100,0.6)]",
+              "h-14 rounded-full border-input bg-card pr-20 pl-12 text-base shadow-sm focus-visible:bg-card",
               isHero &&
-                "h-16 rounded-2xl border-border pl-12 shadow-[0_28px_80px_-38px_rgba(55,40,150,0.7)] sm:h-18 sm:pl-15 sm:text-lg",
+                "h-14 border-border pl-12 shadow-[0_10px_35px_-22px_rgba(0,0,0,0.45)] sm:h-16 sm:pl-14 sm:text-lg",
             )}
             autoFocus={autoFocus}
             aria-label={m.search_placeholder()}
@@ -213,7 +213,7 @@ export function SearchForm({
           {value ? (
             <button
               type="button"
-              className="absolute top-1/2 right-3 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              className="absolute top-1/2 right-3 grid size-9 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={m.search_clear()}
               onClick={() => {
                 setValue("")
@@ -227,7 +227,7 @@ export function SearchForm({
               <X className="size-4" aria-hidden />
             </button>
           ) : (
-            <kbd className="pointer-events-none absolute top-1/2 right-4 hidden -translate-y-1/2 rounded border border-border bg-secondary/70 px-1.5 py-0.5 font-mono text-[0.65rem] text-muted-foreground sm:block">
+            <kbd className="pointer-events-none absolute top-1/2 right-4 hidden -translate-y-1/2 rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[0.65rem] text-muted-foreground sm:block">
               /
             </kbd>
           )}
@@ -236,7 +236,7 @@ export function SearchForm({
               id={listboxId}
               role="listbox"
               aria-label={m.search_suggestions_label()}
-              className="absolute top-[calc(100%+0.5rem)] left-0 z-30 w-full overflow-hidden rounded-xl border border-border/80 bg-popover p-1.5 text-popover-foreground shadow-xl"
+              className="absolute top-[calc(100%+0.5rem)] left-0 z-30 w-full overflow-hidden rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl"
             >
               {isDebouncing || suggestionQuery.isFetching ? (
                 <div
@@ -273,7 +273,7 @@ export function SearchForm({
                     aria-selected={activeIndex === index}
                     className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
                       activeIndex === index
-                        ? "bg-primary/10 text-primary"
+                        ? "bg-secondary text-foreground"
                         : "hover:bg-secondary"
                     }`}
                     onMouseDown={(event) => event.preventDefault()}
@@ -294,8 +294,8 @@ export function SearchForm({
         <Button
           type="submit"
           className={cn(
-            "h-14 px-4 sm:px-6",
-            isHero && "h-16 rounded-2xl px-5 sm:h-18 sm:px-8",
+            "h-14 px-5 sm:px-6",
+            isHero && "h-14 px-5 sm:h-16 sm:px-8",
           )}
           size="lg"
           aria-label={m.search_submit()}
@@ -311,7 +311,7 @@ export function SearchForm({
             <Link
               to="/search"
               search={{ q: currentQuery || undefined }}
-              className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-primary underline-offset-4 hover:underline"
+              className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full px-2 font-semibold text-primary hover:bg-primary/8"
             >
               <SlidersHorizontal className="size-3.5" aria-hidden />
               {m.search_advanced_link()}
@@ -326,14 +326,14 @@ export function SearchForm({
 
       {recent.length > 0 ? (
         <div className="mt-4 flex flex-wrap items-center gap-2 text-left">
-          <span className="font-mono text-[0.65rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+          <span className="text-[0.68rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
             {m.recent_searches()}
           </span>
           {recent.map((item) => (
             <button
               key={item}
               type="button"
-              className="rounded-full border border-border/70 bg-card/70 px-3 py-1 text-xs text-secondary-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+              className="min-h-8 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => {
                 submitQuery(item)
               }}
@@ -343,7 +343,7 @@ export function SearchForm({
           ))}
           <button
             type="button"
-            className="ml-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            className="ml-1 min-h-8 rounded-full px-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
             onClick={clearRecent}
           >
             {m.clear_recent()}

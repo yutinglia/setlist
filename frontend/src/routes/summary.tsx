@@ -44,16 +44,16 @@ function SummaryPage() {
   const data = query.data
 
   return (
-    <section className="animate-fade py-10 sm:py-14">
+    <section className="animate-fade py-7 sm:py-10">
       <PageMetadata
         path="/summary"
         title={`${m.summary_heading()} | Setlist`}
         description={m.summary_hint()}
       />
-      <header className="flex flex-wrap items-end justify-between gap-5 border-b border-border/70 pb-8">
+      <header className="flex flex-wrap items-end justify-between gap-5 border-b border-border pb-7">
         <div>
           <p className="eyebrow">{m.home_library_live()}</p>
-          <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
             {m.summary_heading()}
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -259,7 +259,7 @@ function MetricCard({
   return (
     <div
       className={cn(
-        "surface p-4 transition-transform hover:-translate-y-0.5 sm:p-5",
+        "surface p-4 transition-colors hover:border-input sm:p-5",
         accent
           ? "border-primary/25 bg-primary/7"
           : "border-border/70 bg-card/80",
@@ -272,7 +272,7 @@ function MetricCard({
         )}
         aria-hidden
       />
-      <p className="mt-5 font-display text-3xl font-bold tabular-nums">
+      <p className="mt-5 text-3xl font-bold tabular-nums">
         {formatInteger(value)}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">{label}</p>
@@ -295,7 +295,7 @@ function ReportSection({
     <section className="surface p-5 sm:p-6">
       <div className="flex items-center gap-2">
         {Icon ? <Icon className="size-4 text-primary" aria-hidden /> : null}
-        <h2 className="font-display text-xl font-bold">{title}</h2>
+        <h2 className="text-xl font-bold">{title}</h2>
       </div>
       {hint ? (
         <p className="mt-1 text-xs text-muted-foreground">{hint}</p>

@@ -23,8 +23,8 @@ type Props = {
 }
 
 const selectClassName = cn(
-  "h-9 rounded-lg border border-input bg-card px-2 text-sm shadow-xs outline-none",
-  "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+  "h-10 rounded-full border border-input bg-card px-3 text-sm shadow-xs outline-none",
+  "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40",
   "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
 )
 
@@ -53,7 +53,7 @@ export function PaginationControls({
   const atEnd = page >= lastPage
 
   return (
-    <div className="mt-8 flex flex-col gap-4 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mt-8 flex flex-col gap-4 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-3">
         {showPageNav ? (
           <>

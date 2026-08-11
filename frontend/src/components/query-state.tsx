@@ -40,9 +40,9 @@ export function QueryState({
     }
     return (
       <div className="grid gap-3" aria-busy aria-label={m.loading()}>
-        <Skeleton className="h-24 w-full rounded-2xl bg-muted" />
-        <Skeleton className="h-24 w-full rounded-2xl bg-muted" />
-        <Skeleton className="h-24 w-full rounded-2xl bg-muted" />
+        <Skeleton className="h-24 w-full rounded-xl bg-muted" />
+        <Skeleton className="h-24 w-full rounded-xl bg-muted" />
+        <Skeleton className="h-24 w-full rounded-xl bg-muted" />
       </div>
     )
   }
@@ -50,7 +50,7 @@ export function QueryState({
   if (isError) {
     return (
       <div className="surface px-5 py-8 text-center">
-        <span className="mx-auto grid size-11 place-items-center rounded-xl bg-destructive/10 text-destructive">
+        <span className="mx-auto grid size-11 place-items-center rounded-full bg-destructive/10 text-destructive">
           <AlertCircle className="size-5" aria-hidden />
         </span>
         <p className="mt-4 text-sm text-destructive">{m.error_generic()}</p>
@@ -72,7 +72,7 @@ export function QueryState({
   if (isEmpty) {
     return (
       <div className="surface px-5 py-12 text-center">
-        <span className="mx-auto grid size-11 place-items-center rounded-xl bg-secondary text-muted-foreground">
+        <span className="mx-auto grid size-11 place-items-center rounded-full bg-secondary text-muted-foreground">
           <Inbox className="size-5" aria-hidden />
         </span>
         <p className="mx-auto mt-4 max-w-md text-sm text-muted-foreground">
