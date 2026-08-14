@@ -206,12 +206,14 @@ function makeApi(
       items: urls.map((url) => ({
         url,
         status: "created" as const,
+        queue_id: null,
         channel_id: channel.id,
         channel_name: channel.name,
         message: "Created",
       })),
       created: urls.length,
       already_exists: 0,
+      queued: 0,
       failed: 0,
       skipped: 0,
       max_batch_size: 10,
@@ -518,6 +520,7 @@ describe("application routes", () => {
     const statuses = [
       "created",
       "already_exists",
+      "queued",
       "invalid",
       "skipped",
       "failed",
@@ -527,12 +530,14 @@ describe("application routes", () => {
         items: statuses.map((status, index) => ({
           url: urls[index] ?? `https://youtube.test/${index}`,
           status,
+          queue_id: status === "queued" ? index : null,
           channel_id: status === "created" ? `UC${index}` : null,
           channel_name: status === "created" ? `Channel ${index}` : null,
           message: status,
         })),
         created: 1,
         already_exists: 1,
+        queued: 1,
         failed: 2,
         skipped: 1,
         max_batch_size: 10,
@@ -555,6 +560,8 @@ describe("application routes", () => {
       .toBeInTheDocument()
     expect(screen.getByText(m.channel_add_status_existing()))
       .toBeInTheDocument()
+    expect(screen.getByText(m.channel_add_status_queued())).toBeInTheDocument()
+    expect(screen.getByText(m.channel_add_queued_channel())).toBeInTheDocument()
     expect(screen.getByText(m.channel_add_status_invalid()))
       .toBeInTheDocument()
     expect(screen.getByText(m.channel_add_status_skipped()))
@@ -750,6 +757,11 @@ describe("application routes", () => {
 
   test("submits only non-empty home searches", async () => {
     const { router } = await renderRoute("/")
+    expect(
+      screen.getAllByRole("combobox", {
+        name: m.search_placeholder(),
+      }),
+    ).toHaveLength(1)
     const input = screen.getByRole("combobox", {
       name: m.search_placeholder(),
     })

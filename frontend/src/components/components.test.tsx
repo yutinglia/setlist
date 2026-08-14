@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 import { ChannelCard } from "@/components/channel-card"
 import { ChannelRequestNotice } from "@/components/channel-request-notice"
 import { ContextualBackButton } from "@/components/contextual-back-button"
+import { GlobalSearch } from "@/components/global-search"
 import { InfoPage, InfoSection } from "@/components/info-page"
 import { PageMetadata } from "@/components/page-metadata"
 import { PaginationControls } from "@/components/pagination-controls"
@@ -374,6 +375,48 @@ describe("interactive search controls", () => {
     expect(submit).toHaveBeenCalledWith("")
     fireEvent.keyDown(window, { key: "/" })
     expect(input).toHaveFocus()
+  })
+
+  test("predicts song titles from the compact global search", async () => {
+    const api = makeTestApi({
+      suggestSongs: vi.fn(async () => [
+        { title: "Global Song", occurrences: 2 },
+      ]),
+    })
+    const { router } = await renderWithProviders(<GlobalSearch />, { api })
+    const input = screen.getByRole("combobox", { name: m.nav_search() })
+
+    await userEvent.type(input, "Gl")
+    await userEvent.click(
+      await screen.findByText("Global Song", {}, { timeout: 1500 }),
+    )
+
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe("/search"),
+    )
+    expect(router.state.location.search).toEqual(
+      expect.objectContaining({ q: "Global Song" }),
+    )
+  })
+
+  test("does not register the search shortcut when disabled", async () => {
+    const addEventListener = vi.spyOn(window, "addEventListener")
+    try {
+      await renderWithProviders(
+        <SearchForm
+          onQuerySubmit={vi.fn()}
+          shortcutEnabled={false}
+        />,
+      )
+
+      expect(
+        addEventListener.mock.calls.filter(([eventName]) => {
+          return eventName === "keydown"
+        }),
+      ).toHaveLength(0)
+    } finally {
+      addEventListener.mockRestore()
+    }
   })
 
   test("renders recent searches and clears them", async () => {

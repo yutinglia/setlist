@@ -38,15 +38,26 @@ def _repo(*, created=None, get_by_id=None):
     )
 
 
-def _creator(session, repo, *, scrape, sleep=None):
+def _creator(
+    session,
+    repo,
+    *,
+    scrape,
+    sleep=None,
+    cooldown=None,
+    ingest_repo=None,
+    cache=None,
+):
     return ChannelCreator(
         session,
         repo,
-        cooldown=YouTubeCooldown(60),
+        ingest_repo=ingest_repo,
+        cooldown=cooldown or YouTubeCooldown(60),
         scraper_factory=SimpleNamespace(
             channel=Mock(return_value=SimpleNamespace(get_channel_info=Mock()))
         ),
         scrape_executor=SimpleNamespace(run=scrape),
+        cache=cache,
         sleep=sleep or AsyncMock(),
     )
 
@@ -226,6 +237,92 @@ async def test_bulk_add_stops_remaining_items_and_persists_block_cooldown():
 
 
 @pytest.mark.asyncio
+async def test_bulk_add_requeues_batch_when_cooldown_starts_mid_request():
+    first = _channel("UC-one", "one")
+    second = _channel("UC-two", "two")
+    repo = _repo()
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    trigger = SimpleNamespace(request=Mock(return_value=True))
+    ingest_repo = SimpleNamespace(
+        enqueue=AsyncMock(
+            side_effect=[
+                (SimpleNamespace(id=31), True),
+                (SimpleNamespace(id=32), True),
+            ]
+        )
+    )
+    creator = _creator(
+        session,
+        repo,
+        scrape=AsyncMock(side_effect=YouTubeAccessBlocked("HTTP Error 429")),
+        ingest_repo=ingest_repo,
+    )
+
+    response = await search.create_channels_bulk(
+        ChannelBulkCreate(urls=[first.url, second.url]),
+        None,
+        creator,
+        _container(trigger),
+    )
+
+    assert [item.status for item in response.items] == ["queued", "queued"]
+    assert response.queued == 2
+    assert session.commit.await_count == 2
+    repo.set_youtube_cooldown_until.assert_awaited_once()
+    trigger.request.assert_called_once_with()
+
+
+@pytest.mark.asyncio
+async def test_bulk_add_does_not_requeue_an_earlier_resolution_failure():
+    first = _channel("UC-one", "one")
+    second = _channel("UC-two", "two")
+    third = _channel("UC-three", "three")
+    repo = _repo()
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    trigger = SimpleNamespace(request=Mock(return_value=True))
+    ingest_repo = SimpleNamespace(
+        enqueue=AsyncMock(
+            side_effect=[
+                (SimpleNamespace(id=33), True),
+                (SimpleNamespace(id=34), True),
+            ]
+        )
+    )
+    creator = _creator(
+        session,
+        repo,
+        scrape=AsyncMock(
+            side_effect=[
+                RuntimeError("Extractor failed"),
+                YouTubeAccessBlocked("HTTP Error 429"),
+            ]
+        ),
+        ingest_repo=ingest_repo,
+    )
+
+    response = await search.create_channels_bulk(
+        ChannelBulkCreate(urls=[first.url, second.url, third.url]),
+        None,
+        creator,
+        _container(trigger),
+    )
+
+    assert [item.status for item in response.items] == [
+        "failed",
+        "queued",
+        "queued",
+    ]
+    assert response.failed == 1
+    assert response.queued == 2
+    assert [queued.args[0] for queued in ingest_repo.enqueue.await_args_list] == [
+        second.url,
+        third.url,
+    ]
+    assert session.commit.await_count == 3
+    trigger.request.assert_called_once_with()
+
+
+@pytest.mark.asyncio
 async def test_bulk_add_exact_duplicate_needs_no_youtube_request_or_cooldown():
     existing = _channel()
     repo = _repo()
@@ -249,6 +346,83 @@ async def test_bulk_add_exact_duplicate_needs_no_youtube_request_or_cooldown():
     repo.set_channel_add_cooldown_until.assert_not_awaited()
     session.commit.assert_not_awaited()
     trigger.request.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_bulk_add_queues_without_youtube_during_global_cooldown():
+    first = _channel("UC-one", "one")
+    second = _channel("UC-two", "two")
+    repo = _repo()
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    trigger = SimpleNamespace(request=Mock(return_value=True))
+    scrape = AsyncMock()
+    cache = SimpleNamespace(invalidate=AsyncMock())
+    ingest_repo = SimpleNamespace(
+        enqueue=AsyncMock(
+            side_effect=[
+                (SimpleNamespace(id=41), True),
+                (SimpleNamespace(id=42), True),
+            ]
+        )
+    )
+    cooldown = YouTubeCooldown(60)
+    cooldown.activate(60)
+    creator = _creator(
+        session,
+        repo,
+        scrape=scrape,
+        cooldown=cooldown,
+        ingest_repo=ingest_repo,
+        cache=cache,
+    )
+
+    response = await search.create_channels_bulk(
+        ChannelBulkCreate(urls=[first.url, second.url]),
+        None,
+        creator,
+        _container(trigger),
+    )
+
+    assert [item.status for item in response.items] == ["queued", "queued"]
+    assert [item.queue_id for item in response.items] == [41, 42]
+    assert response.queued == 2
+    assert response.created == 0
+    scrape.assert_not_awaited()
+    session.commit.assert_awaited_once()
+    cache.invalidate.assert_not_awaited()
+    trigger.request.assert_called_once_with()
+
+
+@pytest.mark.asyncio
+async def test_single_add_returns_accepted_queue_result_during_global_cooldown():
+    channel = _channel()
+    repo = _repo()
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    trigger = SimpleNamespace(request=Mock(return_value=True))
+    ingest_repo = SimpleNamespace(
+        enqueue=AsyncMock(return_value=(SimpleNamespace(id=51), True))
+    )
+    cooldown = YouTubeCooldown(60)
+    cooldown.activate(60)
+    creator = _creator(
+        session,
+        repo,
+        scrape=AsyncMock(),
+        cooldown=cooldown,
+        ingest_repo=ingest_repo,
+    )
+
+    response = await search.create_channel(
+        ChannelCreate(url=channel.url),
+        None,
+        creator,
+        _container(trigger),
+    )
+
+    assert response.status_code == 202
+    assert b'"status":"queued"' in response.body
+    assert b'"queue_id":51' in response.body
+    trigger.request.assert_called_once_with()
 
 
 def test_bulk_add_rejects_more_than_ten_urls():

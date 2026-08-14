@@ -53,6 +53,7 @@ export type YouTubeChannel = {
 export type ChannelBulkAddStatus =
   | "created"
   | "already_exists"
+  | "queued"
   | "invalid"
   | "failed"
   | "skipped"
@@ -60,6 +61,7 @@ export type ChannelBulkAddStatus =
 export type ChannelBulkAddItem = {
   url: string
   status: ChannelBulkAddStatus
+  queue_id: number | null
   channel_id: string | null
   channel_name: string | null
   message: string
@@ -69,10 +71,18 @@ export type ChannelBulkAddResponse = {
   items: ChannelBulkAddItem[]
   created: number
   already_exists: number
+  queued: number
   failed: number
   skipped: number
   max_batch_size: number
   cooldown_seconds: number
+}
+
+export type ChannelQueued = {
+  url: string
+  status: "queued"
+  queue_id: number
+  message: string
 }
 
 export type YouTubeVideo = {

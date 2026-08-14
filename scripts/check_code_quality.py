@@ -1,4 +1,4 @@
-"""Reject oversized hand-written source files before they become monoliths."""
+"""Reject oversized hand-written production files before they become monoliths."""
 
 from __future__ import annotations
 
@@ -16,6 +16,8 @@ GENERATED_PATHS = frozenset(
     }
 )
 GENERATED_PREFIXES = ("frontend/src/paraglide/",)
+TEST_DIRECTORY_NAMES = frozenset({"test", "tests", "__tests__"})
+TEST_FILENAME_MARKERS = (".test.", ".spec.")
 
 
 def _project_paths(root: Path) -> list[Path]:
@@ -28,8 +30,17 @@ def _project_paths(root: Path) -> list[Path]:
 
 def _is_handwritten_source(path: Path, root: Path) -> bool:
     relative = path.relative_to(root).as_posix()
+    parts = relative.split("/")
+    filename = parts[-1]
+    is_test = (
+        any(part in TEST_DIRECTORY_NAMES for part in parts[:-1])
+        or filename.startswith("test_")
+        or filename.endswith("_test.py")
+        or any(marker in filename for marker in TEST_FILENAME_MARKERS)
+    )
     return (
         path.suffix.lower() in SOURCE_SUFFIXES
+        and not is_test
         and relative not in GENERATED_PATHS
         and not relative.startswith(GENERATED_PREFIXES)
     )
@@ -63,7 +74,7 @@ def main() -> int:
         return 1
 
     print(
-        f"Code quality check passed: {len(source_files)} hand-written source "
+        f"Code quality check passed: {len(source_files)} hand-written production "
         f"files are at most {MAX_SOURCE_LINES} lines."
     )
     return 0

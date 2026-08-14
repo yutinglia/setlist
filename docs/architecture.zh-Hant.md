@@ -25,6 +25,14 @@ repository、Redis client 或 scraper 實作。
 `DataUpdater`、`ChannelCreator` 與 `StoredDataReanalyzer` 仍持有 transaction
 所有權。只有 commit 成功後才使快取失效；repository 仍不會 commit。
 
+管理員頻道 ingest 具有可持續復原的冷卻 fallback。正常狀態下，
+`ChannelCreator` 仍會在 request 內同步解析；shared 或資料庫冷卻啟用時，
+則只把正規化網址寫入 `channel_ingest_queue`，該 transaction 不呼叫 YouTube，
+也不使公開快取失效。之後的 updater cycle 會先在既有程序內／PostgreSQL
+YouTube lock 與管理員節流下依 FIFO 解析 pending row。建立頻道與完成 queue
+row 共用同一 transaction；遇到封鎖時記錄嘗試與全域冷卻但保留 pending，
+取消或崩潰則 rollback 整筆工作以便重試。
+
 ## 可選 Redis 或 Valkey
 
 將 `CACHE_URL` 設為相容的 Redis URL 即可。Valkey 可直接使用既有 Redis
@@ -78,3 +86,7 @@ instance，並透過 `ApiProvider` 與 TanStack Router context 注入。React ho
 從 provider 取用，route guard 則從 router context 取用。這已足以涵蓋目前
 前端 DI：TanStack Query 管理 server state、Zustand 管理 UI preference，
 component 使用一般 props。
+
+首頁 hero 與頂部 compact 搜尋共用 `SearchForm` 的建議 combobox，包括
+debounce、鍵盤操作與 ARIA 狀態。首頁 route 不渲染 compact 頂部搜尋，因此只
+保留 hero 搜尋控制項。

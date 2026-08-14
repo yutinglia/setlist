@@ -16,6 +16,10 @@ from models.channel import (
     YouTubeChannel,
 )
 from models.video import YouTubeVideo
+from services.channel_creator import (
+    ChannelCreationOutcome,
+    ChannelResolutionFailed,
+)
 from services.data_updater import DataUpdater, RetryableVideoAnalysisError
 from services.updater_runtime_state import (
     UPDATER_PROCESS_OWNER_ID,
@@ -162,6 +166,187 @@ async def test_persisted_cooldown_survives_process_restart():
     get_all.assert_not_awaited()
     assert updater.cooldown.remaining() > 9 * 60
     updater_status.stop(detail="test cleanup")
+
+
+@pytest.mark.asyncio
+async def test_cycle_resolves_queued_channel_before_loading_channels():
+    order: list[str] = []
+    channel = _channel("queued-channel")
+    item = SimpleNamespace(id=7, channel_url=channel.url)
+    session = SimpleNamespace(
+        commit=AsyncMock(side_effect=lambda: order.append("commit")),
+        rollback=AsyncMock(),
+    )
+    channel_repo = SimpleNamespace(
+        get_youtube_cooldown_until=AsyncMock(return_value=None),
+        get_all=AsyncMock(side_effect=lambda: order.append("load") or []),
+    )
+    ingest_repo = SimpleNamespace(
+        list_pending=AsyncMock(return_value=[item]),
+        mark_completed=AsyncMock(
+            side_effect=lambda *_args, **_kwargs: (
+                order.append("complete") or SimpleNamespace()
+            )
+        ),
+        mark_failed=AsyncMock(),
+        mark_attempted=AsyncMock(),
+    )
+    creator = SimpleNamespace(
+        resolve_locked=AsyncMock(
+            return_value=ChannelCreationOutcome(
+                requested_url=channel.url,
+                status="created",
+                channel=channel,
+                message="created",
+                commit_required=True,
+                public_data_changed=True,
+            )
+        )
+    )
+    cache = SimpleNamespace(
+        invalidate=AsyncMock(side_effect=lambda *_args: order.append("invalidate"))
+    )
+    updater = DataUpdater(
+        session,
+        channel_repo,
+        SimpleNamespace(get_analysis_queue=AsyncMock(return_value=[])),
+        SimpleNamespace(),
+        channel_ingest_repo=ingest_repo,
+        channel_creator=creator,
+        cache=cache,
+    )
+
+    await updater.update()
+
+    assert order[:4] == ["complete", "commit", "invalidate", "load"]
+    creator.resolve_locked.assert_awaited_once_with(
+        channel.url,
+        wait_for_add_cooldown=True,
+    )
+    ingest_repo.mark_completed.assert_awaited_once_with(
+        item.id,
+        channel_id=channel.id,
+    )
+    session.rollback.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_queued_channel_block_keeps_pending_and_stops_cycle():
+    future = None
+    item = SimpleNamespace(
+        id=8,
+        channel_url="https://www.youtube.com/@blocked",
+    )
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    get_all = AsyncMock(return_value=[])
+    channel_repo = SimpleNamespace(
+        get_youtube_cooldown_until=AsyncMock(return_value=future),
+        set_youtube_cooldown_until=AsyncMock(),
+        get_all=get_all,
+    )
+    ingest_repo = SimpleNamespace(
+        list_pending=AsyncMock(return_value=[item]),
+        mark_completed=AsyncMock(),
+        mark_failed=AsyncMock(),
+        mark_attempted=AsyncMock(return_value=SimpleNamespace()),
+    )
+    creator = SimpleNamespace(
+        resolve_locked=AsyncMock(side_effect=YouTubeAccessBlocked("HTTP 429"))
+    )
+    updater = DataUpdater(
+        session,
+        channel_repo,
+        SimpleNamespace(),
+        SimpleNamespace(),
+        channel_ingest_repo=ingest_repo,
+        channel_creator=creator,
+    )
+
+    await updater.update()
+
+    ingest_repo.mark_attempted.assert_awaited_once_with(item.id)
+    ingest_repo.mark_completed.assert_not_awaited()
+    ingest_repo.mark_failed.assert_not_awaited()
+    channel_repo.set_youtube_cooldown_until.assert_awaited_once()
+    session.commit.assert_awaited_once()
+    get_all.assert_not_awaited()
+    assert updater.cooldown.remaining() > 0
+    updater_status.stop(detail="test cleanup")
+
+
+@pytest.mark.asyncio
+async def test_non_block_queue_failure_is_marked_failed_with_add_cooldown():
+    item = SimpleNamespace(
+        id=9,
+        channel_url="https://www.youtube.com/@missing",
+    )
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    ingest_repo = SimpleNamespace(
+        list_pending=AsyncMock(return_value=[item]),
+        mark_completed=AsyncMock(),
+        mark_failed=AsyncMock(return_value=SimpleNamespace()),
+        mark_attempted=AsyncMock(),
+    )
+    creator = SimpleNamespace(
+        resolve_locked=AsyncMock(
+            side_effect=ChannelResolutionFailed("extractor failed")
+        )
+    )
+    updater = DataUpdater(
+        session,
+        SimpleNamespace(
+            get_youtube_cooldown_until=AsyncMock(return_value=None),
+            get_all=AsyncMock(return_value=[]),
+        ),
+        SimpleNamespace(get_analysis_queue=AsyncMock(return_value=[])),
+        SimpleNamespace(),
+        channel_ingest_repo=ingest_repo,
+        channel_creator=creator,
+    )
+
+    await updater.update()
+
+    ingest_repo.mark_failed.assert_awaited_once_with(
+        item.id,
+        error_message="Could not resolve this YouTube channel",
+    )
+    session.commit.assert_awaited_once()
+    session.rollback.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_unexpected_queue_failure_rolls_back_and_leaves_item_pending():
+    item = SimpleNamespace(
+        id=10,
+        channel_url="https://www.youtube.com/@retry-after-crash",
+    )
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    ingest_repo = SimpleNamespace(
+        list_pending=AsyncMock(return_value=[item]),
+        mark_completed=AsyncMock(),
+        mark_failed=AsyncMock(),
+        mark_attempted=AsyncMock(),
+    )
+    creator = SimpleNamespace(
+        resolve_locked=AsyncMock(side_effect=RuntimeError("worker crashed"))
+    )
+    updater = DataUpdater(
+        session,
+        SimpleNamespace(get_youtube_cooldown_until=AsyncMock(return_value=None)),
+        SimpleNamespace(),
+        SimpleNamespace(),
+        channel_ingest_repo=ingest_repo,
+        channel_creator=creator,
+    )
+
+    with pytest.raises(RuntimeError, match="worker crashed"):
+        await updater.update()
+
+    ingest_repo.mark_completed.assert_not_awaited()
+    ingest_repo.mark_failed.assert_not_awaited()
+    ingest_repo.mark_attempted.assert_not_awaited()
+    session.commit.assert_not_awaited()
+    assert session.rollback.await_count >= 1
 
 
 @pytest.mark.asyncio

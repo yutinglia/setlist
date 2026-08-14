@@ -17,9 +17,11 @@ VIDEO_BACKFILL_ACTIVE: frozenset[str] = frozenset(
 )
 
 MAX_CHANNELS_PER_BULK_ADD = 10
+ChannelIngestStatus = Literal["pending", "completed", "failed"]
 ChannelBulkAddStatus = Literal[
     "created",
     "already_exists",
+    "queued",
     "invalid",
     "failed",
     "skipped",
@@ -56,6 +58,7 @@ class ChannelBulkCreate(BaseModel):
 class ChannelBulkAddItemResult(BaseModel):
     url: str
     status: ChannelBulkAddStatus
+    queue_id: int | None = None
     channel_id: str | None = None
     channel_name: str | None = None
     message: str
@@ -65,10 +68,38 @@ class ChannelBulkAddResponse(BaseModel):
     items: list[ChannelBulkAddItemResult]
     created: int = Field(ge=0)
     already_exists: int = Field(ge=0)
+    queued: int = Field(ge=0)
     failed: int = Field(ge=0)
     skipped: int = Field(ge=0)
     max_batch_size: int = MAX_CHANNELS_PER_BULK_ADD
     cooldown_seconds: int = Field(ge=0)
+
+
+class ChannelQueued(BaseModel):
+    """Accepted channel URL awaiting post-cooldown YouTube resolution."""
+
+    url: str
+    status: Literal["queued"] = "queued"
+    queue_id: int
+    message: str
+
+
+class ChannelIngestItem(BaseModel):
+    """Durable administrator channel-ingest queue item."""
+
+    id: int
+    channel_url: str
+    status: ChannelIngestStatus
+    attempts: int = Field(ge=0)
+    channel_id: str | None = None
+    error_message: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    completed_at: datetime | None = None
+
+    model_config = {
+        "from_attributes": True,
+    }
 
 
 class YouTubeChannel(BaseModel):

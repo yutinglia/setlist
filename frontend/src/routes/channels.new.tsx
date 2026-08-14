@@ -229,6 +229,8 @@ function BulkResult({ result }: { result: ChannelBulkAddResponse }) {
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
           {result.failed || result.skipped ? (
             <AlertTriangle className="size-4" aria-hidden />
+          ) : result.queued ? (
+            <Clock3 className="size-4" aria-hidden />
           ) : (
             <CheckCircle2 className="size-4" aria-hidden />
           )}
@@ -241,14 +243,17 @@ function BulkResult({ result }: { result: ChannelBulkAddResponse }) {
             {m.channel_add_result_summary({
               created: result.created,
               existing: result.already_exists,
+              queued: result.queued,
               failed: result.failed,
               skipped: result.skipped,
             })}
           </p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            {m.channel_add_result_pacing({
-              seconds: result.cooldown_seconds,
-            })}
+            {result.queued
+              ? m.channel_add_result_queued({ queued: result.queued })
+              : m.channel_add_result_pacing({
+                  seconds: result.cooldown_seconds,
+                })}
           </p>
         </div>
       </div>
@@ -270,7 +275,10 @@ function BulkResult({ result }: { result: ChannelBulkAddResponse }) {
                 </Link>
               ) : (
                 <p className="truncate text-sm font-semibold">
-                  {item.channel_name || m.channel_add_unknown_channel()}
+                  {item.channel_name ||
+                    (item.status === "queued"
+                      ? m.channel_add_queued_channel()
+                      : m.channel_add_unknown_channel())}
                 </p>
               )}
               <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
@@ -302,6 +310,8 @@ function statusLabel(item: ChannelBulkAddItem): string {
       return m.channel_add_status_created()
     case "already_exists":
       return m.channel_add_status_existing()
+    case "queued":
+      return m.channel_add_status_queued()
     case "invalid":
       return m.channel_add_status_invalid()
     case "skipped":

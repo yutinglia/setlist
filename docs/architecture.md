@@ -26,6 +26,16 @@ The boundaries intentionally use:
 ownership. Cache invalidation runs only after their commits. Repositories still
 never commit.
 
+Administrator channel ingest has a durable cooldown fallback. `ChannelCreator`
+continues to resolve healthy requests synchronously, but persists normalized
+URLs in `channel_ingest_queue` when the shared or database cooldown is active;
+that transaction makes no YouTube call and does not invalidate public caches.
+At the start of a later updater cycle, `DataUpdater` resolves pending rows FIFO
+under the existing process/PostgreSQL YouTube lock and administrator pacing.
+Creating the channel and completing its queue row share one transaction. A
+block records the attempt and global cooldown while leaving the row pending;
+cancellation or a crash rolls the whole item back for retry.
+
 ## Optional Redis or Valkey
 
 Set `CACHE_URL` to any compatible Redis URL. Redis and Valkey use the same
@@ -84,3 +94,7 @@ TanStack Router context. React hooks use the provider; route guards use router
 context. This is sufficient DI for the current frontend: TanStack Query owns
 server state, Zustand owns UI preferences, and components receive ordinary
 props.
+
+The hero and compact header searches share `SearchForm`'s suggestion combobox,
+including debounce, keyboard navigation, and ARIA state. The home route omits
+the compact header search so it exposes only the hero search control.
