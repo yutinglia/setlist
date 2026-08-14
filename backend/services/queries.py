@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from models.channel import ChannelIngestItem
 from models.report import SummaryReport
 from models.search import (
     ChannelRead,
@@ -14,6 +15,7 @@ from models.search import (
 )
 from models.song import Song
 from repositories import (
+    ChannelIngestRepository,
     ChannelRepository,
     ReportRepository,
     SongRepository,
@@ -26,6 +28,28 @@ from services.cache import (
     SEARCH_CACHE_NAMESPACE,
     ResponseCache,
 )
+
+
+class ChannelIngestQueryService:
+    """Private reads for the durable administrator ingest queue."""
+
+    def __init__(self, repo: ChannelIngestRepository) -> None:
+        self.repo = repo
+
+    async def list_pending(
+        self,
+        *,
+        limit: int,
+        offset: int,
+    ) -> Paginated[ChannelIngestItem]:
+        items = await self.repo.list_pending(limit=limit, offset=offset)
+        total = await self.repo.count_pending()
+        return Paginated(
+            items=items,
+            total=total,
+            limit=limit,
+            offset=offset,
+        )
 
 
 class CatalogQueryService:

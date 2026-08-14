@@ -65,6 +65,7 @@ async def test_channel_ingest_queue_deduplicates_pending_urls(
     suffix = uuid.uuid4().hex[:8]
     url = f"https://www.youtube.com/@queued-{suffix}"
     repo = ChannelIngestRepository(session)
+    pending_before = await repo.count_pending()
 
     first, first_created = await repo.enqueue(url)
     duplicate, duplicate_created = await repo.enqueue(url)
@@ -74,6 +75,7 @@ async def test_channel_ingest_queue_deduplicates_pending_urls(
     assert duplicate.id == first.id
     pending = await repo.list_pending(limit=100)
     assert sum(item.channel_url == url for item in pending) == 1
+    assert await repo.count_pending() == pending_before + 1
 
     failed = await repo.mark_failed(
         first.id,
@@ -82,10 +84,12 @@ async def test_channel_ingest_queue_deduplicates_pending_urls(
     assert failed is not None
     assert failed.status == "failed"
     assert failed.attempts == 1
+    assert await repo.count_pending() == pending_before
 
     retry, retry_created = await repo.enqueue(url)
     assert retry_created is True
     assert retry.id != first.id
+    assert await repo.count_pending() == pending_before + 1
 
 
 @pytest.mark.asyncio

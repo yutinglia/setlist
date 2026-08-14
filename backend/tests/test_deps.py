@@ -11,6 +11,7 @@ from deps import (
     get_auth_service,
     get_catalog_query_service,
     get_channel_creator,
+    get_channel_ingest_query_service,
     get_container,
     get_data_updater,
     get_report_query_service,
@@ -48,6 +49,7 @@ def test_container_and_simple_dependency_providers():
     container.database = SimpleNamespace(session_factory=Mock())
     container.auth_service = "auth"
     container.catalog_queries = Mock(return_value="catalog")
+    container.channel_ingest_queries = Mock(return_value="ingest")
     container.report_queries = Mock(return_value="report")
     container.channel_creator = Mock(return_value="creator")
     container.data_updater = Mock(return_value="updater")
@@ -59,6 +61,7 @@ def test_container_and_simple_dependency_providers():
     assert pagination_params(10, 4) == (10, 4)
     assert get_auth_service(container) == "auth"
     assert get_catalog_query_service("session", container) == "catalog"
+    assert get_channel_ingest_query_service("session", container) == "ingest"
     assert get_report_query_service("session", container) == "report"
     assert get_channel_creator("session", container) == "creator"
     assert get_data_updater("session", container) == "updater"

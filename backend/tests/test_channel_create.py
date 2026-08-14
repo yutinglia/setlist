@@ -73,6 +73,17 @@ def _container(trigger, *, enabled=True):
 
 
 @pytest.mark.asyncio
+async def test_channel_ingest_queue_lists_pending_items_for_admin():
+    expected = SimpleNamespace(items=[SimpleNamespace(id=7)], total=1)
+    queries = SimpleNamespace(list_pending=AsyncMock(return_value=expected))
+
+    result = await search.list_channel_ingest_queue((20, 0), None, queries)
+
+    assert result is expected
+    queries.list_pending.assert_awaited_once_with(limit=20, offset=0)
+
+
+@pytest.mark.asyncio
 async def test_create_channel_commits_before_requesting_immediate_backfill():
     order: list[str] = []
     scraped = _channel()

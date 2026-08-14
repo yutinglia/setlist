@@ -409,6 +409,7 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&channel_id=UC_FIRST&channe
 |------|------|------|
 | `POST` | `/v1/auth/logout` | 結束目前的管理員工作階段 |
 | `GET` | `/v1/updater/status` | 即時細節、持久化結果、心跳、上次成功時間與冷卻狀態 |
+| `GET` | `/v1/channels/ingest-queue` | 依 FIFO 分頁列出尚未解析的頻道網址 |
 | `POST` | `/v1/channels` | 驗證並新增頻道；YouTube 冷卻中則回傳 `202 queued` |
 | `POST` | `/v1/channels/bulk` | 新增或排隊 1–10 個頻道並回傳逐筆結果 |
 | `POST` | `/v1/channels/{id}/videos/refresh` | 重新整理中繼資料而不刪除既有歌單 |
@@ -421,7 +422,8 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&channel_id=UC_FIRST&channe
 套用持久化的 10 秒管理員新增冷卻；若處於另一個全域封鎖冷卻（預設六小時），
 系統不會呼叫 YouTube，而是把尚未解析的有效網址寫入
 `channel_ingest_queue` 並回報 `queued`。冷卻結束後，updater 會在相同 lock
-與節流規則下依 FIFO 解析；每個 request 最多只喚醒 updater 一次。
+與節流規則下依 FIFO 解析。管理員新增頻道頁會讀取並自動更新這份 pending
+佇列；每個新增 request 最多只喚醒 updater 一次。
 
 ## 設定
 

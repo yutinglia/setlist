@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -48,17 +48,32 @@ class ChannelIngestRepository:
         await self.session.flush()
         return ChannelIngestItem.model_validate(row), created
 
-    async def list_pending(self, *, limit: int) -> list[ChannelIngestItem]:
+    async def list_pending(
+        self,
+        *,
+        limit: int,
+        offset: int = 0,
+    ) -> list[ChannelIngestItem]:
         """Return the oldest pending URLs first."""
         result = await self.session.execute(
             select(ChannelIngestQueue)
             .where(ChannelIngestQueue.status == "pending")
             .order_by(ChannelIngestQueue.created_at, ChannelIngestQueue.id)
             .limit(max(0, limit))
+            .offset(max(0, offset))
         )
         return [
             ChannelIngestItem.model_validate(item) for item in result.scalars().all()
         ]
+
+    async def count_pending(self) -> int:
+        """Return the number of URLs awaiting resolution."""
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(ChannelIngestQueue)
+            .where(ChannelIngestQueue.status == "pending")
+        )
+        return int(result.scalar_one())
 
     async def mark_completed(
         self,

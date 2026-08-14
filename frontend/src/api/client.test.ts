@@ -148,6 +148,7 @@ describe("createApiClient", () => {
     await client.getSong(7)
     await client.listSetlistContributors(20, 40)
     await client.listChannels(20, 40)
+    await client.listChannelIngestQueue(100, 0)
     await client.getChannel("UC / one")
     await client.listChannelVideos("UC / one", 10, 20, "song", true)
     await client.listChannelVideos("UC2", 10, 0)
@@ -164,6 +165,7 @@ describe("createApiClient", () => {
       "/api/v1/songs/7",
       "/api/v1/contributors?limit=20&offset=40",
       "/api/v1/channels?limit=20&offset=40",
+      "/api/v1/channels/ingest-queue?limit=100&offset=0",
       "/api/v1/channels/UC%20%2F%20one",
       "/api/v1/channels/UC%20%2F%20one/videos?limit=10&offset=20&type=song&has_song_list=true",
       "/api/v1/channels/UC2/videos?limit=10&offset=0",

@@ -445,6 +445,7 @@ wildcards.
 |--------|------|---------|
 | `POST` | `/v1/auth/logout` | End the current administrator session |
 | `GET` | `/v1/updater/status` | Live detail plus durable outcome, heartbeat, last success, and cooldown |
+| `GET` | `/v1/channels/ingest-queue` | Paginated unresolved channel URLs in FIFO order |
 | `POST` | `/v1/channels` | Validate and add a channel, or return `202 queued` during YouTube cooldown |
 | `POST` | `/v1/channels/bulk` | Add or queue 1–10 channels with per-item results |
 | `POST` | `/v1/channels/{id}/videos/refresh` | Refresh metadata without deleting setlists |
@@ -459,7 +460,8 @@ administrator add cooldown between lookups. During the separate global block
 cooldown (six hours by default), valid unresolved URLs are stored in
 `channel_ingest_queue` without contacting YouTube and reported as `queued`.
 The updater resolves them FIFO after cooldown under the same lock and pacing.
-Each request produces at most one updater wake-up.
+The administrator add-channels page reads this pending queue and refreshes it
+automatically. Each add request produces at most one updater wake-up.
 
 ## Configuration
 

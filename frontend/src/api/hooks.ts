@@ -14,6 +14,7 @@ export const SONG_SUGGESTION_LIMIT = 8
 const CHANNEL_OPTIONS_PAGE_SIZE = 100
 
 export const authSessionQueryKey = ["auth", "session"] as const
+export const channelIngestQueueQueryKey = ["channel-ingest-queue"] as const
 
 export function authSessionQueryOptions(api: ApiClient) {
   return queryOptions({
@@ -54,6 +55,7 @@ export function useLogout() {
     onSuccess: (session) => {
       queryClient.setQueryData(authSessionQueryKey, session)
       queryClient.removeQueries({ queryKey: ["updater"] })
+      queryClient.removeQueries({ queryKey: channelIngestQueueQueryKey })
     },
   })
 }
@@ -245,6 +247,17 @@ export function useChannels(page: number, query = "") {
   })
 }
 
+export function useChannelIngestQueue() {
+  const api = useApi()
+  return useQuery({
+    queryKey: channelIngestQueueQueryKey,
+    queryFn: () => api.listChannelIngestQueue(),
+    refetchInterval: 5_000,
+    staleTime: 2_000,
+    retry: 1,
+  })
+}
+
 export function useChannel(channelId: string) {
   const api = useApi()
   return useQuery({
@@ -261,7 +274,12 @@ export function useCreateChannel() {
   return useMutation({
     mutationFn: (url: string) => api.createChannel(url),
     onSuccess: async (result) => {
-      if ("status" in result && result.status === "queued") return
+      if ("status" in result && result.status === "queued") {
+        await queryClient.invalidateQueries({
+          queryKey: channelIngestQueueQueryKey,
+        })
+        return
+      }
       await queryClient.invalidateQueries({ queryKey: ["channels"] })
       await queryClient.invalidateQueries({ queryKey: ["channels", "options"] })
       await queryClient.invalidateQueries({ queryKey: ["updates", "recent"] })
@@ -275,6 +293,9 @@ export function useCreateChannelsBulk() {
   return useMutation({
     mutationFn: (urls: string[]) => api.createChannelsBulk(urls),
     onSuccess: async (result) => {
+      await queryClient.invalidateQueries({
+        queryKey: channelIngestQueueQueryKey,
+      })
       if (result.created === 0) return
       await queryClient.invalidateQueries({ queryKey: ["channels"] })
       await queryClient.invalidateQueries({ queryKey: ["channels", "options"] })

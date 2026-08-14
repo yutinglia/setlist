@@ -16,6 +16,7 @@ import type {
   ChannelBulkAddResponse,
   ChannelBulkAddStatus,
 } from "@/api/types"
+import { ChannelIngestQueuePanel } from "@/components/channel-ingest-queue"
 import { ContextualBackButton } from "@/components/contextual-back-button"
 import { PageMetadata } from "@/components/page-metadata"
 import { Badge } from "@/components/ui/badge"
@@ -192,6 +193,7 @@ function AddChannelPage() {
       </div>
 
       {result ? <BulkResult result={result} /> : null}
+      <ChannelIngestQueuePanel />
     </section>
   )
 }

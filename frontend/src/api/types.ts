@@ -85,6 +85,20 @@ export type ChannelQueued = {
   message: string
 }
 
+export type ChannelIngestStatus = "pending" | "completed" | "failed"
+
+export type ChannelIngestItem = {
+  id: number
+  channel_url: string
+  status: ChannelIngestStatus
+  attempts: number
+  channel_id: string | null
+  error_message: string | null
+  created_at: string
+  updated_at: string
+  completed_at: string | null
+}
+
 export type YouTubeVideo = {
   id: string
   title: string

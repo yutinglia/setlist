@@ -1,6 +1,8 @@
 """Administrator authentication, session, and CSRF regressions."""
 
 from dataclasses import replace
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
@@ -8,7 +10,7 @@ from fastapi.testclient import TestClient
 import config
 from config import AuthSettings
 from container import ApplicationContainer
-from deps import require_management_admin
+from deps import get_channel_ingest_query_service, require_management_admin
 from main import create_app
 from services.auth import AuthService, _password_hasher
 
@@ -125,3 +127,44 @@ def test_auth_is_fail_closed_when_not_configured():
         assert response.status_code == 503
         assert "vks_session" not in response.cookies
         assert response.headers["cache-control"] == "no-store"
+
+
+def test_channel_ingest_queue_is_private_but_does_not_require_csrf():
+    app = _app(_auth_settings())
+    queries = SimpleNamespace(
+        list_pending=AsyncMock(
+            return_value={
+                "items": [],
+                "total": 0,
+                "limit": 20,
+                "offset": 0,
+            }
+        )
+    )
+    app.dependency_overrides[get_channel_ingest_query_service] = lambda: queries
+
+    with TestClient(app) as client:
+        denied = client.get("/v1/channels/ingest-queue")
+        assert denied.status_code == 401
+        assert denied.headers["cache-control"] == "no-store"
+
+        login = client.post(
+            "/v1/auth/login",
+            json={
+                "username": "operator",
+                "password": "a-strong-test-password",
+            },
+        )
+        assert login.status_code == 200
+
+        allowed = client.get("/v1/channels/ingest-queue")
+        assert allowed.status_code == 200
+        assert allowed.json() == {
+            "items": [],
+            "total": 0,
+            "limit": 20,
+            "offset": 0,
+        }
+        assert allowed.headers["cache-control"] == "no-store"
+        assert allowed.headers["vary"] == "Cookie"
+        queries.list_pending.assert_awaited_once_with(limit=20, offset=0)
