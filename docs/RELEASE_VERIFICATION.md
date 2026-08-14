@@ -61,6 +61,9 @@ Use these steps for a manual release. The automated Dependabot path performs the
 equivalent version synchronization, approval, tag, and dispatch checks.
 
 1. Confirm the release pull request is approved, merged, and green.
+   Branch protection requires the approving reviewer to differ from the actor
+   that performed the latest push. Request final approval only after the release
+   branch's last push; any later push dismisses the stale review.
 2. Update local `main` without rewriting history:
 
    ```bash

@@ -54,6 +54,9 @@ App 憑證。該 App 只安裝在部署控制面，僅有 API 所需的 `Content
 tag 與 dispatch 檢查。
 
 1. 確認 release pull request 已通過審核、合併，且所有檢查皆為綠燈。
+   Branch protection 要求核准 reviewer 不得是最後一次 push 的執行者。請等
+   release branch 完成最後一次 push 後再要求最終核准；任何後續 push 都會使
+   舊 review 失效。
 2. 更新本機 `main`，不要改寫歷史：
 
    ```bash
