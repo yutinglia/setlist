@@ -102,6 +102,8 @@ export function SearchForm({
   }, [debouncedQuery])
 
   useEffect(() => {
+    if (!shortcutEnabled) return
+
     function focusSearch(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null
       const isEditing =
@@ -109,7 +111,6 @@ export function SearchForm({
         target?.tagName === "TEXTAREA" ||
         target?.isContentEditable
       if (
-        shortcutEnabled &&
         event.key === "/" &&
         !isEditing &&
         inputRef.current?.offsetParent !== null

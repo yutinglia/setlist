@@ -273,6 +273,56 @@ async def test_bulk_add_requeues_batch_when_cooldown_starts_mid_request():
 
 
 @pytest.mark.asyncio
+async def test_bulk_add_does_not_requeue_an_earlier_resolution_failure():
+    first = _channel("UC-one", "one")
+    second = _channel("UC-two", "two")
+    third = _channel("UC-three", "three")
+    repo = _repo()
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    trigger = SimpleNamespace(request=Mock(return_value=True))
+    ingest_repo = SimpleNamespace(
+        enqueue=AsyncMock(
+            side_effect=[
+                (SimpleNamespace(id=33), True),
+                (SimpleNamespace(id=34), True),
+            ]
+        )
+    )
+    creator = _creator(
+        session,
+        repo,
+        scrape=AsyncMock(
+            side_effect=[
+                RuntimeError("Extractor failed"),
+                YouTubeAccessBlocked("HTTP Error 429"),
+            ]
+        ),
+        ingest_repo=ingest_repo,
+    )
+
+    response = await search.create_channels_bulk(
+        ChannelBulkCreate(urls=[first.url, second.url, third.url]),
+        None,
+        creator,
+        _container(trigger),
+    )
+
+    assert [item.status for item in response.items] == [
+        "failed",
+        "queued",
+        "queued",
+    ]
+    assert response.failed == 1
+    assert response.queued == 2
+    assert [queued.args[0] for queued in ingest_repo.enqueue.await_args_list] == [
+        second.url,
+        third.url,
+    ]
+    assert session.commit.await_count == 3
+    trigger.request.assert_called_once_with()
+
+
+@pytest.mark.asyncio
 async def test_bulk_add_exact_duplicate_needs_no_youtube_request_or_cooldown():
     existing = _channel()
     repo = _repo()

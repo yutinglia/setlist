@@ -52,6 +52,7 @@ class ChannelCreationOutcome:
     queue_id: int | None = None
     commit_required: bool = False
     public_data_changed: bool = False
+    defer_until_cooldown_ends: bool = False
 
 
 class ChannelAddCooldownActive(RuntimeError):
@@ -169,6 +170,7 @@ class ChannelCreator:
                             status="failed",
                             channel=None,
                             message="YouTube temporarily blocked this request",
+                            defer_until_cooldown_ends=True,
                         )
                     )
                     outcomes.extend(
@@ -177,6 +179,7 @@ class ChannelCreator:
                             status="skipped",
                             channel=None,
                             message="Skipped because the YouTube cooldown is active",
+                            defer_until_cooldown_ends=True,
                         )
                         for remaining_url in channel_urls[index + 1 :]
                     )
@@ -221,7 +224,7 @@ class ChannelCreator:
         deferred_positions = [
             index
             for index, outcome in enumerate(outcomes)
-            if outcome.status in {"failed", "skipped"}
+            if outcome.defer_until_cooldown_ends
         ]
         deferred = await self._queue_many(
             [outcomes[index].requested_url for index in deferred_positions]
