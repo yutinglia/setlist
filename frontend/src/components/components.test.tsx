@@ -399,6 +399,26 @@ describe("interactive search controls", () => {
     )
   })
 
+  test("does not register the search shortcut when disabled", async () => {
+    const addEventListener = vi.spyOn(window, "addEventListener")
+    try {
+      await renderWithProviders(
+        <SearchForm
+          onQuerySubmit={vi.fn()}
+          shortcutEnabled={false}
+        />,
+      )
+
+      expect(
+        addEventListener.mock.calls.filter(([eventName]) => {
+          return eventName === "keydown"
+        }),
+      ).toHaveLength(0)
+    } finally {
+      addEventListener.mockRestore()
+    }
+  })
+
   test("renders recent searches and clears them", async () => {
     useUiStore.setState({ recentSearches: ["Recent"] })
     const submit = vi.fn()
