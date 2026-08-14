@@ -1,7 +1,7 @@
 from typing import Optional
 import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, SmallInteger, String, text
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, SmallInteger, String, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, relationship
 
@@ -16,7 +16,8 @@ class Channels(Base):
         CheckConstraint("video_backfill_status::text = ANY (ARRAY['pending'::character varying, 'running'::character varying, 'done'::character varying, 'failed'::character varying]::text[])", name='chk_channels_video_backfill_status'),
         CheckConstraint('video_scan_failures >= 0', name='ck_channels_video_scan_failures_nonnegative'),
         PrimaryKeyConstraint('id', name='channels_pkey'),
-        Index('idx_channels_discovery_due', 'video_backfill_status', 'next_video_scan_at', 'video_backfill_updated_at')
+        Index('idx_channels_discovery_due', 'video_backfill_status', 'next_video_scan_at', 'video_backfill_updated_at'),
+        Index('idx_channels_recent_updates', 'updated_at', 'id')
     )
 
     id: Mapped[str] = mapped_column(String(255), primary_key=True)
@@ -33,6 +34,7 @@ class Channels(Base):
     last_video_scan_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     next_video_scan_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
 
+    channel_ingest_queue: Mapped[list['ChannelIngestQueue']] = relationship('ChannelIngestQueue', back_populates='channel')
     videos: Mapped[list['Videos']] = relationship('Videos', back_populates='channel')
 
 
@@ -67,12 +69,36 @@ class ScraperState(Base):
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
     updater_outcome: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'never'::character varying"))
     youtube_cooldown_until: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
-    channel_add_cooldown_until: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     updater_cycle_started_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     updater_cycle_finished_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     updater_last_success_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     updater_heartbeat_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     updater_owner_id: Mapped[Optional[str]] = mapped_column(String(255))
+    channel_add_cooldown_until: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
+
+
+class ChannelIngestQueue(Base):
+    __tablename__ = 'channel_ingest_queue'
+    __table_args__ = (
+        CheckConstraint('attempts >= 0', name='chk_channel_ingest_queue_attempts_nonnegative'),
+        CheckConstraint("status::text = ANY (ARRAY['pending'::character varying, 'completed'::character varying, 'failed'::character varying]::text[])", name='chk_channel_ingest_queue_status'),
+        ForeignKeyConstraint(['channel_id'], ['channels.id'], ondelete='SET NULL', name='fk_channel_ingest_queue_channel'),
+        PrimaryKeyConstraint('id', name='channel_ingest_queue_pkey'),
+        Index('idx_channel_ingest_queue_pending_fifo', 'created_at', 'id', postgresql_where="((status)::text = 'pending'::text)"),
+        Index('uq_channel_ingest_queue_pending_url', 'channel_url', postgresql_where="((status)::text = 'pending'::text)", unique=True)
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    channel_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'pending'::character varying"))
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
+    channel_id: Mapped[Optional[str]] = mapped_column(String(255))
+    error_message: Mapped[Optional[str]] = mapped_column(String(500))
+    completed_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
+
+    channel: Mapped[Optional['Channels']] = relationship('Channels', back_populates='channel_ingest_queue')
 
 
 class Videos(Base):
@@ -105,9 +131,6 @@ class Videos(Base):
     comments_raw_data: Mapped[Optional[dict]] = mapped_column(JSONB)
     last_analyzed_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     song_list_comment_raw_data: Mapped[Optional[dict]] = mapped_column(JSONB)
-    setlist_comment_author: Mapped[Optional[str]] = mapped_column(String(255))
-    setlist_comment_author_id: Mapped[Optional[str]] = mapped_column(String(255))
-    setlist_comment_id: Mapped[Optional[str]] = mapped_column(String(255))
     last_cleaned_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     cleaned_song_list_comment: Mapped[Optional[dict]] = mapped_column(JSONB)
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
@@ -118,6 +141,9 @@ class Videos(Base):
     metadata_raw_data: Mapped[Optional[dict]] = mapped_column(JSONB)
     list_scraped_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     metadata_scraped_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
+    setlist_comment_author: Mapped[Optional[str]] = mapped_column(String(255))
+    setlist_comment_author_id: Mapped[Optional[str]] = mapped_column(String(255))
+    setlist_comment_id: Mapped[Optional[str]] = mapped_column(String(255))
 
     channel: Mapped['Channels'] = relationship('Channels', back_populates='videos')
     songs: Mapped[list['Songs']] = relationship('Songs', back_populates='video')
@@ -128,6 +154,7 @@ class Songs(Base):
     __table_args__ = (
         ForeignKeyConstraint(['video_id'], ['videos.id'], ondelete='CASCADE', name='fk_songs_video'),
         PrimaryKeyConstraint('id', name='songs_pkey'),
+        Index('idx_songs_recent_updates', 'updated_at', 'id'),
         Index('idx_songs_title_trgm', 'title', postgresql_ops={'title': 'gin_trgm_ops'}, postgresql_using='gin'),
         Index('idx_songs_video_id_id', 'video_id', 'id')
     )

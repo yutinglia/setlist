@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from models.channel import YouTubeChannel
 from models.song import Song
 from models.video import YouTubeVideo
+from repositories.channel_ingest_repository import ChannelIngestRepository
 from repositories.channel_repository import ChannelRepository
 from repositories.report_repository import ReportRepository
 from repositories.song_repository import SongRepository
@@ -55,6 +56,36 @@ async def session():
         finally:
             await sess.close()
     await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_channel_ingest_queue_deduplicates_pending_urls(
+    session: AsyncSession,
+):
+    suffix = uuid.uuid4().hex[:8]
+    url = f"https://www.youtube.com/@queued-{suffix}"
+    repo = ChannelIngestRepository(session)
+
+    first, first_created = await repo.enqueue(url)
+    duplicate, duplicate_created = await repo.enqueue(url)
+
+    assert first_created is True
+    assert duplicate_created is False
+    assert duplicate.id == first.id
+    pending = await repo.list_pending(limit=100)
+    assert sum(item.channel_url == url for item in pending) == 1
+
+    failed = await repo.mark_failed(
+        first.id,
+        error_message="Could not resolve this YouTube channel",
+    )
+    assert failed is not None
+    assert failed.status == "failed"
+    assert failed.attempts == 1
+
+    retry, retry_created = await repo.enqueue(url)
+    assert retry_created is True
+    assert retry.id != first.id
 
 
 @pytest.mark.asyncio

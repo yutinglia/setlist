@@ -409,18 +409,19 @@ curl 'http://localhost:8000/v1/songs/search?q=Stellar&channel_id=UC_FIRST&channe
 |------|------|------|
 | `POST` | `/v1/auth/logout` | 結束目前的管理員工作階段 |
 | `GET` | `/v1/updater/status` | 即時細節、持久化結果、心跳、上次成功時間與冷卻狀態 |
-| `POST` | `/v1/channels` | 驗證並新增 YouTube 頻道 |
-| `POST` | `/v1/channels/bulk` | 依序新增 1–10 個頻道並回傳逐筆結果 |
+| `POST` | `/v1/channels` | 驗證並新增頻道；YouTube 冷卻中則回傳 `202 queued` |
+| `POST` | `/v1/channels/bulk` | 新增或排隊 1–10 個頻道並回傳逐筆結果 |
 | `POST` | `/v1/channels/{id}/videos/refresh` | 重新整理中繼資料而不刪除既有歌單 |
 | `POST` | `/v1/videos/{id}/songs/reload` | 重新抓取留言並執行歌單抽取 |
 
 瀏覽器中的異動請求同時需要已簽章的管理員 Cookie 與工作階段的
 `X-CSRF-Token`。
 
-批次新增會分別驗證每個網址、逐一解析有效頻道，並在每次 YouTube 查詢之間
-套用持久化的管理員新增冷卻。整批只會喚醒 updater 一次，而不是每個頻道各
-喚醒一次，因此待處理回填仍遵守正常的每輪上限與預設五分鐘 worker 節奏。
-在冷卻期間另外呼叫 `POST /v1/channels` 會收到含 `Retry-After` 的 `429`。
+批次新增會分別驗證每個網址。YouTube 正常時會逐一解析有效頻道，並在查詢間
+套用持久化的 10 秒管理員新增冷卻；若處於另一個全域封鎖冷卻（預設六小時），
+系統不會呼叫 YouTube，而是把尚未解析的有效網址寫入
+`channel_ingest_queue` 並回報 `queued`。冷卻結束後，updater 會在相同 lock
+與節流規則下依 FIFO 解析；每個 request 最多只喚醒 updater 一次。
 
 ## 設定
 
@@ -482,8 +483,9 @@ CACHE_URL=redis://cache:6379/0 docker compose --profile cache up -d
 
 ## 資料流程如何運作
 
-1. 管理員一次可用有節流的批次新增最多十個頻道。頻道中繼資料查詢會序列化並
-   套用持久化冷卻，而整批只會喚醒 updater 一次。
+1. 管理員一次最多提交十個頻道。正常狀態會立即依節流規則解析；全域 YouTube
+   冷卻期間則持久化網址，待冷卻結束後依 FIFO 解析。整批只會喚醒 updater
+   一次。
 2. 透過有工作量上限的 Streams 與 Videos 播放清單頁面發現追蹤頻道內容。
 3. 清單快照會保留穩定中繼資料與約略日期，不會對每支影片額外發出請求。
 4. 可能是歌回的影片會進入獨立且受節流控制的留言分析佇列。

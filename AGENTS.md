@@ -33,7 +33,7 @@ setlist/
 │   │   └── yt_scraper/    # yt-dlp wrappers + ad-hoc test.py
 │   └── tests/             # pytest unit + PostgreSQL integration coverage
 ├── db/
-│   ├── migrations/        # Flyway SQL (V1–V13; schema source of truth)
+│   ├── migrations/        # Flyway SQL (V1–V14; schema source of truth)
 │   └── devscript/         # PowerShell one-shot Postgres + sqlacodegen
 ├── .devcontainer/         # Dev Container image/config (Python 3.14 + Node 26)
 ├── scripts/               # Repository checks, including credential scanning
@@ -119,7 +119,7 @@ Default DB (also in `config.py`): `vks_db_user` / `vks_db_pwd` @ `localhost:5432
 - **Search deep links** use `utils.youtube_timestamp.youtube_url_with_timestamp` (`mm:ss` / `hh:mm:ss` → `&t=Ns`).
 - **Updater status** combines process-local detail with the persisted cycle outcome, owner, last success, and heartbeat at `GET /v1/updater/status`. YouTube cooldown and runtime state live in the singleton `scraper_state` row. Heartbeat writes use independent transactions and must never commit scraper work. Keep public error text redacted and detailed exceptions in server logs.
 - **YouTube work is a cross-process singleton.** Keep the process-local lock plus the dedicated-connection PostgreSQL advisory lock around background and administrator-triggered scraping. Owner-guard persistent state updates so a stale process cannot overwrite the current worker.
-- **Administrator channel ingest is paced.** Bulk add accepts at most 10 URLs, resolves them sequentially under the YouTube operation lock, persists the add cooldown in `scraper_state`, and queues only one general updater wake per batch. Do not turn a bulk request into per-channel wake events.
+- **Administrator channel ingest is paced and cooldown-safe.** Bulk add accepts at most 10 URLs and normally resolves them sequentially under the YouTube operation lock with the persisted add cooldown. While the global YouTube cooldown is active, valid unresolved URLs are deduplicated in `channel_ingest_queue` without an upstream call; `DataUpdater` resolves them FIFO before normal channel work after cooldown. Channel creation and queue completion share one transaction, while block/cancel/crash keeps the item pending. Queue only one general updater wake per request; never turn a bulk request into per-channel wake events.
 - **Authorization** uses one environment-configured administrator (`ADMIN_PASSWORD_HASH` is Argon2id; never store plaintext credentials). Signed HttpOnly sessions protect private reads, and all mutations require both admin auth and the per-session CSRF token. `MANAGEMENT_API_ENABLED` is only a kill switch, never an auth substitute.
 - **Guest API traffic** is rate-limited per resolved client IP in-process. Only honor `X-Forwarded-For` from `TRUSTED_PROXY_CIDRS`. Updater status is admin-only; guests may search and browse public records.
 - **Authentication responses** and authenticated API responses must remain

@@ -445,20 +445,21 @@ wildcards.
 |--------|------|---------|
 | `POST` | `/v1/auth/logout` | End the current administrator session |
 | `GET` | `/v1/updater/status` | Live detail plus durable outcome, heartbeat, last success, and cooldown |
-| `POST` | `/v1/channels` | Validate and add a YouTube channel |
-| `POST` | `/v1/channels/bulk` | Add 1–10 channels sequentially with per-item results |
+| `POST` | `/v1/channels` | Validate and add a channel, or return `202 queued` during YouTube cooldown |
+| `POST` | `/v1/channels/bulk` | Add or queue 1–10 channels with per-item results |
 | `POST` | `/v1/channels/{id}/videos/refresh` | Refresh metadata without deleting setlists |
 | `POST` | `/v1/videos/{id}/songs/reload` | Re-fetch comments and rerun extraction |
 
 Browser mutations require both the signed administrator cookie and the
 session's `X-CSRF-Token`.
 
-Bulk channel add validates each URL independently, resolves valid channels one
-at a time, and applies the persisted administrator add cooldown between YouTube
-lookups. The whole batch queues one updater wake-up—not one wake-up per
-channel—so pending backfills continue under the normal per-cycle limits and
-configured worker interval (five minutes by default). A separate
-`POST /v1/channels` during the cooldown returns `429` with `Retry-After`.
+Bulk channel add validates each URL independently. With normal YouTube access,
+it resolves valid channels one at a time and applies the persisted 10-second
+administrator add cooldown between lookups. During the separate global block
+cooldown (six hours by default), valid unresolved URLs are stored in
+`channel_ingest_queue` without contacting YouTube and reported as `queued`.
+The updater resolves them FIFO after cooldown under the same lock and pacing.
+Each request produces at most one updater wake-up.
 
 ## Configuration
 
@@ -522,8 +523,9 @@ Leave `CACHE_URL` empty to run without Redis or Valkey. See
 
 ## How the pipeline behaves
 
-1. Administrators may add up to ten channels in one paced batch. Channel
-   metadata lookups are serialized with a durable cooldown, and the batch
+1. Administrators may submit up to ten channels in one batch. Healthy requests
+   resolve immediately with durable pacing; URLs submitted during a global
+   YouTube cooldown are persisted and resolved FIFO afterward. The batch
    produces one updater wake-up.
 2. A tracked channel is discovered through bounded Streams and Videos playlist
    pages.

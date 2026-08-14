@@ -106,13 +106,13 @@ proxy.
 
 | Path | API |
 |------|-----|
-| `/` | Search-focused entry point with title suggestions, a compact collection summary, and a route to `/search` |
-| `/search` | Grid results from `GET /v1/songs/search`; 500 ms debounced suggestions while typing; repeated channel, type, and date filters apply to both requests |
+| `/` | Search-focused entry point with one hero title-suggestion control, a compact collection summary, and a route to `/search` |
+| `/search` | Grid results from `GET /v1/songs/search`; 500 ms debounced suggestions while typing; repeated channel, type, and date filters apply to the page search |
 | `/songs/$songId` | `GET /v1/songs/{id}`; contextual back navigation restores the prior search or video page |
 | `/thanks` | `GET /v1/contributors`; credits public YouTube commenters whose selected timestamped setlists supply indexed songs |
 | `/channels` | Searchable grid from `GET /v1/channels`; the literal `q` value and page are shareable URL state |
 | `/updates` | Latest 10 updated channels and 100 indexed songs from `GET /v1/updates/recent` |
-| `/channels/new` | Administrator-only `POST /v1/channels` |
+| `/channels/new` | Administrator-only `POST /v1/channels/bulk`; cooldown responses show durable queued URLs separately from created channels |
 | `/channels/$channelId` | Grid view from `GET /v1/channels/{id}` + `/videos`; cards open details and expose a separate untimestamped YouTube action |
 | `/videos/$videoId` | `GET /v1/videos/{id}` + `/songs`; timestamped setlist rows open YouTube and expose a separate song-detail action |
 | `/admin/login` | `GET /v1/auth/session`; `POST /v1/auth/login` |
@@ -126,12 +126,14 @@ proxy.
 
 Administrator controls within channel and video routes call:
 
-- `POST /v1/channels`
+- `POST /v1/channels/bulk`
 - `POST /v1/channels/{id}/videos/refresh`
 - `POST /v1/videos/{id}/songs/reload`
 - `POST /v1/auth/logout`
 
 Mutation requests use the CSRF token returned by the authenticated session.
+The compact header search on non-home routes reuses the same debounced
+`GET /v1/songs/suggestions` combobox as the page search.
 
 ## Localization
 

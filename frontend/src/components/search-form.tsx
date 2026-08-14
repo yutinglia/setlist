@@ -28,9 +28,11 @@ type Props = {
   onQuerySubmit: (q: string) => void
   suggestionFilters?: SongSearchFilters
   autoFocus?: boolean
-  variant?: "default" | "hero"
+  variant?: "default" | "hero" | "compact"
   hint?: string
   showAdvancedSearchLink?: boolean
+  shortcutEnabled?: boolean
+  inputAriaLabel?: string
 }
 
 export function SearchForm({
@@ -41,8 +43,11 @@ export function SearchForm({
   variant = "default",
   hint,
   showAdvancedSearchLink = false,
+  shortcutEnabled = true,
+  inputAriaLabel,
 }: Props) {
   const isHero = variant === "hero"
+  const isCompact = variant === "compact"
   const [value, setValue] = useState(initialQuery)
   const [isOpen, setIsOpen] = useState(false)
   const [hasEdited, setHasEdited] = useState(false)
@@ -103,14 +108,19 @@ export function SearchForm({
         target?.tagName === "INPUT" ||
         target?.tagName === "TEXTAREA" ||
         target?.isContentEditable
-      if (event.key === "/" && !isEditing) {
+      if (
+        shortcutEnabled &&
+        event.key === "/" &&
+        !isEditing &&
+        inputRef.current?.offsetParent !== null
+      ) {
         event.preventDefault()
         inputRef.current?.focus()
       }
     }
     window.addEventListener("keydown", focusSearch)
     return () => window.removeEventListener("keydown", focusSearch)
-  }, [])
+  }, [shortcutEnabled])
 
   function submitQuery(query: string) {
     const q = query.trim()
@@ -125,6 +135,8 @@ export function SearchForm({
   return (
     <form
       className="w-full"
+      role={isCompact ? "search" : undefined}
+      aria-label={isCompact ? m.nav_search() : undefined}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
           setIsOpen(false)
@@ -136,10 +148,13 @@ export function SearchForm({
         submitQuery(value)
       }}
     >
-      <div className="flex gap-2.5">
+      <div className={cn("flex gap-2.5", isCompact && "gap-0")}>
         <div className="relative min-w-0 flex-1">
           <Search
-            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
+            className={cn(
+              "pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground",
+              isCompact && "size-4",
+            )}
             aria-hidden
           />
           <Input
@@ -197,9 +212,11 @@ export function SearchForm({
               "h-14 rounded-full border-input bg-card pr-20 pl-12 text-base shadow-sm focus-visible:bg-card",
               isHero &&
                 "h-14 border-border pl-12 shadow-[0_10px_35px_-22px_rgba(0,0,0,0.45)] sm:h-16 sm:pl-14 sm:text-lg",
+              isCompact &&
+                "h-10 rounded-r-none rounded-l-full border-r-0 bg-background pr-11 pl-11 shadow-none focus-visible:z-10 focus-visible:bg-card",
             )}
             autoFocus={autoFocus}
-            aria-label={m.search_placeholder()}
+            aria-label={inputAriaLabel ?? m.search_placeholder()}
             role="combobox"
             aria-autocomplete="list"
             aria-expanded={showSuggestions}
@@ -213,7 +230,10 @@ export function SearchForm({
           {value ? (
             <button
               type="button"
-              className="absolute top-1/2 right-3 grid size-9 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={cn(
+                "absolute top-1/2 right-3 grid size-9 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                isCompact && "right-1.5 size-8",
+              )}
               aria-label={m.search_clear()}
               onClick={() => {
                 setValue("")
@@ -227,9 +247,11 @@ export function SearchForm({
               <X className="size-4" aria-hidden />
             </button>
           ) : (
-            <kbd className="pointer-events-none absolute top-1/2 right-4 hidden -translate-y-1/2 rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[0.65rem] text-muted-foreground sm:block">
-              /
-            </kbd>
+            !isCompact && (
+              <kbd className="pointer-events-none absolute top-1/2 right-4 hidden -translate-y-1/2 rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[0.65rem] text-muted-foreground sm:block">
+                /
+              </kbd>
+            )
           )}
           {showSuggestions ? (
             <div
@@ -296,59 +318,72 @@ export function SearchForm({
           className={cn(
             "h-14 px-5 sm:px-6",
             isHero && "h-14 px-5 sm:h-16 sm:px-8",
+            isCompact &&
+              "h-10 w-14 rounded-r-full rounded-l-none border border-input bg-secondary px-0 text-secondary-foreground shadow-none hover:bg-muted focus-visible:z-10",
           )}
-          size="lg"
+          size={isCompact ? "sm" : "lg"}
+          variant={isCompact ? "secondary" : "default"}
           aria-label={m.search_submit()}
         >
-          <span className="hidden sm:inline">{m.search_submit()}</span>
-          <ArrowRight aria-hidden />
+          {isCompact ? (
+            <Search className="size-5" aria-hidden />
+          ) : (
+            <>
+              <span className="hidden sm:inline">{m.search_submit()}</span>
+              <ArrowRight aria-hidden />
+            </>
+          )}
         </Button>
       </div>
-      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-left text-xs text-muted-foreground">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <p>{hint ?? m.search_hint()}</p>
-          {showAdvancedSearchLink ? (
-            <Link
-              to="/search"
-              search={{ q: currentQuery || undefined }}
-              className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full px-2 font-semibold text-primary hover:bg-primary/8"
-            >
-              <SlidersHorizontal className="size-3.5" aria-hidden />
-              {m.search_advanced_link()}
-              <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-          ) : null}
-        </div>
-        <p className="hidden shrink-0 font-mono lg:block">
-          {m.search_shortcut()}
-        </p>
-      </div>
+      {!isCompact ? (
+        <>
+          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-left text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <p>{hint ?? m.search_hint()}</p>
+              {showAdvancedSearchLink ? (
+                <Link
+                  to="/search"
+                  search={{ q: currentQuery || undefined }}
+                  className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full px-2 font-semibold text-primary hover:bg-primary/8"
+                >
+                  <SlidersHorizontal className="size-3.5" aria-hidden />
+                  {m.search_advanced_link()}
+                  <ArrowRight className="size-3.5" aria-hidden />
+                </Link>
+              ) : null}
+            </div>
+            <p className="hidden shrink-0 font-mono lg:block">
+              {m.search_shortcut()}
+            </p>
+          </div>
 
-      {recent.length > 0 ? (
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-left">
-          <span className="text-[0.68rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
-            {m.recent_searches()}
-          </span>
-          {recent.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className="min-h-8 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={() => {
-                submitQuery(item)
-              }}
-            >
-              {item}
-            </button>
-          ))}
-          <button
-            type="button"
-            className="ml-1 min-h-8 rounded-full px-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
-            onClick={clearRecent}
-          >
-            {m.clear_recent()}
-          </button>
-        </div>
+          {recent.length > 0 ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-left">
+              <span className="text-[0.68rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+                {m.recent_searches()}
+              </span>
+              {recent.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className="min-h-8 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => {
+                    submitQuery(item)
+                  }}
+                >
+                  {item}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="ml-1 min-h-8 rounded-full px-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+                onClick={clearRecent}
+              >
+                {m.clear_recent()}
+              </button>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </form>
   )

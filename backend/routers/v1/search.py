@@ -2,6 +2,7 @@ import logging
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
 from container import ApplicationContainer
@@ -19,6 +20,7 @@ from models.channel import (
     ChannelBulkAddResponse,
     ChannelBulkCreate,
     ChannelCreate,
+    ChannelQueued,
 )
 from models.search import (
     ChannelRead,
@@ -32,6 +34,7 @@ from models.search import (
 from models.song import Song
 from services.channel_creator import (
     ChannelAddCooldownActive,
+    ChannelCreationOutcome,
     ChannelCreator,
     ChannelResolutionFailed,
     YouTubeCooldownActive,
@@ -44,6 +47,40 @@ from services.yt_scraper.errors import YouTubeAccessBlocked
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Songs"])
+
+
+def _queued_channel_response(
+    outcome: ChannelCreationOutcome,
+    *,
+    requested_url: str,
+    container: ApplicationContainer,
+) -> JSONResponse | None:
+    if outcome.status != "queued":
+        return None
+    if outcome.queue_id is None:
+        raise RuntimeError("Queued channel outcome did not include a queue id")
+    if container.settings.background_updater_enabled:
+        queued = container.update_cycle_trigger.request()
+        logger.info(
+            "Channel URL %s queued for post-cooldown resolution; updater wake %s",
+            requested_url,
+            "queued" if queued else "already pending",
+        )
+    else:
+        logger.warning(
+            "Channel URL %s is queued for resolution, but the background "
+            "updater is disabled",
+            requested_url,
+        )
+    queued_response = ChannelQueued(
+        url=outcome.requested_url,
+        queue_id=outcome.queue_id,
+        message=outcome.message,
+    )
+    return JSONResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        content=queued_response.model_dump(),
+    )
 
 
 class ChannelVideoRefreshResponse(BaseModel):
@@ -237,8 +274,14 @@ async def get_channel(
 
 @router.post(
     "/channels",
-    response_model=ChannelRead,
+    response_model=ChannelRead | ChannelQueued,
     status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_202_ACCEPTED: {
+            "model": ChannelQueued,
+            "description": "Accepted for resolution after YouTube cooldown",
+        }
+    },
 )
 async def create_channel(
     body: ChannelCreate,
@@ -246,15 +289,16 @@ async def create_channel(
     creator: ChannelCreator = Depends(get_channel_creator),
     container: ApplicationContainer = Depends(get_container),
 ):
-    """Scrape a YouTube channel URL and add it to the tracked list.
+    """Add a YouTube channel now, or defer resolution during cooldown.
 
     Sets ``video_backfill_status=pending`` and wakes the background updater so
-    it starts walking the full catalog in bounded, durable pages immediately.
-    Returns 409 if the channel id is already tracked.
+    it starts walking the full catalog in bounded, durable pages. A URL
+    accepted during YouTube cooldown is persisted without an upstream call and
+    returns 202. Returns 409 if the channel id is already tracked.
     """
 
     try:
-        outcome = await creator.create(body.url)
+        outcome = await creator.create_or_queue(body.url)
     except YouTubeUpdaterBusyError as busy_exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -300,6 +344,14 @@ async def create_channel(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Could not resolve a YouTube channel from that URL",
         ) from scrape_exc
+
+    queued_response = _queued_channel_response(
+        outcome,
+        requested_url=body.url,
+        container=container,
+    )
+    if queued_response is not None:
+        return queued_response
 
     if outcome.status == "already_exists":
         existing = outcome.channel
@@ -358,7 +410,7 @@ async def create_channels_bulk(
         valid_positions.append(index)
 
     try:
-        outcomes = await creator.create_bulk(valid_urls) if valid_urls else []
+        outcomes = await creator.create_bulk_or_queue(valid_urls) if valid_urls else []
     except YouTubeUpdaterBusyError as busy_exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -384,6 +436,7 @@ async def create_channels_bulk(
         item_results[position] = ChannelBulkAddItemResult(
             url=outcome.requested_url,
             status=outcome.status,
+            queue_id=outcome.queue_id,
             channel_id=channel.id if channel is not None else None,
             channel_name=channel.name if channel is not None else None,
             message=outcome.message,
@@ -395,18 +448,22 @@ async def create_channels_bulk(
     if len(completed_items) != len(body.urls):
         raise RuntimeError("Bulk channel creation returned an incomplete result")
 
-    if created_channel_ids and container.settings.background_updater_enabled:
+    queued_count = sum(item.status == "queued" for item in completed_items)
+    accepted_work_count = len(created_channel_ids) + queued_count
+    if accepted_work_count and container.settings.background_updater_enabled:
         # One coalesced wake is intentional. Pending rows remain durable and the
         # normal per-cycle backfill cap rotates through them every worker tick.
         container.update_cycle_trigger.request()
         logger.info(
-            "Bulk channel add committed %s channel(s); queued one updater wake",
+            "Bulk channel add accepted %s immediate and %s deferred channel(s); "
+            "queued one updater wake",
             len(created_channel_ids),
+            queued_count,
         )
-    elif created_channel_ids:
+    elif accepted_work_count:
         logger.warning(
-            "Bulk channel add left %s pending backfill(s), but updater is disabled",
-            len(created_channel_ids),
+            "Bulk channel add left %s pending item(s), but updater is disabled",
+            accepted_work_count,
         )
 
     counts = {
@@ -414,6 +471,7 @@ async def create_channels_bulk(
         for result_status in (
             "created",
             "already_exists",
+            "queued",
             "invalid",
             "failed",
             "skipped",
@@ -423,6 +481,7 @@ async def create_channels_bulk(
         items=completed_items,
         created=counts["created"],
         already_exists=counts["already_exists"],
+        queued=counts["queued"],
         failed=counts["invalid"] + counts["failed"],
         skipped=counts["skipped"],
         max_batch_size=MAX_CHANNELS_PER_BULK_ADD,

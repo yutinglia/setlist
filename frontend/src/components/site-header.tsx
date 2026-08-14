@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router"
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router"
 import {
   Check,
   ChevronDown,
@@ -29,6 +29,10 @@ import { getLocale } from "@/paraglide/runtime"
 import { useUiStore } from "@/stores/ui-store"
 
 export function SiteHeader() {
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+  const isHome = pathname === "/"
   const theme = useUiStore((state) => state.theme)
   const collapsed = useUiStore((state) => state.sidebarCollapsed)
   const toggleSidebar = useUiStore((state) => state.toggleSidebar)
@@ -95,24 +99,26 @@ export function SiteHeader() {
         <BrandLogo className="mr-1 shrink-0" />
 
         <div className="mx-auto hidden min-w-0 flex-1 justify-center px-3 md:flex lg:px-8">
-          <GlobalSearch />
+          {!isHome ? <GlobalSearch /> : null}
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
-          <Button
-            asChild
-            variant="ghost"
-            size="icon-lg"
-            className="size-11 rounded-full md:hidden"
-          >
-            <Link
-              to="/search"
-              aria-label={m.nav_search()}
-              title={m.nav_search()}
+          {!isHome ? (
+            <Button
+              asChild
+              variant="ghost"
+              size="icon-lg"
+              className="size-11 rounded-full md:hidden"
             >
-              <Search aria-hidden />
-            </Link>
-          </Button>
+              <Link
+                to="/search"
+                aria-label={m.nav_search()}
+                title={m.nav_search()}
+              >
+                <Search aria-hidden />
+              </Link>
+            </Button>
+          ) : null}
           <PreferencesMenu />
         </div>
       </div>

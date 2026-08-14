@@ -1,6 +1,7 @@
 import type {
   AuthSession,
   ChannelBulkAddResponse,
+  ChannelQueued,
   ChannelVideoRefresh,
   HealthResponse,
   Paginated,
@@ -207,7 +208,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
     ),
 
   createChannel: (url: string) =>
-    request<YouTubeChannel>("/v1/channels", {
+    request<YouTubeChannel | ChannelQueued>("/v1/channels", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),

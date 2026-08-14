@@ -260,7 +260,8 @@ export function useCreateChannel() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (url: string) => api.createChannel(url),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if ("status" in result && result.status === "queued") return
       await queryClient.invalidateQueries({ queryKey: ["channels"] })
       await queryClient.invalidateQueries({ queryKey: ["channels", "options"] })
       await queryClient.invalidateQueries({ queryKey: ["updates", "recent"] })
@@ -273,7 +274,8 @@ export function useCreateChannelsBulk() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (urls: string[]) => api.createChannelsBulk(urls),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if (result.created === 0) return
       await queryClient.invalidateQueries({ queryKey: ["channels"] })
       await queryClient.invalidateQueries({ queryKey: ["channels", "options"] })
       await queryClient.invalidateQueries({ queryKey: ["updates", "recent"] })

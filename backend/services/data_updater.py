@@ -18,13 +18,19 @@ from config import (
     UPDATER_HEARTBEAT_INTERVAL_SECONDS,
     LlmSettings,
 )
-from models.channel import YouTubeChannel
+from models.channel import (
+    MAX_CHANNELS_PER_BULK_ADD,
+    ChannelIngestItem,
+    YouTubeChannel,
+)
 from models.video import YouTubeVideo
+from repositories.channel_ingest_repository import ChannelIngestRepository
 from repositories.channel_repository import ChannelRepository
 from repositories.song_repository import SongRepository
 from repositories.video_repository import VideoRepository
 from services.analyzer.llm_cleaner import LlmSongListCleaner, SongListCleaner
 from services.cache import PUBLIC_CACHE_NAMESPACES, ResponseCache
+from services.channel_creator import ChannelCreator, ChannelResolutionFailed
 from services.scrape_policy import ScrapePolicy
 from services.scraping import (
     DefaultScraperFactory,
@@ -87,6 +93,8 @@ class DataUpdater:
         status_tracker: UpdaterStatusTracker | None = None,
         cooldown: YouTubeCooldown | None = None,
         operations: YouTubeOperationCoordinator | None = None,
+        channel_ingest_repo: ChannelIngestRepository | None = None,
+        channel_creator: ChannelCreator | None = None,
         scraper_factory: ScraperFactory | None = None,
         scrape_executor: ScrapeExecutor | None = None,
         song_list_cleaner: SongListCleaner | None = None,
@@ -105,6 +113,8 @@ class DataUpdater:
             self.policy.youtube_cooldown_seconds
         )
         self.operations = operations or default_youtube_operation_coordinator
+        self.channel_ingest_repo = channel_ingest_repo
+        self.channel_creator = channel_creator
         self.scraper_factory = scraper_factory or DefaultScraperFactory(self.policy)
         self.scrape_executor = scrape_executor or ScrapeExecutor(self.policy)
         self.llm_settings = llm_settings or config.get_settings().llm
@@ -216,8 +226,10 @@ class DataUpdater:
 
         self._begin_cycle()
         try:
-            channels = await self._load_prioritized_channels(priority_channel_id)
-            await self._process_channels(channels)
+            await self._process_channel_ingest_queue()
+            if self._cooldown_remaining() <= 0:
+                channels = await self._load_prioritized_channels(priority_channel_id)
+                await self._process_channels(channels)
             if self._cooldown_remaining() <= 0:
                 await self._process_analysis_queue_with_cooldown()
             return self._finish_cycle()
@@ -261,6 +273,99 @@ class DataUpdater:
             self.policy.inter_comment_sleep_max,
             self.policy.max_analysis_attempts,
         )
+
+    async def _process_channel_ingest_queue(self) -> None:
+        if self.channel_ingest_repo is None or self.channel_creator is None:
+            return
+
+        self.status.set(
+            UpdaterPhase.FETCHING_CHANNELS,
+            detail="Loading queued channel URLs",
+            clear_channel=True,
+            clear_video=True,
+        )
+        items = await self.channel_ingest_repo.list_pending(
+            limit=MAX_CHANNELS_PER_BULK_ADD
+        )
+        if not items:
+            return
+
+        logger.info("Resolving %s queued channel URL(s)", len(items))
+        for item in items:
+            if self._cooldown_remaining() > 0:
+                return
+            if not await self._process_channel_ingest_item(item):
+                return
+
+    async def _process_channel_ingest_item(
+        self,
+        item: ChannelIngestItem,
+    ) -> bool:
+        if self.channel_ingest_repo is None or self.channel_creator is None:
+            return True
+        self.status.set(
+            UpdaterPhase.FETCHING_CHANNELS,
+            detail="Resolving a queued channel URL",
+            clear_channel=True,
+            clear_video=True,
+        )
+        try:
+            outcome = await self.channel_creator.resolve_locked(
+                item.channel_url,
+                wait_for_add_cooldown=True,
+            )
+            channel = outcome.channel
+            if channel is None:
+                raise RuntimeError("Resolved queue outcome did not include a channel")
+            completed = await self.channel_ingest_repo.mark_completed(
+                item.id,
+                channel_id=channel.id,
+            )
+            if completed is None:
+                raise RuntimeError("Queued channel item is no longer pending")
+            await self._commit(
+                invalidate_cache=outcome.public_data_changed,
+            )
+            logger.info(
+                "Completed queued channel URL %s as %s (%s)",
+                item.channel_url,
+                channel.id,
+                outcome.status,
+            )
+            return True
+        except ChannelResolutionFailed:
+            await self.channel_ingest_repo.mark_failed(
+                item.id,
+                error_message="Could not resolve this YouTube channel",
+            )
+            await self._commit(invalidate_cache=False)
+            logger.warning(
+                "Queued channel URL could not be resolved: %s",
+                item.channel_url,
+            )
+            return True
+        except YouTubeAccessBlocked as exc:
+            await self.channel_ingest_repo.mark_attempted(item.id)
+            await self._activate_youtube_cooldown()
+            logger.warning(
+                "YouTube block while resolving queued channel %s: %s",
+                item.channel_url,
+                exc,
+            )
+            self.status.set(
+                UpdaterPhase.COOLDOWN,
+                detail="YouTube temporarily blocked channel resolution",
+                clear_channel=True,
+                clear_video=True,
+                last_error="YouTube access was temporarily blocked",
+            )
+            return False
+        except asyncio.CancelledError:
+            await self.session.rollback()
+            raise
+        except BaseException:
+            await self.session.rollback()
+            raise
 
     async def _load_prioritized_channels(
         self,

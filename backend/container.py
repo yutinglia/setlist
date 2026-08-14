@@ -12,6 +12,7 @@ import config
 from config import AppSettings
 from db import DatabaseResources, create_database_resources
 from repositories import (
+    ChannelIngestRepository,
     ChannelRepository,
     ReportRepository,
     SongRepository,
@@ -111,6 +112,7 @@ class ApplicationContainer:
         return ChannelCreator(
             session,
             ChannelRepository(session),
+            ingest_repo=ChannelIngestRepository(session),
             add_cooldown_seconds=self.settings.channel_add_cooldown_seconds,
             policy=self.settings.scrape_policy,
             cooldown=self.youtube_cooldown,
@@ -121,6 +123,7 @@ class ApplicationContainer:
         )
 
     def data_updater(self, session: AsyncSession) -> DataUpdater:
+        channel_ingest_repo = ChannelIngestRepository(session)
         return DataUpdater(
             session,
             ChannelRepository(session),
@@ -131,6 +134,8 @@ class ApplicationContainer:
             status_tracker=self.updater_status,
             cooldown=self.youtube_cooldown,
             operations=self.youtube_operations,
+            channel_ingest_repo=channel_ingest_repo,
+            channel_creator=self.channel_creator(session),
             scraper_factory=self.scraper_factory,
             scrape_executor=self.scrape_executor,
             song_list_cleaner=self.song_list_cleaner,

@@ -14,15 +14,15 @@ scope, with individual work tracked in GitHub issues.
 
 | Area | Status |
 |------|--------|
-| Postgres schema (Flyway V1–V12) | Done |
+| Postgres schema (Flyway V1–V14) | Done |
 | yt-dlp scrapers (channel / videos / comments) | Done, used by DataUpdater |
 | Comment → song-list heuristics | Done (`video_id` required; unit tests) |
 | Repositories | Read + upsert / `replace_for_video` (updater-owned commits) |
 | `DataUpdater.update()` | Wired + atomic durable work units + cross-process singleton + delayed global analysis queue |
-| Search / UI | Public API + trilingual React search/browse UI + contributor credits |
+| Search / UI | Public API + trilingual React search/browse UI + shared hero/header title suggestions + contributor credits |
 | Access control | Single-admin Argon2id login, signed sessions, CSRF |
 | Public service limits | Per-IP guest/login limits; admin-only status/mutations |
-| Channel ingest | Admin bulk add (max 10), durable add cooldown, one coalesced updater wake |
+| Channel ingest | Admin bulk add (max 10), durable cooldown queue fallback, one coalesced updater wake |
 | Deployment | Tag-only release; private scheduled/manual control plane; same-origin frontend proxy; API/Postgres private |
 
 | Requirements (`backend/requirements.txt`) | Direct deps updated (Jul 2026) |
@@ -296,6 +296,11 @@ session/rate-limit storage.
 - [x] Coalesce each bulk request into one updater wake so backfill retains its
   normal per-cycle cadence.
 - [x] Surface pacing guidance and outcomes in the administrator UI.
+- [x] During the global YouTube block cooldown, accept normalized URLs into a
+  durable deduplicated queue without an upstream request.
+- [x] Resolve deferred URLs FIFO at the start of a healthy updater cycle; keep
+  queue completion atomic with channel creation and preserve pending work after
+  a block, cancellation, or crash.
 
 ---
 
