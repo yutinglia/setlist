@@ -32,6 +32,9 @@ repository、Redis client 或 scraper 實作。
 YouTube lock 與管理員節流下依 FIFO 解析 pending row。建立頻道與完成 queue
 row 共用同一 transaction；遇到封鎖時記錄嘗試與全域冷卻但保留 pending，
 取消或崩潰則 rollback 整筆工作以便重試。
+私有 `GET /v1/channels/ingest-queue` query 會依相同 FIFO 順序投影 pending
+row，且不做 response cache。管理員新增頻道頁會輪詢此 endpoint，並在新增
+request 後立即使前端 query 失效，讓佇列變化保持可見又不向訪客揭露運作狀態。
 
 ## 可選 Redis 或 Valkey
 

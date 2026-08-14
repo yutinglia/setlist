@@ -23,7 +23,11 @@ from services.auth import AuthService
 from services.cache import ResponseCache, create_cache
 from services.channel_creator import ChannelCreator
 from services.data_updater import DataUpdater
-from services.queries import CatalogQueryService, ReportQueryService
+from services.queries import (
+    CatalogQueryService,
+    ChannelIngestQueryService,
+    ReportQueryService,
+)
 from services.scraping import DefaultScraperFactory, ScrapeExecutor, ScraperFactory
 from services.stored_data_reanalyzer import StoredDataReanalyzer
 from services.update_cycle_trigger import UpdateCycleTrigger
@@ -104,6 +108,12 @@ class ApplicationContainer:
             SongRepository(session),
             self.cache,
         )
+
+    def channel_ingest_queries(
+        self,
+        session: AsyncSession,
+    ) -> ChannelIngestQueryService:
+        return ChannelIngestQueryService(ChannelIngestRepository(session))
 
     def report_queries(self, session: AsyncSession) -> ReportQueryService:
         return ReportQueryService(ReportRepository(session), self.cache)

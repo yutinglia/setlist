@@ -9,9 +9,11 @@ from container import ApplicationContainer
 from deps import (
     get_catalog_query_service,
     get_channel_creator,
+    get_channel_ingest_query_service,
     get_container,
     get_data_updater,
     pagination_params,
+    require_admin_session,
     require_management_admin,
 )
 from models.channel import (
@@ -20,6 +22,7 @@ from models.channel import (
     ChannelBulkAddResponse,
     ChannelBulkCreate,
     ChannelCreate,
+    ChannelIngestItem,
     ChannelQueued,
 )
 from models.search import (
@@ -40,7 +43,7 @@ from services.channel_creator import (
     YouTubeCooldownActive,
 )
 from services.data_updater import DataUpdater
-from services.queries import CatalogQueryService
+from services.queries import CatalogQueryService, ChannelIngestQueryService
 from services.youtube_operation_lock import YouTubeUpdaterBusyError
 from services.yt_scraper.errors import YouTubeAccessBlocked
 
@@ -250,6 +253,20 @@ async def list_channels(
     """List tracked channels, optionally filtered by name or channel id."""
     limit, offset = pagination
     return await queries.list_channels(limit=limit, offset=offset, query=q)
+
+
+@router.get(
+    "/channels/ingest-queue",
+    response_model=Paginated[ChannelIngestItem],
+)
+async def list_channel_ingest_queue(
+    pagination: tuple[int, int] = Depends(pagination_params),
+    _=Depends(require_admin_session),
+    queries: ChannelIngestQueryService = Depends(get_channel_ingest_query_service),
+):
+    """List unresolved administrator channel URLs in FIFO order."""
+    limit, offset = pagination
+    return await queries.list_pending(limit=limit, offset=offset)
 
 
 @router.get("/updates/recent", response_model=RecentUpdates)

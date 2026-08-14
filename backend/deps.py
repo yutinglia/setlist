@@ -14,7 +14,11 @@ from services.auth import (
 )
 from services.channel_creator import ChannelCreator
 from services.data_updater import DataUpdater
-from services.queries import CatalogQueryService, ReportQueryService
+from services.queries import (
+    CatalogQueryService,
+    ChannelIngestQueryService,
+    ReportQueryService,
+)
 from utils.http_cache import (
     prevent_private_response_caching,
     private_response_headers,
@@ -121,6 +125,13 @@ def get_catalog_query_service(
     container: ApplicationContainer = Depends(get_container),
 ) -> CatalogQueryService:
     return container.catalog_queries(session)
+
+
+def get_channel_ingest_query_service(
+    session: AsyncSession = Depends(get_session),
+    container: ApplicationContainer = Depends(get_container),
+) -> ChannelIngestQueryService:
+    return container.channel_ingest_queries(session)
 
 
 def get_report_query_service(

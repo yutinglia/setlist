@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import Response, status
 
-from models.channel import YouTubeChannel
+from models.channel import ChannelIngestItem, YouTubeChannel
 from models.report import SummaryReport
 from models.search import SetlistContributor, SongSearchResult, SongSuggestion
 from models.song import Song
@@ -21,7 +21,11 @@ from services.cache import (
     NullCacheBackend,
     ResponseCache,
 )
-from services.queries import CatalogQueryService, ReportQueryService
+from services.queries import (
+    CatalogQueryService,
+    ChannelIngestQueryService,
+    ReportQueryService,
+)
 
 
 class _RecordingCache:
@@ -80,6 +84,35 @@ def _summary():
         },
         songs={"total": 1, "analyzed_by_llm": 0, "contributors": 1},
     )
+
+
+@pytest.mark.asyncio
+async def test_channel_ingest_query_service_returns_fifo_page_and_total():
+    queued_at = datetime(2026, 7, 29, tzinfo=UTC)
+    item = ChannelIngestItem(
+        id=7,
+        channel_url="https://www.youtube.com/@queued",
+        status="pending",
+        attempts=1,
+        created_at=queued_at,
+        updated_at=queued_at,
+    )
+    repo = SimpleNamespace(
+        list_pending=AsyncMock(return_value=[item]),
+        count_pending=AsyncMock(return_value=3),
+    )
+
+    result = await ChannelIngestQueryService(repo).list_pending(
+        limit=20,
+        offset=1,
+    )
+
+    assert result.items == [item]
+    assert result.total == 3
+    assert result.limit == 20
+    assert result.offset == 1
+    repo.list_pending.assert_awaited_once_with(limit=20, offset=1)
+    repo.count_pending.assert_awaited_once()
 
 
 @pytest.mark.asyncio

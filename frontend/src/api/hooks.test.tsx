@@ -9,8 +9,10 @@ import {
   SONG_SUGGESTION_LIMIT,
   authSessionQueryKey,
   authSessionQueryOptions,
+  channelIngestQueueQueryKey,
   useAuthSession,
   useChannel,
+  useChannelIngestQueue,
   useChannelOptions,
   useChannelVideos,
   useChannels,
@@ -71,6 +73,12 @@ function makeApi(overrides: Partial<ApiClient> = {}) {
       items: [],
       total: 0,
       limit: PAGE_SIZE,
+      offset: 0,
+    })),
+    listChannelIngestQueue: vi.fn(async () => ({
+      items: [],
+      total: 0,
+      limit: 100,
       offset: 0,
     })),
     getChannel: vi.fn(async () => ({ id: "UC1" })),
@@ -165,6 +173,7 @@ describe("API context and query hooks", () => {
         song: useSong(7),
         contributors: useSetlistContributors(2),
         channels: useChannels(2),
+        channelIngestQueue: useChannelIngestQueue(),
         channel: useChannel("UC1"),
         videos: useChannelVideos("UC1", 2, "karaoke", true, 10),
         video: useVideo("video1"),
@@ -201,6 +210,7 @@ describe("API context and query hooks", () => {
     expect(api.listChannels).toHaveBeenCalledWith(PAGE_SIZE, 40, undefined)
     expect(api.listSetlistContributors).toHaveBeenCalledWith(PAGE_SIZE, 40)
     expect(api.listChannels).toHaveBeenCalledWith(100, 0)
+    expect(api.listChannelIngestQueue).toHaveBeenCalledWith()
     expect(api.listChannelVideos).toHaveBeenCalledWith(
       "UC1",
       10,
@@ -323,6 +333,7 @@ describe("API context and query hooks", () => {
     const { queryClient, Wrapper } = harness(api)
     const invalidate = vi.spyOn(queryClient, "invalidateQueries")
     queryClient.setQueryData(["updater", "status"], { phase: "idle" })
+    queryClient.setQueryData(channelIngestQueueQueryKey, { items: [] })
     const { result } = renderHook(
       () => ({
         login: useLogin(),
@@ -357,9 +368,13 @@ describe("API context and query hooks", () => {
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: ["updates", "recent"],
     })
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: channelIngestQueueQueryKey,
+    })
 
     await act(() => result.current.logout.mutateAsync())
     expect(queryClient.getQueryData(["updater", "status"])).toBeUndefined()
+    expect(queryClient.getQueryData(channelIngestQueueQueryKey)).toBeUndefined()
     expect(api.login).toHaveBeenCalledWith("operator", "secret")
     expect(api.logout).toHaveBeenCalled()
   })

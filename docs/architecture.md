@@ -35,6 +35,10 @@ under the existing process/PostgreSQL YouTube lock and administrator pacing.
 Creating the channel and completing its queue row share one transaction. A
 block records the attempt and global cooldown while leaving the row pending;
 cancellation or a crash rolls the whole item back for retry.
+The private `GET /v1/channels/ingest-queue` query projects pending rows in the
+same FIFO order without caching them. The administrator add-channels page polls
+that endpoint and invalidates it immediately after an add request so queue
+changes remain visible without exposing operational state to guests.
 
 ## Optional Redis or Valkey
 

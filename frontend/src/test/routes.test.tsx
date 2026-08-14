@@ -19,6 +19,7 @@ import { ApiError, type ApiClient } from "@/api/client"
 import { ApiProvider } from "@/api/provider"
 import type {
   AuthSession,
+  ChannelIngestItem,
   SetlistContributor,
   SongSearchResult,
   SummaryReport,
@@ -40,6 +41,18 @@ const channel: YouTubeChannel = {
   thumbnail_url: "https://images.test/channel.jpg",
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-07-01T00:00:00Z",
+}
+
+const queuedChannel: ChannelIngestItem = {
+  id: 17,
+  channel_url: "https://www.youtube.com/@queued-singer",
+  status: "pending",
+  attempts: 1,
+  channel_id: null,
+  error_message: null,
+  created_at: "2026-08-14T16:00:00Z",
+  updated_at: "2026-08-14T16:05:00Z",
+  completed_at: null,
 }
 
 const video: YouTubeVideo = {
@@ -197,6 +210,12 @@ function makeApi(
     listChannels: vi.fn(async (limit, offset) => ({
       items: [channel],
       total: 1,
+      limit,
+      offset,
+    })),
+    listChannelIngestQueue: vi.fn(async (limit = 100, offset = 0) => ({
+      items: [],
+      total: 0,
       limit,
       offset,
     })),
@@ -556,6 +575,9 @@ describe("application routes", () => {
     await waitFor(() =>
       expect(api.createChannelsBulk).toHaveBeenCalledWith(urls),
     )
+    await waitFor(() =>
+      expect(api.listChannelIngestQueue).toHaveBeenCalledTimes(2),
+    )
     expect(screen.getByText(m.channel_add_status_created()))
       .toBeInTheDocument()
     expect(screen.getByText(m.channel_add_status_existing()))
@@ -568,6 +590,40 @@ describe("application routes", () => {
       .toBeInTheDocument()
     expect(screen.getByText(m.channel_add_status_failed()))
       .toBeInTheDocument()
+  })
+
+  test("shows and refreshes the persisted channel ingest queue", async () => {
+    const listChannelIngestQueue = vi.fn(async () => ({
+      items: [queuedChannel],
+      total: 1,
+      limit: 100,
+      offset: 0,
+    }))
+    const api = makeApi(adminSession, { listChannelIngestQueue })
+
+    await renderRoute("/channels/new", api)
+
+    expect(
+      await screen.findByRole("heading", {
+        name: m.channel_add_queue_title(),
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: queuedChannel.channel_url }),
+    ).toHaveAttribute("href", queuedChannel.channel_url)
+    expect(
+      screen.getByText(m.channel_add_queue_position({ position: 1 })),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        m.channel_add_queue_attempts({ attempts: queuedChannel.attempts }),
+      ),
+    ).toBeInTheDocument()
+
+    await userEvent.click(
+      screen.getByRole("button", { name: m.channel_add_queue_refresh() }),
+    )
+    await waitFor(() => expect(listChannelIngestQueue).toHaveBeenCalledTimes(2))
   })
 
   test("validates oversized bulk input and maps unexpected failures", async () => {

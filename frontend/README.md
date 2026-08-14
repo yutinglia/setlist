@@ -112,7 +112,7 @@ proxy.
 | `/thanks` | `GET /v1/contributors`; credits public YouTube commenters whose selected timestamped setlists supply indexed songs |
 | `/channels` | Searchable grid from `GET /v1/channels`; the literal `q` value and page are shareable URL state |
 | `/updates` | Latest 10 updated channels and 100 indexed songs from `GET /v1/updates/recent` |
-| `/channels/new` | Administrator-only `POST /v1/channels/bulk`; cooldown responses show durable queued URLs separately from created channels |
+| `/channels/new` | Administrator-only bulk add plus an auto-refreshing FIFO view from `GET /v1/channels/ingest-queue`; cooldown responses show durable queued URLs separately from created channels |
 | `/channels/$channelId` | Grid view from `GET /v1/channels/{id}` + `/videos`; cards open details and expose a separate untimestamped YouTube action |
 | `/videos/$videoId` | `GET /v1/videos/{id}` + `/songs`; timestamped setlist rows open YouTube and expose a separate song-detail action |
 | `/admin/login` | `GET /v1/auth/session`; `POST /v1/auth/login` |

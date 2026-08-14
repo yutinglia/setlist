@@ -1,6 +1,7 @@
 import type {
   AuthSession,
   ChannelBulkAddResponse,
+  ChannelIngestItem,
   ChannelQueued,
   ChannelVideoRefresh,
   HealthResponse,
@@ -201,6 +202,11 @@ export function createApiClient(options: ApiClientOptions = {}) {
   },
 
   recentUpdates: () => request<RecentUpdates>("/v1/updates/recent"),
+
+  listChannelIngestQueue: (limit = 100, offset = 0) =>
+    request<Paginated<ChannelIngestItem>>(
+      `/v1/channels/ingest-queue?${pageQuery(limit, offset)}`,
+    ),
 
   getChannel: (channelId: string) =>
     request<YouTubeChannel>(
