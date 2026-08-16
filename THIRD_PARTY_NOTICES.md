@@ -93,11 +93,11 @@ MIT License. The packages below remain subject to their respective terms.
 - `@tanstack/history@1.162.1` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
 - `@tanstack/query-core@5.101.4` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
 - `@tanstack/react-query@5.101.4` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
-- `@tanstack/react-router@1.170.22` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/react-router@1.170.27` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
 - `@tanstack/react-store@0.9.3` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
-- `@tanstack/router-core@1.171.19` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/router-core@1.171.22` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
 - `@tanstack/store@0.9.3` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
-- `@types/node@26.1.2` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
+- `@types/node@26.2.0` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
 - `@types/react-dom@19.2.4` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
 - `@types/react@19.2.18` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
 - `acorn@8.17.0` — MIT; full text L015 — https://github.com/acornjs/acorn
@@ -123,7 +123,7 @@ MIT License. The packages below remain subject to their respective terms.
 - `json5@2.2.3` — MIT; full text L035 — Aseem Kishore <aseem.kishore@gmail.com> — http://json5.org/
 - `kysely@0.28.17` — MIT; full text L036 — Sami Koskimäki <sami@jakso.me> — https://kysely.dev
 - `lightningcss@1.33.0` — MPL-2.0; full text L037 — https://github.com/parcel-bundler/lightningcss
-- `lucide-react@1.30.0` — ISC; full text L038 — Eric Fennis — https://lucide.dev
+- `lucide-react@1.31.0` — ISC; full text L038 — Eric Fennis — https://lucide.dev
 - `nanoid@3.3.18` — MIT; full text L039 — Andrey Sitnik <andrey@sitnik.ru> — ai/nanoid
 - `picocolors@1.1.1` — ISC; full text L040 — Alexey Raspopov — alexeyraspopov/picocolors
 - `picomatch@4.0.5` — MIT; full text L041 — Jon Schlinkert (https://github.com/jonschlinkert) — https://github.com/micromatch/picomatch
@@ -155,7 +155,7 @@ MIT License. The packages below remain subject to their respective terms.
 - `vite@8.2.1` — MIT; full text L055 — Evan You — https://vite.dev
 - `webpack-virtual-modules@0.6.2` — MIT; full text L056 — SysGears INC — https://github.com/sysgears/webpack-virtual-modules#readme
 - `zod@4.4.3` — MIT; full text L057 — Colin McDonnell <zod@colinhacks.com> — https://zod.dev
-- `zustand@5.0.14` — MIT; full text L058 — Paul Henschel — https://github.com/pmndrs/zustand
+- `zustand@5.0.15` — MIT; full text L058 — Paul Henschel — https://github.com/pmndrs/zustand
 
 ## License texts
 
@@ -573,7 +573,7 @@ END OF TERMS AND CONDITIONS
 
 ### L012
 
-Applies to: `@tanstack/history@1.162.1`, `@tanstack/query-core@5.101.4`, `@tanstack/react-query@5.101.4`, `@tanstack/react-router@1.170.22`, `@tanstack/router-core@1.171.19`
+Applies to: `@tanstack/history@1.162.1`, `@tanstack/query-core@5.101.4`, `@tanstack/react-query@5.101.4`, `@tanstack/react-router@1.170.27`, `@tanstack/router-core@1.171.22`
 
 ```text
 MIT License
@@ -629,7 +629,7 @@ SOFTWARE.
 
 ### L014
 
-Applies to: `@types/node@26.1.2`, `@types/react@19.2.18`, `@types/react-dom@19.2.4`
+Applies to: `@types/node@26.2.0`, `@types/react@19.2.18`, `@types/react-dom@19.2.4`
 
 ```text
 MIT License
@@ -2016,7 +2016,7 @@ defined by the Mozilla Public License, v. 2.0.
 
 ### L038
 
-Applies to: `lucide-react@1.30.0`
+Applies to: `lucide-react@1.31.0`
 
 ```text
 ISC License
@@ -4864,7 +4864,7 @@ SOFTWARE.
 
 ### L058
 
-Applies to: `zustand@5.0.14`
+Applies to: `zustand@5.0.15`
 
 ```text
 MIT License
