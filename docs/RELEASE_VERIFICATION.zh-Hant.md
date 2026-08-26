@@ -34,10 +34,19 @@ workflow 等待受保護 `main` 的 CI 成功。它只接受同 repo、commit �
 
 1. 建立或 rebase 一個 Patch release pull request，且只包含 `VERSION`、
    `frontend/package.json` 與 `frontend/package-lock.json`；
-2. 明確 dispatch 該 branch 的 CI，並啟用 squash auto-merge；
-3. 等待受保護 branch 的檢查與合併政策；
-4. 再次驗證已合併的 release pull request，於通過測試的目前 `main` 建立
-   annotated tag，並 dispatch 一般 release workflow。
+2. 明確 dispatch 該 branch 的 CI、記錄精確 run id，並驗證 workflow path、
+   event、branch、commit、bot 身分、第一次執行及成功結果；
+3. 再次驗證 pull request 身分、同 repo head、精確變更檔案、單一 release
+   commit 與 exact head，再要求仍受 repo 政策約束的一般 squash merge；
+4. 對精確 merge commit 明確 dispatch CI，並排入帶有該 run id 與 commit 的
+   bot-only continuation。Continuation 只等待該次 CI，重新確認目前 `main`、
+   已合併的 release pull request，再建立 annotated tag 並 dispatch 一般
+   release workflow。
+
+必須明確執行 merge 後 CI，是因為 GitHub 刻意不會讓 repo `GITHUB_TOKEN`
+合併 release pull request 後再觸發 push workflow。Bot-only continuation 不依賴
+遞迴 `workflow_run` 事件，同時會拒絕 stale、rerun、錯誤 workflow、錯誤 actor
+或錯誤 commit 的 CI 結果。
 
 這個特權 workflow 不會取用 pull-request artifact 或 cache。自動 pull request
 與 workflow dispatch 只使用 repo 的 `GITHUB_TOKEN`，不會加入維護者 PAT。

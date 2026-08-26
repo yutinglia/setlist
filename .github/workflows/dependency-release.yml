@@ -6,6 +6,16 @@ on:
       - CI
     types:
       - completed
+  workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: Internal continuation CI run ID
+        required: true
+        type: string
+      expected_sha:
+        description: Internal continuation main commit
+        required: true
+        type: string
 
 permissions:
   actions: write
@@ -14,18 +24,32 @@ permissions:
 
 concurrency:
   group: dependency-release
+  queue: max
   cancel-in-progress: false
 
 jobs:
   dependency-release:
     name: Prepare or publish dependency release
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 35
     if: >-
       github.repository == 'yutinglia/setlist' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.conclusion == 'success'
+      (
+        (
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.conclusion == 'success'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          github.actor == 'github-actions[bot]' &&
+          github.triggering_actor == 'github-actions[bot]' &&
+          github.run_attempt == '1' &&
+          inputs.ci_run_id != '' &&
+          inputs.expected_sha != ''
+        )
+      )
 
     steps:
       # Only the tested protected main branch is checked out. No pull-request
@@ -37,12 +61,71 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Validate and wait for continuation CI
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$CI_RUN_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::Continuation CI run id is invalid."
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Continuation main commit is invalid."
+            exit 1
+          fi
+
+          read_run() {
+            gh api "repos/$REPOSITORY/actions/runs/$CI_RUN_ID"
+          }
+          validate_run_identity() {
+            jq -e \
+              --arg expected_sha "$EXPECTED_SHA" '
+              (.path | split("@")[0]) == ".github/workflows/ci.yml" and
+              .event == "workflow_dispatch" and
+              .head_branch == "main" and
+              .head_sha == $expected_sha and
+              .actor.login == "github-actions[bot]" and
+              .triggering_actor.login == "github-actions[bot]" and
+              .run_attempt == 1
+            ' > /dev/null
+          }
+
+          run_json="$(read_run)"
+          if ! validate_run_identity <<< "$run_json"; then
+            echo "::error::Continuation does not reference the expected main CI run."
+            exit 1
+          fi
+
+          gh run watch "$CI_RUN_ID" \
+            --repo "$REPOSITORY" \
+            --exit-status \
+            --interval 10
+
+          run_json="$(read_run)"
+          if ! validate_run_identity <<< "$run_json" ||
+             ! jq -e '
+               .status == "completed" and .conclusion == "success"
+             ' <<< "$run_json" > /dev/null; then
+            echo "::error::The exact continuation CI run did not succeed."
+            exit 1
+          fi
+
       - name: Confirm the tested revision is still current
         id: current
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
-          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          TESTED_SHA: >-
+            ${{ github.event_name == 'workflow_dispatch'
+                && inputs.expected_sha
+                || github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -362,32 +445,199 @@ jobs:
             exit 1
           fi
 
-          gh workflow run ci.yml --repo "$REPOSITORY" --ref "$release_branch"
-
           release_sha="$(git rev-parse HEAD)"
-          pr_json="$(
-            gh pr view "$pr_url" \
-              --json autoMergeRequest,headRefOid,isDraft,state
-          )"
-          pr_head_sha="$(jq -r '.headRefOid' <<< "$pr_json")"
-          pr_state="$(jq -r '.state' <<< "$pr_json")"
-          draft="$(jq -r '.isDraft' <<< "$pr_json")"
-          auto_merge_enabled="$(
-            jq -r '.autoMergeRequest != null' <<< "$pr_json"
-          )"
-          if [[ "$pr_head_sha" != "$release_sha" ||
-                "$pr_state" != "OPEN" ||
-                "$draft" != "false" ]]; then
+          dispatch_ci() {
+            local ref="$1"
+            local run_output run_url
+
+            run_output="$(
+              gh workflow run ci.yml \
+                --repo "$REPOSITORY" \
+                --ref "$ref"
+            )"
+            run_url="$(tail -n 1 <<< "$run_output" | tr -d '\r')"
+            if [[ ! "$run_url" =~ /actions/runs/([1-9][0-9]*)$ ]]; then
+              echo "::error::Could not identify the dispatched CI run." >&2
+              exit 1
+            fi
+            printf '%s\n' "${BASH_REMATCH[1]}"
+          }
+
+          read_run() {
+            gh api "repos/$REPOSITORY/actions/runs/$1"
+          }
+
+          validate_ci_identity() {
+            local run_id="$1"
+            local expected_branch="$2"
+            local expected_sha="$3"
+            local run_json
+
+            run_json="$(read_run "$run_id")"
+            jq -e \
+              --arg expected_branch "$expected_branch" \
+              --arg expected_sha "$expected_sha" '
+              (.path | split("@")[0]) == ".github/workflows/ci.yml" and
+              .event == "workflow_dispatch" and
+              .head_branch == $expected_branch and
+              .head_sha == $expected_sha and
+              .actor.login == "github-actions[bot]" and
+              .triggering_actor.login == "github-actions[bot]" and
+              .run_attempt == 1
+            ' <<< "$run_json" > /dev/null
+          }
+
+          release_ci_run_id="$(dispatch_ci "$release_branch")"
+          if ! validate_ci_identity \
+            "$release_ci_run_id" "$release_branch" "$release_sha"; then
+            echo "::error::The dispatched release CI identity is not trusted."
+            exit 1
+          fi
+          gh run watch "$release_ci_run_id" \
+            --repo "$REPOSITORY" \
+            --exit-status \
+            --interval 10
+          release_ci_json="$(read_run "$release_ci_run_id")"
+          if ! validate_ci_identity \
+               "$release_ci_run_id" "$release_branch" "$release_sha" ||
+             ! jq -e '
+               .status == "completed" and .conclusion == "success"
+             ' <<< "$release_ci_json" > /dev/null; then
+            echo "::error::The exact release CI run did not succeed."
+            exit 1
+          fi
+
+          pr_number="${pr_url##*/}"
+          if [[ ! "$pr_number" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::Release PR number is invalid."
+            exit 1
+          fi
+          pr_json="$(gh api "repos/$REPOSITORY/pulls/$pr_number")"
+          if ! jq -e \
+            --arg expected_branch "$release_branch" \
+            --arg expected_sha "$release_sha" \
+            --arg repository "$REPOSITORY" '
+            .state == "open" and
+            .draft == false and
+            .user.login == "github-actions[bot]" and
+            .base.ref == "main" and
+            .head.ref == $expected_branch and
+            .head.sha == $expected_sha and
+            .head.repo.full_name == $repository
+          ' <<< "$pr_json" > /dev/null; then
             echo "::error::Release PR no longer matches the prepared revision."
             exit 1
           fi
 
-          if [[ "$auto_merge_enabled" != "true" ]]; then
-            gh pr merge --auto --squash \
-              --match-head-commit "$release_sha" "$pr_url"
+          files_json="$(
+            gh api --paginate \
+              "repos/$REPOSITORY/pulls/$pr_number/files?per_page=100" \
+              --slurp
+          )"
+          if ! jq -e '
+            ([.[][] | .filename] | sort) ==
+            ([
+              "VERSION",
+              "frontend/package-lock.json",
+              "frontend/package.json"
+            ] | sort) and
+            all(.[][];
+              .status == "modified" and
+              (.previous_filename // null) == null
+            )
+          ' <<< "$files_json" > /dev/null; then
+            echo "::error::Release PR changed unexpected files."
+            exit 1
           fi
 
-          echo "Prepared $pr_url; waiting for protected branch checks."
+          git fetch --force origin \
+            "refs/heads/main:refs/remotes/origin/main" \
+            "refs/heads/$release_branch:refs/remotes/origin/$release_branch"
+          current_main_sha="$(git rev-parse origin/main)"
+          remote_release_sha="$(git rev-parse "origin/$release_branch")"
+          release_parent_sha="$(git rev-parse "${release_sha}^")"
+          release_commit_count="$(git rev-list --count "origin/main..$release_sha")"
+          release_subject="$(git log -1 --format=%s "$release_sha")"
+          if [[ "$remote_release_sha" != "$release_sha" ||
+                "$release_parent_sha" != "$current_main_sha" ||
+                "$release_commit_count" != "1" ||
+                "$release_subject" != "chore(release): $release_tag" ]]; then
+            echo "::error::Release branch history is not the expected single version commit."
+            exit 1
+          fi
+
+          gh pr merge "$pr_number" \
+            --repo "$REPOSITORY" \
+            --squash \
+            --match-head-commit "$release_sha"
+
+          merge_json=""
+          for _ in {1..30}; do
+            merge_json="$(gh api "repos/$REPOSITORY/pulls/$pr_number")"
+            if [[ "$(jq -r '.merged_at // empty' <<< "$merge_json")" != "" ]]; then
+              break
+            fi
+            if [[ "$(jq -r .state <<< "$merge_json")" == "closed" ]]; then
+              echo "::error::Release PR closed without merging."
+              exit 1
+            fi
+            sleep 2
+          done
+
+          merge_sha="$(jq -r '.merge_commit_sha // empty' <<< "$merge_json")"
+          if [[ ! "$merge_sha" =~ ^[0-9a-f]{40}$ ||
+                "$(jq -r '.merged_at // empty' <<< "$merge_json")" == "" ]]; then
+            echo "::error::Release PR did not merge within the bounded wait."
+            exit 1
+          fi
+
+          git fetch --force origin \
+            "refs/heads/main:refs/remotes/origin/main"
+          remote_main_sha="$(gh api "repos/$REPOSITORY/commits/main" --jq .sha)"
+          if [[ "$(git rev-parse origin/main)" != "$merge_sha" ||
+                "$remote_main_sha" != "$merge_sha" ]]; then
+            echo "::error::main advanced before the merged release could be tested."
+            exit 1
+          fi
+
+          main_ci_run_id="$(dispatch_ci main)"
+          if ! validate_ci_identity "$main_ci_run_id" main "$merge_sha"; then
+            echo "::error::The dispatched main CI identity is not trusted."
+            exit 1
+          fi
+
+          continuation_output="$(
+            gh workflow run dependency-release.yml \
+              --repo "$REPOSITORY" \
+              --ref main \
+              -f "ci_run_id=$main_ci_run_id" \
+              -f "expected_sha=$merge_sha"
+          )"
+          continuation_url="$(
+            tail -n 1 <<< "$continuation_output" | tr -d '\r'
+          )"
+          if [[ ! "$continuation_url" =~ /actions/runs/([1-9][0-9]*)$ ]]; then
+            echo "::error::Could not identify the dependency release continuation."
+            exit 1
+          fi
+          continuation_run_id="${BASH_REMATCH[1]}"
+          continuation_json="$(read_run "$continuation_run_id")"
+          if ! jq -e \
+            --arg expected_sha "$merge_sha" '
+            (.path | split("@")[0]) ==
+              ".github/workflows/dependency-release.yml" and
+            .event == "workflow_dispatch" and
+            .head_branch == "main" and
+            .head_sha == $expected_sha and
+            .actor.login == "github-actions[bot]" and
+            .triggering_actor.login == "github-actions[bot]" and
+            .run_attempt == 1
+          ' <<< "$continuation_json" > /dev/null; then
+            echo "::error::Dependency release continuation identity is not trusted."
+            exit 1
+          fi
+
+          echo "Merged $pr_url at $merge_sha; continuation run $continuation_run_id will wait for exact main CI $main_ci_run_id."
 
       - name: Tag and dispatch the tested dependency release
         if: steps.state.outputs.mode == 'publish'

@@ -162,17 +162,20 @@ findings will be updated as work progresses.
 
 ## Phase 7 — Dependabot maintenance and follow-up release
 
-- [ ] Audit every open source and deployment Dependabot pull request for
+- [x] Audit every open source and deployment Dependabot pull request for
   expected files, trusted commit identity, signature verification, and current
   CI results.
-- [ ] Rebase the source Dependabot branches onto the current protected `main`
+- [x] Rebase the source Dependabot branches onto the current protected `main`
   and wait for checks on their exact heads.
-- [ ] Merge only exact tested heads without administrator bypass; coordinate
+- [x] Merge only exact tested heads without administrator bypass; coordinate
   the matching Valkey digest update in the private deployment control plane.
-- [ ] Verify that the automated Patch release contains every merged dependency
+- [x] Verify that the automated Patch release contains every merged dependency
   update and changes only the three synchronized version files.
-- [ ] Verify the Patch release images, attestations, deployment backup, exact
+- [x] Verify the Patch release images, attestations, deployment backup, exact
   production version, service health, and preserved data invariants.
+- [x] Reproduce and repair the `GITHUB_TOKEN` post-merge event suppression gap
+  without a PAT, administrator bypass, automated review, or trust in an
+  unbound CI result.
 
 ## Findings and decisions
 
@@ -184,6 +187,47 @@ findings will be updated as work progresses.
   ruleset. Work will still use the non-owner agent identity, pull requests,
   CI, exact-head verification, and the ordered release/tag/deploy gates; it
   will not directly push `main` or use a bypass identity.
+- Obsolete source Dependabot PRs #91 and #92 were rebased by Dependabot and
+  closed because their requested image versions were already current. The old
+  frontend group PR #94 was superseded and closed. Source PR #96 and its
+  matching private-control-plane update were rebased, passed exact-head checks,
+  and merged without administrator bypass; both now use the same immutable
+  Valkey 9.1.1 Alpine digest.
+- Replacement frontend group PR #100 updated 15 compatible minor/patch
+  dependencies. Its bot commits and generated notice-only commit passed
+  provenance and exact-file checks, 87 frontend coverage tests, four
+  Playwright flows, the production build, npm audit, security checks, and
+  CodeQL. A clean route-generation replay produced no tracked diff. Oxlint
+  reports five existing nonblocking style warnings; the dependency update did
+  not introduce a build or runtime failure.
+- Automated release PR #101 contained only the three synchronized version
+  files and merged as `25efa9d`. An annotated `v0.8.2` tag peels to that exact
+  fully tested commit. Release run `33010736080` published and verified all
+  four images and attestations, created the GitHub Release, and delivered the
+  deployment notification. Deployment run `33011042142` created its backup,
+  deployed the exact release, and passed its health gate.
+- Independent `v0.8.2` verification found a 72,035,886-byte mode-`600`
+  custom-format backup accepted by `pg_restore --list`, mode-`600` production
+  state files, mode-`700` backup storage, healthy frontend/backend/database/
+  cache services with zero restarts or OOM events, and Flyway V14 successful.
+  Public `/`, `/updates`, `/channels`, and `/v1/health` returned HTTP 200. A
+  real browser switched English to Traditional Chinese to Japanese and back,
+  with the document language, localized title, and persisted preference all
+  correct and no 5xx or page exception.
+- Post-dependency-release data remained exactly 52,159 videos (6,187 karaoke,
+  2,724 song, 43,248 other), 5,849 setlists, 98,851 songs, and 338 unresolved
+  karaoke records. Orphan songs, non-karaoke songs/setlists, setlist/song
+  mismatches, unresolved rows with songs, and duplicate normalized song keys
+  are all zero. The durable updater remained in its existing cooldown with a
+  fresh heartbeat; deployment did not clear or bypass it.
+- `GITHUB_TOKEN` intentionally suppressed the normal `push` workflow after
+  #101 auto-merged, so the old release handoff never observed a push CI run.
+  The exact merge commit was manually dispatched through CI before tagging.
+  The repaired workflow now captures and authenticates the exact release CI,
+  revalidates and exact-head merges the three-file bot PR, dispatches exact
+  main CI, and queues a bot-only continuation carrying its run id and commit.
+  The continuation rejects stale commits, reruns, wrong workflows/events/
+  actors, failed CI, unexpected files, and advanced `main` before tagging.
 
 - The read-only production audit covered all 52,158 videos in all 50 channels,
   all 6,147 stored karaoke records, all 5,841 successful setlists, and all 306
@@ -371,3 +415,6 @@ findings will be updated as work progresses.
 | Deployment and backup | Pass | private workflow green; pre-deploy and pre-reanalysis dumps validated |
 | Post-deploy reanalysis | Pass | exact reviewed apply; 23 recoveries, 15 clears, 0 successful rewrites; second dry run empty |
 | Independent production verification | Pass | health, V14, runtime, containers, updater, cache hit/TTL, and yt-dlp detector probes |
+| Dependabot maintenance | Pass | obsolete PRs closed; exact source/private Valkey heads and 15-package frontend group merged without bypass |
+| `v0.8.2` release and deployment | Pass | exact tag, four images/attestations, deployment backup, services, locales, and preserved data invariants |
+| Dependency release handoff policy | Pass | Static trust-policy/Ruff checks and exact CI/run/PR/main guards; local `act` schema predates GitHub's 2026 `queue: max`, so GitHub-hosted validation is authoritative; no PAT, review, or administrator bypass |

@@ -254,16 +254,19 @@ Merged Dependabot pull requests use the same protected release contract through
 After the tested `main` revision contains one or more verified Dependabot
 updates newer than the current release tag, the workflow creates or refreshes a
 Patch release pull request that changes only the three synchronized version
-files. It dispatches CI explicitly and enables squash auto-merge, but the
-release pull request relies on the repository's required checks and merge
-policy rather than an additional independent-approval gate. After that pull
-request merges, the workflow creates the annotated tag and dispatches the
-normal release-image workflow. The private production control plane is then
-notified through a short-lived, single-repository GitHub App token and deploys
-the complete matching image set. The dependency and release pull request
-automation uses the repository `GITHUB_TOKEN`; cross-repository notification
-uses a release-environment App credential instead of a maintainer personal
-access token.
+files. It dispatches and authenticates the exact release-branch CI run, then
+revalidates the pull request and requests an exact-head squash merge under the
+repository's required checks and merge policy, without an additional
+independent-approval gate. Because a `GITHUB_TOKEN` merge does not emit another
+push workflow, the workflow explicitly dispatches CI for the exact merge
+commit and queues a bot-only continuation bound to that run id and commit.
+Only after that CI succeeds and current `main` still matches does it create the
+annotated tag and dispatch the normal release-image workflow. The private
+production control plane is then notified through a short-lived,
+single-repository GitHub App token and deploys the complete matching image set.
+The dependency and release pull request automation uses the repository
+`GITHUB_TOKEN`; cross-repository notification uses a release-environment App
+credential instead of a maintainer personal access token.
 
 Ordinary source builds display the tracked version (and add a short commit SHA
 when Git metadata is available). Release images display the clean semantic
