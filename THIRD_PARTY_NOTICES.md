@@ -16,17 +16,16 @@ MIT License. The packages below remain subject to their respective terms.
 - `@floating-ui/react-dom@2.1.9` — MIT; full text L001 — atomiks — https://floating-ui.com/docs/react-dom
 - `@floating-ui/utils@0.2.12` — MIT; full text L001 — atomiks — https://floating-ui.com
 - `@fontsource-variable/figtree@5.3.0` — OFL-1.1; full text L002 — Google Inc. — https://fontsource.org/fonts/figtree
-- `@inlang/paraglide-js@2.23.2` — MIT; full text L003 — inlang <hello@inlang.com> (https://inlang.com/) — https://paraglidejs.com
+- `@inlang/paraglide-js@2.24.1` — MIT; full text L003 — inlang <hello@inlang.com> (https://inlang.com/) — https://paraglidejs.com
 - `@inlang/recommend-sherlock@0.2.1` — MIT; full text L003
-- `@inlang/sdk@2.10.2` — MIT; full text L004 — https://inlang.com/documentation/sdk
+- `@inlang/sdk@3.0.2` — MIT; full text L004 — https://inlang.com/documentation/sdk
 - `@jridgewell/gen-mapping@0.3.13` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/gen-mapping
 - `@jridgewell/remapping@2.3.5` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/remapping
 - `@jridgewell/resolve-uri@3.1.2` — MIT; full text L006 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/resolve-uri
 - `@jridgewell/sourcemap-codec@1.5.5` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/sourcemap-codec
 - `@jridgewell/trace-mapping@0.3.31` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/trace-mapping
-- `@lix-js/sdk@0.4.10` — Apache-2.0; full text L004
-- `@lix-js/server-protocol-schema@0.1.1` — Apache-2.0; full text L004
-- `@oxc-project/types@0.142.0` — MIT; full text L007 — Boshen and oxc contributors — https://oxc.rs
+- `@lix-js/sdk@0.12.3` — MIT; no license file was included in the installed package — https://github.com/opral/lix
+- `@oxc-project/types@0.146.0` — MIT; full text L007 — Boshen and oxc contributors — https://oxc.rs
 - `@radix-ui/number@1.1.3` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@radix-ui/primitive@1.1.7` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@radix-ui/react-accessible-icon@1.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
@@ -91,13 +90,13 @@ MIT License. The packages below remain subject to their respective terms.
 - `@sinclair/typebox@0.31.30` — MIT; full text L010 — sinclairzx81 — https://github.com/sinclairzx81/sinclair-typebox
 - `@sqlite.org/sqlite-wasm@3.48.0-build4` — Apache-2.0; full text L011 — Thomas Steiner (tomac@google.com) — https://github.com/sqlite/sqlite-wasm#readme
 - `@tanstack/history@1.162.1` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
-- `@tanstack/query-core@5.101.4` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
-- `@tanstack/react-query@5.101.4` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
-- `@tanstack/react-router@1.170.22` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/query-core@5.102.2` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
+- `@tanstack/react-query@5.102.2` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
+- `@tanstack/react-router@1.170.32` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
 - `@tanstack/react-store@0.9.3` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
-- `@tanstack/router-core@1.171.19` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/router-core@1.171.27` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
 - `@tanstack/store@0.9.3` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
-- `@types/node@26.1.2` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
+- `@types/node@26.2.0` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
 - `@types/react-dom@19.2.4` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
 - `@types/react@19.2.18` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
 - `acorn@8.17.0` — MIT; full text L015 — https://github.com/acornjs/acorn
@@ -110,52 +109,50 @@ MIT License. The packages below remain subject to their respective terms.
 - `consola@3.4.0` — MIT; full text L022 — unjs/consola
 - `cookie-es@3.1.1` — MIT; full text L023 — unjs/cookie-es
 - `csstype@3.2.3` — MIT; full text L024 — Fredrik Nicol <fredrik.nicol@gmail.com> — https://github.com/frenic/csstype
-- `dedent@1.5.1` — MIT; full text L025 — Desmond Brand — https://github.com/dmnd/dedent
-- `detect-libc@2.1.2` — Apache-2.0; full text L026 — Lovell Fuller <npm@lovell.info> — git://github.com/lovell/detect-libc
-- `detect-node-es@1.1.0` — MIT; full text L027 — Ilya Kantor — https://github.com/thekashey/detect-node
-- `esprima@4.0.1` — BSD-2-Clause; full text L028 — Ariya Hidayat — http://esprima.org
-- `fdir@6.5.0` — MIT; full text L029 — thecodrr <thecodrr@protonmail.com> — https://github.com/thecodrr/fdir#readme
+- `detect-libc@2.1.2` — Apache-2.0; full text L025 — Lovell Fuller <npm@lovell.info> — git://github.com/lovell/detect-libc
+- `detect-node-es@1.1.0` — MIT; full text L026 — Ilya Kantor — https://github.com/thekashey/detect-node
+- `esprima@4.0.1` — BSD-2-Clause; full text L027 — Ariya Hidayat — http://esprima.org
+- `fdir@6.5.0` — MIT; full text L028 — thecodrr <thecodrr@protonmail.com> — https://github.com/thecodrr/fdir#readme
+- `fflate@0.8.3` — MIT; full text L029 — Arjun Barrett <arjunbarrett@gmail.com> — https://101arrowz.github.io/fflate
 - `get-nonce@1.0.1` — MIT; full text L030 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/get-nonce
-- `human-id@4.2.0` — MIT; full text L031 — RienNeVaPlus <?@rienneva.plus> — https://github.com/RienNeVaPlus/human-id#readme
-- `isbot@5.2.1` — Unlicense; full text L032 — https://isbot.js.org
-- `jiti@2.7.0` — MIT; full text L033 — unjs/jiti
-- `js-sha256@0.11.1` — MIT; full text L034 — Chen, Yi-Cyuan <emn178@gmail.com> — https://github.com/emn178/js-sha256
-- `json5@2.2.3` — MIT; full text L035 — Aseem Kishore <aseem.kishore@gmail.com> — http://json5.org/
-- `kysely@0.28.17` — MIT; full text L036 — Sami Koskimäki <sami@jakso.me> — https://kysely.dev
-- `lightningcss@1.33.0` — MPL-2.0; full text L037 — https://github.com/parcel-bundler/lightningcss
-- `lucide-react@1.30.0` — ISC; full text L038 — Eric Fennis — https://lucide.dev
-- `nanoid@3.3.18` — MIT; full text L039 — Andrey Sitnik <andrey@sitnik.ru> — ai/nanoid
-- `picocolors@1.1.1` — ISC; full text L040 — Alexey Raspopov — alexeyraspopov/picocolors
-- `picomatch@4.0.5` — MIT; full text L041 — Jon Schlinkert (https://github.com/jonschlinkert) — https://github.com/micromatch/picomatch
-- `postcss@8.5.26` — MIT; full text L042 — Andrey Sitnik <andrey@sitnik.es> — https://postcss.org/
+- `isbot@5.2.1` — Unlicense; full text L031 — https://isbot.js.org
+- `jiti@2.7.0` — MIT; full text L032 — unjs/jiti
+- `json5@2.2.3` — MIT; full text L033 — Aseem Kishore <aseem.kishore@gmail.com> — http://json5.org/
+- `kysely@0.28.17` — MIT; full text L034 — Sami Koskimäki <sami@jakso.me> — https://kysely.dev
+- `lightningcss@1.33.0` — MPL-2.0; full text L035 — https://github.com/parcel-bundler/lightningcss
+- `lucide-react@1.33.0` — ISC; full text L036 — Eric Fennis — https://lucide.dev
+- `nanoid@3.3.18` — MIT; full text L037 — Andrey Sitnik <andrey@sitnik.ru> — ai/nanoid
+- `picocolors@1.1.1` — ISC; full text L038 — Alexey Raspopov — alexeyraspopov/picocolors
+- `picomatch@4.0.5` — MIT; full text L039 — Jon Schlinkert (https://github.com/jonschlinkert) — https://github.com/micromatch/picomatch
+- `postcss@8.5.26` — MIT; full text L040 — Andrey Sitnik <andrey@sitnik.es> — https://postcss.org/
 - `radix-ui@1.6.7` — MIT; full text L008 — https://radix-ui.com/primitives
-- `react-dom@19.2.8` — MIT; full text L043 — https://react.dev/
+- `react-dom@19.2.8` — MIT; full text L041 — https://react.dev/
 - `react-remove-scroll-bar@2.3.8` — MIT; full text L016 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll-bar
 - `react-remove-scroll@2.7.2` — MIT; full text L016 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll
 - `react-style-singleton@2.2.3` — MIT; full text L016 — Anton Korzunov (thekashey@gmail.com) — https://github.com/theKashey/react-style-singleton#readme
-- `react@19.2.8` — MIT; full text L043 — https://react.dev/
-- `rolldown@1.2.1` — MIT; full text L044 — https://rolldown.rs/
-- `scheduler@0.27.0` — MIT; full text L043 — https://react.dev/
-- `seroval-plugins@1.6.2` — MIT; full text L045 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/plugins
-- `seroval@1.6.2` — MIT; full text L045 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/seroval
-- `source-map-js@1.2.1` — BSD-3-Clause; full text L046 — Valentin 7rulnik Semirulnik <v7rulnik@gmail.com> — https://github.com/7rulnik/source-map-js
+- `react@19.2.8` — MIT; full text L041 — https://react.dev/
+- `rolldown@1.2.5` — MIT; full text L042 — https://rolldown.rs/
+- `scheduler@0.27.0` — MIT; full text L041 — https://react.dev/
+- `seroval-plugins@1.6.2` — MIT; full text L043 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/plugins
+- `seroval@1.6.2` — MIT; full text L043 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/seroval
+- `source-map-js@1.2.1` — BSD-3-Clause; full text L044 — Valentin 7rulnik Semirulnik <v7rulnik@gmail.com> — https://github.com/7rulnik/source-map-js
 - `sqlite-wasm-kysely@0.3.0` — Not declared; full text L004
-- `tailwind-merge@3.6.0` — MIT; full text L047 — Dany Castillo — https://github.com/dcastil/tailwind-merge
-- `tinyglobby@0.2.17` — MIT; full text L048 — Superchupu — https://superchupu.dev/tinyglobby
-- `tslib@2.8.1` — 0BSD; full text L049 — Microsoft Corp. — https://www.typescriptlang.org/
-- `tw-animate-css@1.4.0` — MIT; full text L050 — Luca Bosin — https://github.com/Wombosvideo/tw-animate-css#readme
+- `tailwind-merge@3.6.0` — MIT; full text L045 — Dany Castillo — https://github.com/dcastil/tailwind-merge
+- `tinyglobby@0.2.17` — MIT; full text L046 — Superchupu — https://superchupu.dev/tinyglobby
+- `tslib@2.8.1` — 0BSD; full text L047 — Microsoft Corp. — https://www.typescriptlang.org/
+- `tw-animate-css@1.4.0` — MIT; full text L048 — Luca Bosin — https://github.com/Wombosvideo/tw-animate-css#readme
 - `typescript@6.0.3` — Apache-2.0; full text L011 — Microsoft Corp. — https://www.typescriptlang.org/
-- `undici-types@8.3.0` — MIT; full text L051 — https://undici.nodejs.org
-- `unplugin@2.3.11` — MIT; full text L052 — https://unplugin.unjs.io
-- `urlpattern-polyfill@10.1.0` — MIT; full text L053 — https://github.com/kenchris/urlpattern-polyfill
+- `undici-types@8.3.0` — MIT; full text L049 — https://undici.nodejs.org
+- `unplugin@2.3.11` — MIT; full text L050 — https://unplugin.unjs.io
+- `urlpattern-polyfill@10.1.0` — MIT; full text L051 — https://github.com/kenchris/urlpattern-polyfill
 - `use-callback-ref@1.3.3` — MIT; full text L016 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-callback-ref/
 - `use-sidecar@1.1.3` — MIT; full text L016 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-sidecar
-- `use-sync-external-store@1.6.0` — MIT; full text L043 — https://github.com/facebook/react
-- `uuid@14.0.1` — MIT; full text L054 — https://github.com/uuidjs/uuid
-- `vite@8.2.1` — MIT; full text L055 — Evan You — https://vite.dev
-- `webpack-virtual-modules@0.6.2` — MIT; full text L056 — SysGears INC — https://github.com/sysgears/webpack-virtual-modules#readme
-- `zod@4.4.3` — MIT; full text L057 — Colin McDonnell <zod@colinhacks.com> — https://zod.dev
-- `zustand@5.0.14` — MIT; full text L058 — Paul Henschel — https://github.com/pmndrs/zustand
+- `use-sync-external-store@1.6.0` — MIT; full text L041 — https://github.com/facebook/react
+- `uuid@14.0.2` — MIT; full text L052 — https://github.com/uuidjs/uuid
+- `vite@8.2.2` — MIT; full text L053 — Evan You — https://vite.dev
+- `webpack-virtual-modules@0.6.2` — MIT; full text L054 — SysGears INC — https://github.com/sysgears/webpack-virtual-modules#readme
+- `zod@4.4.3` — MIT; full text L055 — Colin McDonnell <zod@colinhacks.com> — https://zod.dev
+- `zustand@5.0.15` — MIT; full text L056 — Paul Henschel — https://github.com/pmndrs/zustand
 
 ## License texts
 
@@ -288,7 +285,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ### L003
 
-Applies to: `@inlang/paraglide-js@2.23.2`, `@inlang/recommend-sherlock@0.2.1`
+Applies to: `@inlang/paraglide-js@2.24.1`, `@inlang/recommend-sherlock@0.2.1`
 
 ```text
 MIT License
@@ -316,7 +313,7 @@ SOFTWARE.
 
 ### L004
 
-Applies to: `@inlang/sdk@2.10.2`, `@lix-js/sdk@0.4.10`, `@lix-js/server-protocol-schema@0.1.1`, `sqlite-wasm-kysely@0.3.0`
+Applies to: `@inlang/sdk@3.0.2`, `sqlite-wasm-kysely@0.3.0`
 
 ```text
 MIT License
@@ -396,7 +393,7 @@ SOFTWARE.
 
 ### L007
 
-Applies to: `@oxc-project/types@0.142.0`
+Applies to: `@oxc-project/types@0.146.0`
 
 ```text
 MIT License
@@ -573,7 +570,7 @@ END OF TERMS AND CONDITIONS
 
 ### L012
 
-Applies to: `@tanstack/history@1.162.1`, `@tanstack/query-core@5.101.4`, `@tanstack/react-query@5.101.4`, `@tanstack/react-router@1.170.22`, `@tanstack/router-core@1.171.19`
+Applies to: `@tanstack/history@1.162.1`, `@tanstack/query-core@5.102.2`, `@tanstack/react-query@5.102.2`, `@tanstack/react-router@1.170.32`, `@tanstack/router-core@1.171.27`
 
 ```text
 MIT License
@@ -629,7 +626,7 @@ SOFTWARE.
 
 ### L014
 
-Applies to: `@types/node@26.1.2`, `@types/react@19.2.18`, `@types/react-dom@19.2.4`
+Applies to: `@types/node@26.2.0`, `@types/react@19.2.18`, `@types/react-dom@19.2.4`
 
 ```text
 MIT License
@@ -1126,34 +1123,6 @@ SOFTWARE.
 
 ### L025
 
-Applies to: `dedent@1.5.1`
-
-```text
-The MIT License (MIT)
-
-Copyright (c) 2015 Desmond Brand (dmnd@desmondbrand.com)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-```
-
-### L026
-
 Applies to: `detect-libc@2.1.2`
 
 ```text
@@ -1360,7 +1329,7 @@ Apache License
    limitations under the License.
 ```
 
-### L027
+### L026
 
 Applies to: `detect-node-es@1.1.0`
 
@@ -1388,7 +1357,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L028
+### L027
 
 Applies to: `esprima@4.0.1`
 
@@ -1416,7 +1385,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### L029
+### L028
 
 Applies to: `fdir@6.5.0`
 
@@ -1428,6 +1397,34 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+### L029
+
+Applies to: `fflate@0.8.3`
+
+```text
+MIT License
+
+Copyright (c) 2026 Arjun Barrett
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
 
 ### L030
@@ -1460,34 +1457,6 @@ SOFTWARE.
 
 ### L031
 
-Applies to: `human-id@4.2.0`
-
-```text
-MIT License
-
-Copyright (c) 2018 RienNeVaPlus
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-### L032
-
 Applies to: `isbot@5.2.1`
 
 ```text
@@ -1519,7 +1488,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org/>
 ```
 
-### L033
+### L032
 
 Applies to: `jiti@2.7.0`
 
@@ -1547,36 +1516,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L034
-
-Applies to: `js-sha256@0.11.1`
-
-```text
-Copyright (c) 2014-2025 Chen, Yi-Cyuan
-
-MIT License
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-```
-
-### L035
+### L033
 
 Applies to: `json5@2.2.3`
 
@@ -1606,7 +1546,7 @@ SOFTWARE.
 [others]: https://github.com/json5/json5/contributors
 ```
 
-### L036
+### L034
 
 Applies to: `kysely@0.28.17`
 
@@ -1634,7 +1574,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L037
+### L035
 
 Applies to: `lightningcss@1.33.0`
 
@@ -2014,9 +1954,9 @@ This Source Code Form is "Incompatible With Secondary Licenses", as
 defined by the Mozilla Public License, v. 2.0.
 ```
 
-### L038
+### L036
 
-Applies to: `lucide-react@1.30.0`
+Applies to: `lucide-react@1.33.0`
 
 ```text
 ISC License
@@ -2064,7 +2004,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L039
+### L037
 
 Applies to: `nanoid@3.3.18`
 
@@ -2091,7 +2031,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L040
+### L038
 
 Applies to: `picocolors@1.1.1`
 
@@ -2113,7 +2053,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### L041
+### L039
 
 Applies to: `picomatch@4.0.5`
 
@@ -2141,7 +2081,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### L042
+### L040
 
 Applies to: `postcss@8.5.26`
 
@@ -2168,7 +2108,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L043
+### L041
 
 Applies to: `react@19.2.8`, `react-dom@19.2.8`, `scheduler@0.27.0`, `use-sync-external-store@1.6.0`
 
@@ -2196,9 +2136,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L044
+### L042
 
-Applies to: `rolldown@1.2.1`
+Applies to: `rolldown@1.2.5`
 
 ```text
 MIT License
@@ -2228,7 +2168,7 @@ end of terms and conditions
 The licenses of externally maintained libraries from which parts of the Software is derived are listed [here](https://github.com/rolldown/rolldown/blob/main/THIRD-PARTY-LICENSE).
 ```
 
-### L045
+### L043
 
 Applies to: `seroval@1.6.2`, `seroval-plugins@1.6.2`
 
@@ -2242,7 +2182,7 @@ The above copyright notice and this permission notice (including the next paragr
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L046
+### L044
 
 Applies to: `source-map-js@1.2.1`
 
@@ -2276,7 +2216,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### L047
+### L045
 
 Applies to: `tailwind-merge@3.6.0`
 
@@ -2304,7 +2244,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L048
+### L046
 
 Applies to: `tinyglobby@0.2.17`
 
@@ -2332,7 +2272,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L049
+### L047
 
 Applies to: `tslib@2.8.1`
 
@@ -2351,7 +2291,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### L050
+### L048
 
 Applies to: `tw-animate-css@1.4.0`
 
@@ -2379,7 +2319,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L051
+### L049
 
 Applies to: `undici-types@8.3.0`
 
@@ -2407,7 +2347,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L052
+### L050
 
 Applies to: `unplugin@2.3.11`
 
@@ -2435,7 +2375,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L053
+### L051
 
 Applies to: `urlpattern-polyfill@10.1.0`
 
@@ -2461,9 +2401,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### L054
+### L052
 
-Applies to: `uuid@14.0.1`
+Applies to: `uuid@14.0.2`
 
 ```text
 The MIT License (MIT)
@@ -2477,9 +2417,9 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L055
+### L053
 
-Applies to: `vite@8.2.1`
+Applies to: `vite@8.2.2`
 
 ```text
 # Vite core license
@@ -4806,7 +4746,7 @@ Repository: https://github.com/sveltejs/zimmerframe
 > SOFTWARE.
 ```
 
-### L056
+### L054
 
 Applies to: `webpack-virtual-modules@0.6.2`
 
@@ -4834,7 +4774,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L057
+### L055
 
 Applies to: `zod@4.4.3`
 
@@ -4862,9 +4802,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L058
+### L056
 
-Applies to: `zustand@5.0.14`
+Applies to: `zustand@5.0.15`
 
 ```text
 MIT License
