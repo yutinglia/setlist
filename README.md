@@ -542,14 +542,20 @@ Leave `CACHE_URL` empty to run without Redis or Valkey. See
    into explicit attribution fields.
 6. Exact metadata can upgrade approximate values; later sparse observations
    never erase richer snapshots or a previous successful setlist.
-7. Suspected YouTube blocking aborts remaining calls and persists a cooldown so
-   a restart cannot bypass it.
+7. High-confidence YouTube blocking (429, explicit bot/CAPTCHA, or IP-block
+   signals) aborts remaining calls and persists a cooldown so a restart cannot
+   bypass it. Per-video age, membership, private, or region restrictions and a
+   bare HTTP 403 remain bounded record-level failures rather than global blocks.
 8. A process-local lock plus PostgreSQL advisory lock serializes background and
    administrator-triggered YouTube work across workers and overlapping deploys.
 9. Production yt-dlp calls run in killable child processes with bounded
    network retries and whole-operation deadlines. Independently committed
    lifecycle heartbeats expose a crashed or wedged cycle as stalled without
    committing scraper data.
+10. The backend image includes yt-dlp's version-matched EJS scripts and a
+    pinned Deno runtime. New comment snapshots record bounded retrieval
+    diagnostics (request/return counts, sort/depth/reply policy, version, and
+    likely truncation) without storing additional comment content.
 
 Detailed design decisions are recorded in [PLAN.md](PLAN.md) and scraper payload
 notes in [backend/NOTE.md](backend/NOTE.md).

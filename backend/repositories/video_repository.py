@@ -157,7 +157,8 @@ class VideoRepository:
         if limit <= 0:
             return []
 
-        # Over-fetch then filter: song titles must not consume the analyze quota.
+        # Page until enough eligible rows are found. A fixed over-fetch window
+        # can permanently hide a valid row behind several stale classifications.
         stmt = (
             select(Videos)
             .where(
@@ -177,24 +178,32 @@ class VideoRepository:
                 _effective_upload_date_order().desc().nulls_last(),
                 Videos.playlist_position.asc().nulls_last(),
                 Videos.created_at.desc().nulls_last(),
+                Videos.id,
             )
-            .limit(max(limit * 3, limit))
         )
-        result = await self.session.execute(stmt)
-        videos = result.scalars().all()
         out: list[YouTubeVideo] = []
-        for video in videos:
-            model = self._to_model(video)
-            raw = merged_video_metadata(model.raw_data, model.metadata_raw_data)
-            if not should_scrape_comments(
-                model.title or "",
-                live_status=raw.get("live_status"),
-                duration=raw.get("duration"),
-                stored_type=model.type,
-            ):
-                continue
-            out.append(model)
-            if len(out) >= limit:
+        page_size = max(limit * 3, 100)
+        offset = 0
+        while len(out) < limit:
+            result = await self.session.execute(stmt.limit(page_size).offset(offset))
+            videos = result.scalars().all()
+            if not videos:
+                break
+            offset += len(videos)
+            for video in videos:
+                model = self._to_model(video)
+                raw = merged_video_metadata(model.raw_data, model.metadata_raw_data)
+                if not should_scrape_comments(
+                    model.title or "",
+                    live_status=raw.get("live_status"),
+                    duration=raw.get("duration"),
+                    stored_type=model.type,
+                ):
+                    continue
+                out.append(model)
+                if len(out) >= limit:
+                    break
+            if len(videos) < page_size:
                 break
         return out
 
@@ -224,22 +233,30 @@ class VideoRepository:
                 Videos.created_at.desc().nulls_last(),
                 Videos.id,
             )
-            .limit(max(limit * 3, limit))
         )
-        result = await self.session.execute(stmt)
         out: list[YouTubeVideo] = []
-        for video in result.scalars().all():
-            model = self._to_model(video)
-            raw = merged_video_metadata(model.raw_data, model.metadata_raw_data)
-            if not should_scrape_comments(
-                model.title or "",
-                live_status=raw.get("live_status"),
-                duration=raw.get("duration"),
-                stored_type=model.type,
-            ):
-                continue
-            out.append(model)
-            if len(out) >= limit:
+        page_size = max(limit * 3, 100)
+        offset = 0
+        while len(out) < limit:
+            result = await self.session.execute(stmt.limit(page_size).offset(offset))
+            videos = result.scalars().all()
+            if not videos:
+                break
+            offset += len(videos)
+            for video in videos:
+                model = self._to_model(video)
+                raw = merged_video_metadata(model.raw_data, model.metadata_raw_data)
+                if not should_scrape_comments(
+                    model.title or "",
+                    live_status=raw.get("live_status"),
+                    duration=raw.get("duration"),
+                    stored_type=model.type,
+                ):
+                    continue
+                out.append(model)
+                if len(out) >= limit:
+                    break
+            if len(videos) < page_size:
                 break
         return out
 
@@ -252,8 +269,15 @@ class VideoRepository:
         for bounded YouTube work.
         """
         now = datetime.now(UTC).replace(tzinfo=None)
+        attempts = func.coalesce(Videos.analyze_attempts, 0)
+        retry_ceiling = max(0, max_attempts - 1)
+        target_attempts = case(
+            (attempts <= 0, 0),
+            else_=func.least(attempts, retry_ceiling),
+        )
         needs_reset = (
-            (func.coalesce(Videos.analyze_attempts, 0) > 0)
+            Videos.analyze_attempts.is_distinct_from(target_attempts)
+            | Videos.last_analyzed_at.is_not(None)
             | Videos.analysis_status.is_distinct_from(ANALYSIS_PENDING)
             | Videos.next_analysis_at.is_not(None)
         )
@@ -265,10 +289,7 @@ class VideoRepository:
                 needs_reset,
             )
             .values(
-                analyze_attempts=func.least(
-                    func.greatest(func.coalesce(Videos.analyze_attempts, 0), 1),
-                    max_attempts - 1,
-                ),
+                analyze_attempts=target_attempts,
                 last_analyzed_at=None,
                 analysis_status=ANALYSIS_PENDING,
                 next_analysis_at=None,
@@ -402,6 +423,9 @@ class VideoRepository:
                     row.analyze_attempts in (None, 0),
                     bool(row.cleaning_attempts),
                     row.cleaned_song_list_comment is not None,
+                    row.setlist_comment_author is not None,
+                    row.setlist_comment_author_id is not None,
+                    row.setlist_comment_id is not None,
                     row.last_analyzed_at is not None,
                     row.last_cleaned_at is not None,
                     row.analysis_status != ANALYSIS_SKIPPED,
@@ -415,6 +439,9 @@ class VideoRepository:
             # later classify this record as karaoke again.
             row.has_song_list_comment = False
             row.cleaned_song_list_comment = None
+            row.setlist_comment_author = None
+            row.setlist_comment_author_id = None
+            row.setlist_comment_id = None
             # Exhaust attempts so the periodic updater never re-queues this row.
             row.analyze_attempts = max_attempts
             row.last_analyzed_at = None

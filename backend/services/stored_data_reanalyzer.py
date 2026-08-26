@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
@@ -24,6 +24,30 @@ from services.youtube_operation_lock import (
 from utils.video_type import VIDEO_TYPE_KARAOKE
 
 
+class UnsafeStoredDataReanalysisError(RuntimeError):
+    """Raised before commit when destructive candidates lack explicit approval."""
+
+    def __init__(
+        self,
+        *,
+        clear_video_ids: tuple[str, ...] = (),
+        successful_video_ids: tuple[str, ...] = (),
+    ) -> None:
+        self.clear_video_ids = clear_video_ids
+        self.successful_video_ids = successful_video_ids
+        details: list[str] = []
+        if clear_video_ids:
+            details.append(f"song-clearing videos={','.join(clear_video_ids)}")
+        if successful_video_ids:
+            details.append(
+                "successful-setlist rewrites=" + ",".join(successful_video_ids)
+            )
+        super().__init__(
+            "Stored-data apply requires explicit per-video approval: "
+            + "; ".join(details)
+        )
+
+
 @dataclass(frozen=True)
 class StoredDataReanalysisResult:
     """Summary of one atomic stored-data maintenance pass."""
@@ -40,6 +64,10 @@ class StoredDataReanalysisResult:
     requeued_unresolved_videos: int
     songs_before: int
     songs_after: int
+    cleared_songs: int = 0
+    destructive_clear_video_ids: tuple[str, ...] = ()
+    recovered_video_ids: tuple[str, ...] = ()
+    changed_successful_video_ids: tuple[str, ...] = ()
 
 
 @dataclass
@@ -55,6 +83,10 @@ class _ReanalysisStats:
     requeued_unresolved_videos: int = 0
     songs_before: int = 0
     songs_after: int = 0
+    cleared_songs: int = 0
+    destructive_clear_video_ids: list[str] = field(default_factory=list)
+    recovered_video_ids: list[str] = field(default_factory=list)
+    changed_successful_video_ids: list[str] = field(default_factory=list)
 
     def result(self, *, applied: bool) -> StoredDataReanalysisResult:
         return StoredDataReanalysisResult(
@@ -70,6 +102,12 @@ class _ReanalysisStats:
             requeued_unresolved_videos=self.requeued_unresolved_videos,
             songs_before=self.songs_before,
             songs_after=self.songs_after,
+            cleared_songs=self.cleared_songs,
+            destructive_clear_video_ids=tuple(sorted(self.destructive_clear_video_ids)),
+            recovered_video_ids=tuple(sorted(self.recovered_video_ids)),
+            changed_successful_video_ids=tuple(
+                sorted(self.changed_successful_video_ids)
+            ),
         )
 
 
@@ -107,6 +145,8 @@ class StoredDataReanalyzer:
         apply: bool = False,
         include_successful: bool = False,
         requeue_unresolved: bool = False,
+        approved_clear_video_ids: frozenset[str] = frozenset(),
+        approved_successful_video_ids: frozenset[str] = frozenset(),
     ) -> StoredDataReanalysisResult:
         async with self.operations.guard(self.session) as acquired:
             if not acquired:
@@ -118,6 +158,8 @@ class StoredDataReanalyzer:
                     apply=apply,
                     include_successful=include_successful,
                     requeue_unresolved=requeue_unresolved,
+                    approved_clear_video_ids=approved_clear_video_ids,
+                    approved_successful_video_ids=approved_successful_video_ids,
                 )
                 if apply:
                     await self.session.commit()
@@ -136,6 +178,8 @@ class StoredDataReanalyzer:
         apply: bool,
         include_successful: bool,
         requeue_unresolved: bool,
+        approved_clear_video_ids: frozenset[str],
+        approved_successful_video_ids: frozenset[str],
     ) -> StoredDataReanalysisResult:
         stats = _ReanalysisStats()
         await self._reclassify_stored_videos(stats)
@@ -149,6 +193,23 @@ class StoredDataReanalyzer:
                     max_attempts=self.max_analysis_attempts
                 )
             )
+        if apply:
+            unapproved_clears = tuple(
+                sorted(
+                    set(stats.destructive_clear_video_ids) - approved_clear_video_ids
+                )
+            )
+            unapproved_successful = tuple(
+                sorted(
+                    set(stats.changed_successful_video_ids)
+                    - approved_successful_video_ids
+                )
+            )
+            if unapproved_clears or unapproved_successful:
+                raise UnsafeStoredDataReanalysisError(
+                    clear_video_ids=unapproved_clears,
+                    successful_video_ids=unapproved_successful,
+                )
         return stats.result(applied=apply)
 
     async def _reclassify_stored_videos(
@@ -168,6 +229,10 @@ class StoredDataReanalyzer:
             )
 
         for video_id in cleared_ids:
+            existing_songs = await self.song_repo.get_by_video_id(video_id)
+            if existing_songs:
+                stats.cleared_songs += len(existing_songs)
+                stats.destructive_clear_video_ids.append(video_id)
             await self.song_repo.replace_for_video(video_id, [])
         stats.cleared_non_karaoke_videos = len(cleared_ids)
 
@@ -230,6 +295,10 @@ class StoredDataReanalyzer:
             return
 
         stats.recovered_setlists += int(newly_recovered)
+        if newly_recovered:
+            stats.recovered_video_ids.append(video.id)
+        else:
+            stats.changed_successful_video_ids.append(video.id)
         stats.changed_setlists += 1
         video.has_song_list_comment = True
         video.analysis_status = ANALYSIS_DONE

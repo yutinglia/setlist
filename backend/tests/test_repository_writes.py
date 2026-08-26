@@ -290,6 +290,9 @@ async def test_non_karaoke_cleanup_preserves_expensive_source_observations(
     }
     video.song_list_comment_raw_data = {"text": "0:10 Song A"}
     video.cleaned_song_list_comment = {"text": "0:10 Song A"}
+    video.setlist_comment_author = "Contributor"
+    video.setlist_comment_author_id = "UC-contributor"
+    video.setlist_comment_id = "comment-1"
     video.has_song_list_comment = True
     video.analysis_status = "done"
     video.last_analyzed_at = datetime.now(UTC).replace(tzinfo=None)
@@ -323,6 +326,9 @@ async def test_non_karaoke_cleanup_preserves_expensive_source_observations(
     assert preserved.comments_raw_data == video.comments_raw_data
     assert preserved.song_list_comment_raw_data == video.song_list_comment_raw_data
     assert preserved.cleaned_song_list_comment is None
+    assert preserved.setlist_comment_author is None
+    assert preserved.setlist_comment_author_id is None
+    assert preserved.setlist_comment_id is None
     assert preserved.analyze_attempts == 3
 
     # Raising the configured max must not rewrite every already-safe skipped
@@ -376,7 +382,9 @@ async def test_requeue_unresolved_karaoke_preserves_success_and_pending_rows(
         video.analyze_attempts = attempts
         video.analysis_status = status
         video.has_song_list_comment = success
-        video.last_analyzed_at = datetime.now(UTC).replace(tzinfo=None)
+        video.last_analyzed_at = (
+            None if status == "pending" else datetime.now(UTC).replace(tzinfo=None)
+        )
         await repo.update_analysis(video)
 
     exhausted_id = f"vid_exhausted_{suffix}"
@@ -407,6 +415,10 @@ async def test_requeue_unresolved_karaoke_preserves_success_and_pending_rows(
     assert pending is not None
     assert pending.analyze_attempts == 0
     assert pending.analysis_status == "pending"
+
+    # Repeating the same maintenance action must not churn timestamps or
+    # report the already-targeted rows again.
+    assert await repo.requeue_unresolved_karaoke(max_attempts=5) == 0
 
     await session.rollback()
 
@@ -962,6 +974,21 @@ async def test_video_repository_analysis_queue_filters_ineligible_archives(
             metadata_raw_data={"duration": 240, "live_status": "not_live"},
         )
     )
+    # More stale rows than one queue page must not hide the next valid record.
+    # These are deliberately newer so all 100 sort before ``eligible``.
+    for index in range(100):
+        await repo.upsert(
+            YouTubeVideo(
+                id=f"vid_stale_{index:03d}_{suffix}",
+                title="Official MV",
+                url=f"https://www.youtube.com/watch?v=stale_{index:03d}_{suffix}",
+                channel_id=channel_id,
+                upload_date="20260801",
+                type="karaoke",
+                raw_data={"title": "Official MV"},
+                metadata_raw_data={"duration": 240, "live_status": "not_live"},
+            )
+        )
     deferred = await repo.upsert(
         YouTubeVideo(
             id=f"vid_deferred_{suffix}",
@@ -1004,6 +1031,8 @@ async def test_video_repository_analysis_queue_filters_ineligible_archives(
 
     now = datetime.now(UTC).replace(tzinfo=None)
     assert await repo.get_analysis_queue(max_attempts=3, limit=0, now=now) == []
+    single = await repo.get_analysis_queue(max_attempts=3, limit=1, now=now)
+    assert [item.id for item in single] == [eligible.id]
     queued = await repo.get_analysis_queue(max_attempts=3, limit=10, now=now)
     assert [item.id for item in queued] == [eligible.id]
 

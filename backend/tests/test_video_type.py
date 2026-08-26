@@ -73,10 +73,74 @@ class TestKaraokeTitles:
                 == VIDEO_TYPE_KARAOKE
             )
 
+    def test_non_singing_references_do_not_become_karaoke(self):
+        for title in (
+            "【SC】Reading superchats from last week's karaoke",
+            "Preparing for tonight's karaoke",
+            "[Members Only] Chatting at the After-Party of Karaoke",
+            "Looking back at the birthday live",
+            "『SING』movie watchalong",
+            "Will chat today and sing another time",
+            "今日は喉が痛いので歌回の後日談",
+            "不准唱歌，今天是工作台",
+        ):
+            assert (
+                classify_video_type(title, live_status="was_live", duration=3600)
+                == VIDEO_TYPE_OTHER
+            )
+
+    def test_current_singing_markers_survive_reference_words(self):
+        for title in (
+            "【歌枠】Night karaoke and superchat reading",
+            "【Superchat感謝歌回】みんなで唱唱歌",
+            "【歌枠】ライブの振り返りもする",
+            "【振り返り＆ぷち歌枠】",
+            "After Party! Let's Sing and Talk!",
+            "AFTER PARTY KARAOKE CHATTING & SINGING",
+            "【歌回LA】14 songs marathon + premiere announcement",
+            "【歌回LA】14 songs marathon + 演唱會線上首播預告",
+            "【カラオケ大会】決勝戦",
+            "スーパー生歌ライブ＆告知",
+            "【歌枠】セトリ決めてきました",
+            "【歌枠】リクエストでセトリを決める",
+            "【歌雜｜Singing Stream】睡前雜談與唱歌",
+            "【KARAOKE】年内最後のボイトレに行ってきた！雑談と歌！",
+            "【Free Talk & Impromptu Countdown Karaoke】Road to 1.9M",
+            "【年越し歌枠】Countdown Karaoke",
+            "【3D LIVE CONCERT】J-RAP + NEW 3D MODEL REVEAL",
+            "【重大告知】今年もぶち上げる【KARAOKE/Vsinger】",
+            "「遊戲歌枠」升一等唱一首 Singing Stream",
+            "【ソロライブありがとう】衣装お披露目＆MV裏話",
+        ):
+            assert (
+                classify_video_type(title, live_status="was_live", duration=3600)
+                == VIDEO_TYPE_KARAOKE
+            )
+
     def test_karaoke_stream_context(self):
         assert is_karaoke_title("今夜はカラオケ配信！")
         assert is_karaoke_title("【カラオケ】みんなで歌おう")
         assert is_karaoke_title("カラオケ枠します")
+
+    def test_exact_song_frame_label_is_duration_qualified(self):
+        for title in ("【歌】七夕の夜", "【Song】Sleepy songs", "【歌/song】Ballads"):
+            assert (
+                classify_video_type(title, live_status="was_live", duration=3600)
+                == VIDEO_TYPE_KARAOKE
+            )
+            assert (
+                classify_video_type(title, live_status="not_live", duration=240)
+                == VIDEO_TYPE_SONG
+            )
+
+        assert (
+            classify_video_type("【歌】中断", live_status="was_live", duration=79)
+            == VIDEO_TYPE_OTHER
+        )
+        assert (
+            classify_video_type("【歌番組】紹介", live_status="was_live", duration=3600)
+            == VIDEO_TYPE_OTHER
+        )
 
     def test_trailing_creator_role_does_not_make_talk_or_game_karaoke(self):
         game = "【トモコレ】ガンダムと友達になりたい #ウタノライブ【KARAOKE/Vsinger】"
@@ -100,6 +164,26 @@ class TestKaraokeTitles:
             == VIDEO_TYPE_KARAOKE
         )
 
+    def test_trailing_singing_stream_boilerplate_needs_real_singing_context(self):
+        for title in (
+            "【卡牌遊戲】開箱新卡 Singing Stream【銀河Galaxy】",
+            "【雜談】喝喝酒 Chatting & Singing Stream【Creator】",
+            "【睡前雜談】聊聊天說說話 ░ 歌雜｜Singing Stream【Creator】",
+            "「#重要告知」關於接下來的頻道調整 Singing Stream【Creator】",
+        ):
+            assert is_non_singing_branded_title(title)
+            assert (
+                classify_video_type(title, live_status="was_live", duration=3600)
+                == VIDEO_TYPE_OTHER
+            )
+
+        genuine = "【鳴潮】先練歌再玩遊戲 Singing Stream【銀河Galaxy】"
+        assert not is_non_singing_branded_title(genuine)
+        assert (
+            classify_video_type(genuine, live_status="was_live", duration=3600)
+            == VIDEO_TYPE_KARAOKE
+        )
+
     def test_3d_live_recap_is_not_a_performance_marker(self):
         for title in (
             "【振り返り】一緒に3D LIVEを見ながら振り返ろう",
@@ -111,6 +195,47 @@ class TestKaraokeTitles:
                     live_status="was_live",
                     duration=3600,
                 )
+                == VIDEO_TYPE_OTHER
+            )
+
+    def test_showcase_and_anniversary_performances_are_karaoke(self):
+        for title in (
+            "【3D SHOWCASE】Debut concert",
+            "≪3D SHOWCASE≫ Debut concert",
+            "≪3D PERFORMANCE LIVE≫ Birthday stage",
+            "Tokoyami Towa's 3D debut!",
+            "【3D debut】First singing stage",
+            "#ReGLOSS3Dライブ",
+            "5周年記念ライブ",
+            "【Member only】アンコール3DLIVE",
+            "【Song Recital】Evening recital",
+            "Xmas Song Show 歌リレー",
+            "【40万人記念】アニソン40曲歌いきります",
+            "Let's sings hololive songs!",
+        ):
+            assert (
+                classify_video_type(title, live_status="was_live", duration=3600)
+                == VIDEO_TYPE_KARAOKE
+            )
+
+    def test_performance_aftermath_and_watchalong_are_other(self):
+        for title in (
+            "【3D SHOWCASE AFTERTALK】振り返り",
+            "【3D debut】New model reveal and chat",
+            "#ReGLOSS3Dライブ 同時試聴",
+            "演唱會周邊開箱",
+            "Concert reaction",
+            "Concert rehearsal",
+            "Concert review",
+            "Concert countdown",
+            "My concert memories",
+            "Vtuber 3D實體Live演唱會預告",
+            "YouTube Music Weekend Recap",
+            "【Member only】アンコール3DLIVEを一緒に観よう",
+            "【Game】1曲歌い切り challenge",
+        ):
+            assert (
+                classify_video_type(title, live_status="was_live", duration=3600)
                 == VIDEO_TYPE_OTHER
             )
 
@@ -136,6 +261,57 @@ class TestSongTitles:
         assert not is_song_title("Official birthday stream")
         assert not is_song_title("Music news and chat")
         assert not is_song_title("My favorite song tier list")
+
+    def test_short_vocal_performance_titles_are_duration_qualified(self):
+        assert (
+            classify_video_type(
+                "[Singing] Akanbe",
+                live_status="not_live",
+                duration=240,
+            )
+            == VIDEO_TYPE_SONG
+        )
+        assert (
+            classify_video_type(
+                "[Singing] stream",
+                live_status="was_live",
+                duration=3600,
+            )
+            == VIDEO_TYPE_KARAOKE
+        )
+        assert (
+            classify_video_type(
+                "[Singing] long upload",
+                live_status="not_live",
+                duration=3600,
+            )
+            == VIDEO_TYPE_OTHER
+        )
+
+        for title in (
+            "I sang this song",
+            "【Vocal Only ver.】Title",
+            "【女性が歌う】Title",
+            "【Singing and dancing!】Title",
+            "日常唱歌練習：Title",
+            "唱歌默契挑戰",
+            "Sing-a-long with me",
+            "推しカメラ / Full ver.",
+            "【Performance Video】Die For You",
+        ):
+            assert (
+                classify_video_type(title, live_status="not_live", duration=300)
+                == VIDEO_TYPE_SONG
+            )
+
+        assert (
+            classify_video_type(
+                "【Performance Video】Long documentary",
+                live_status="not_live",
+                duration=3600,
+            )
+            == VIDEO_TYPE_OTHER
+        )
 
 
 class TestKaraokeSoftConfirms:
@@ -307,6 +483,87 @@ class TestKaraokeSoftConfirms:
                 )
                 == VIDEO_TYPE_KARAOKE
             )
+
+    def test_additional_multilingual_singing_phrases_need_was_live(self):
+        for title in (
+            "久しぶりに練歌台",
+            "少し歌わせて",
+            "一緒に歌おう",
+            "突發歌ゲリラ",
+            "今天來唱唱幾首歌",
+        ):
+            assert (
+                classify_video_type(title, live_status="not_live", duration=3600)
+                == VIDEO_TYPE_OTHER
+            )
+            assert (
+                classify_video_type(title, live_status="was_live", duration=3600)
+                == VIDEO_TYPE_KARAOKE
+            )
+
+        assert (
+            classify_video_type("深夜唱聊", live_status="not_live", duration=3600)
+            == VIDEO_TYPE_KARAOKE
+        )
+        assert (
+            classify_video_type(
+                "Artist @ YouTube Music Weekend",
+                duration=13 * 60,
+            )
+            == VIDEO_TYPE_KARAOKE
+        )
+
+    def test_3d_performance_uses_duration_to_separate_stream_and_song(self):
+        assert (
+            classify_video_type(
+                "【3D Birthday Performance】Special stage",
+                live_status="was_live",
+                duration=3600,
+            )
+            == VIDEO_TYPE_KARAOKE
+        )
+        assert (
+            classify_video_type(
+                "【3D Performance Video】Song title",
+                live_status="not_live",
+                duration=186,
+            )
+            == VIDEO_TYPE_SONG
+        )
+
+    def test_original_song_catalog_stream_beats_single_song_keyword(self):
+        assert (
+            classify_video_type(
+                "オリジナル曲全部歌うまで帰れません",
+                live_status="was_live",
+                duration=10_487,
+            )
+            == VIDEO_TYPE_KARAOKE
+        )
+        assert (
+            classify_video_type(
+                "【Among Us】#歌うま宇宙人狼",
+                live_status="was_live",
+                duration=3600,
+            )
+            == VIDEO_TYPE_OTHER
+        )
+        assert (
+            classify_video_type(
+                "歌うま宇宙人狼",
+                live_status="was_live",
+                duration=3600,
+            )
+            == VIDEO_TYPE_OTHER
+        )
+        assert (
+            classify_video_type(
+                "【Game】Play for an hour and sing one song",
+                live_status="was_live",
+                duration=3600,
+            )
+            == VIDEO_TYPE_OTHER
+        )
 
     def test_strong_karaoke_beats_cover_word(self):
         assert (

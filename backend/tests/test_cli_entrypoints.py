@@ -68,6 +68,8 @@ def test_reanalysis_cli_arguments(monkeypatch):
     assert args.apply is False
     assert args.include_successful is False
     assert args.requeue_unresolved is False
+    assert args.approve_clear_video_id == []
+    assert args.approve_successful_video_id == []
     monkeypatch.setattr(
         "sys.argv",
         [
@@ -75,12 +77,18 @@ def test_reanalysis_cli_arguments(monkeypatch):
             "--apply",
             "--include-successful",
             "--requeue-unresolved",
+            "--approve-clear-video-id",
+            "unsafe-video",
+            "--approve-successful-video-id",
+            "reviewed-video",
         ],
     )
     args = reanalyze_stored_data.parse_args()
     assert args.apply is True
     assert args.include_successful is True
     assert args.requeue_unresolved is True
+    assert args.approve_clear_video_id == ["unsafe-video"]
+    assert args.approve_successful_video_id == ["reviewed-video"]
 
 
 @pytest.mark.asyncio
@@ -121,6 +129,8 @@ async def test_reanalysis_cli_runs_service_prints_result_and_closes(
                 apply=True,
                 include_successful=False,
                 requeue_unresolved=True,
+                approve_clear_video_id=[],
+                approve_successful_video_id=[],
             )
         ),
     )
@@ -134,6 +144,8 @@ async def test_reanalysis_cli_runs_service_prints_result_and_closes(
         apply=True,
         include_successful=False,
         requeue_unresolved=True,
+        approved_clear_video_ids=frozenset(),
+        approved_successful_video_ids=frozenset(),
     )
     container.close.assert_awaited_once()
 
@@ -174,6 +186,8 @@ async def test_reanalysis_cli_reports_dry_run(monkeypatch, capsys):
                 apply=False,
                 include_successful=False,
                 requeue_unresolved=False,
+                approve_clear_video_id=[],
+                approve_successful_video_id=[],
             )
         ),
     )

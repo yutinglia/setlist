@@ -18,6 +18,12 @@ class VideoCommentScrapeResult:
     comments_available: bool
     metadata_raw_data: dict[str, Any]
     scraped_at: datetime
+    requested_max_comments: int | None = None
+    reported_comment_count: int | None = None
+    comment_sort: str | None = None
+    max_replies: int | None = None
+    max_depth: int | None = None
+    yt_dlp_version: str | None = None
 
 
 class YouTubeVideoCommentScraper:
@@ -127,12 +133,26 @@ class YouTubeVideoCommentScraper:
         if not isinstance(safe_comments, list):
             raise RuntimeError(f"Comments did not sanitize for {self.video_url}")
         comments = [comment for comment in safe_comments if isinstance(comment, dict)]
+        raw_comment_count = info.get("comment_count")
+        reported_comment_count = (
+            raw_comment_count
+            if isinstance(raw_comment_count, int)
+            and not isinstance(raw_comment_count, bool)
+            and raw_comment_count >= 0
+            else None
+        )
         logger.info("Fetched %s comments for %s", len(comments), self.video_url)
         self.last_result = VideoCommentScrapeResult(
             comments=comments,
             comments_available=comments_available,
             metadata_raw_data=metadata_raw_data,
             scraped_at=scraped_at,
+            requested_max_comments=max_comments,
+            reported_comment_count=reported_comment_count,
+            comment_sort="top",
+            max_replies=0,
+            max_depth=1,
+            yt_dlp_version=yt_dlp.version.__version__,
         )
         return self.last_result
 

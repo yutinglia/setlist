@@ -5,6 +5,7 @@ Run from ``backend/`` with the normal database environment configured:
     python reanalyze_stored_data.py
     python reanalyze_stored_data.py --apply --requeue-unresolved
     python reanalyze_stored_data.py --include-successful
+    python reanalyze_stored_data.py --apply --approve-clear-video-id VIDEO_ID
 
 This command never contacts YouTube. It serializes with the background updater,
 reclassifies all videos from stored metadata, and replays saved top comments.
@@ -46,6 +47,26 @@ def parse_args() -> argparse.Namespace:
             "yt-dlp analysis queue."
         ),
     )
+    parser.add_argument(
+        "--approve-clear-video-id",
+        action="append",
+        default=[],
+        metavar="VIDEO_ID",
+        help=(
+            "Approve clearing songs from this exact video if reclassification "
+            "makes it non-karaoke. Repeat for multiple reviewed videos."
+        ),
+    )
+    parser.add_argument(
+        "--approve-successful-video-id",
+        action="append",
+        default=[],
+        metavar="VIDEO_ID",
+        help=(
+            "Approve rewriting this exact successful setlist when "
+            "--include-successful is enabled. Repeat for multiple videos."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -55,7 +76,9 @@ async def run(
     apply: bool,
     include_successful: bool,
     requeue_unresolved: bool,
-) -> dict[str, int | bool]:
+    approved_clear_video_ids: frozenset[str] = frozenset(),
+    approved_successful_video_ids: frozenset[str] = frozenset(),
+) -> dict[str, object]:
     async with container.session_factory() as session:
         service = container.stored_data_reanalyzer(session)
         return asdict(
@@ -63,6 +86,8 @@ async def run(
                 apply=apply,
                 include_successful=include_successful,
                 requeue_unresolved=requeue_unresolved,
+                approved_clear_video_ids=approved_clear_video_ids,
+                approved_successful_video_ids=approved_successful_video_ids,
             )
         )
 
@@ -76,6 +101,8 @@ async def main() -> None:
             apply=args.apply,
             include_successful=args.include_successful,
             requeue_unresolved=args.requeue_unresolved,
+            approved_clear_video_ids=frozenset(args.approve_clear_video_id),
+            approved_successful_video_ids=frozenset(args.approve_successful_video_id),
         )
         mode = "APPLIED" if args.apply else "DRY RUN (rolled back)"
         print(mode)
