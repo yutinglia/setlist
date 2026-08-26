@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
-# Substrings commonly seen when YouTube rate-limits or challenges yt-dlp clients.
+# High-confidence substrings seen when YouTube rate-limits or challenges an
+# entire yt-dlp client/egress. Do not include generic sign-in or HTTP 403 text:
+# age-restricted, members-only, private, and region-restricted videos can emit
+# those per-video failures while unrelated public videos remain accessible.
 _BLOCK_MARKERS = (
-    "sign in to confirm",
     "confirm you're not a bot",
+    "confirm you’re not a bot",
     "confirm you are not a bot",
     "http error 429",
-    "http error 403",
     "too many requests",
     "has blocked your ip",
     "blocked your ip",
+    "your ip is likely being blocked by youtube",
+    "rate-limited by youtube",
     "bot check",
     "captcha",
     "request from your network",
@@ -32,6 +36,8 @@ def is_youtube_block_error(exc: BaseException) -> bool:
     seen: set[int] = set()
     while current is not None and id(current) not in seen:
         seen.add(id(current))
+        if isinstance(current, YouTubeAccessBlocked):
+            return True
         msg = str(current).lower()
         if any(marker in msg for marker in _BLOCK_MARKERS):
             return True

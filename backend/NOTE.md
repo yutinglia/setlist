@@ -17,6 +17,14 @@ whole-operation deadline while holding the shared PostgreSQL advisory lock.
 Unit-test doubles may use `asyncio.to_thread`. Do not bypass updater caps,
 jitter, block detection, deadlines, or the persisted cooldown.
 
+Global cooldown detection intentionally requires a high-confidence signal such
+as HTTP 429, an explicit bot/CAPTCHA challenge, or IP/network blocking text.
+Age confirmation, members-only/private/region restrictions, and a bare HTTP
+403 can apply to only one video and must remain ordinary bounded failures. When
+investigating a suspected false alert, compare one failing record with one
+known-public control from the same container and egress; do not clear persisted
+state merely because the control succeeds.
+
 ## Environment
 
 | Option | Detail |
@@ -36,6 +44,22 @@ pip install -r requirements-dev.txt
 
 `services/yt_scraper/test.py` performs live, ad-hoc smoke checks. It is
 intentionally not part of pytest or CI and may call YouTube when run.
+
+The runtime requirements install `yt-dlp[default]` so the version-matched
+`yt-dlp-ejs` challenge scripts are present, plus a pinned Deno executable as
+the JavaScript runtime recommended by yt-dlp. Verify the exact production
+image rather than assuming that a host-level yt-dlp installation represents
+the container:
+
+```bash
+python -c "import importlib.metadata, yt_dlp; print(yt_dlp.version.__version__, importlib.metadata.version('yt-dlp-ejs'))"
+deno --version
+```
+
+See yt-dlp's [EJS setup guide](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
+Missing EJS support is a runtime-packaging risk, but it is not by itself proof
+that a particular comment failure was caused by a JavaScript challenge; use a
+same-video, same-options A/B reproduction before assigning that root cause.
 
 ## YouTube comment dict structure
 
@@ -90,7 +114,9 @@ can add, remove, or change fields without notice.
   record / 64 KiB field bounds.
 - Volatile playback formats, signed URLs, request headers, captions,
   subtitles, and comments are excluded.
-- Comments use their own analysis snapshot.
+- Comments use their own analysis snapshot. Schema 2 records the bounded
+  request cap, returned/reported counts, sort/depth/reply policy, yt-dlp
+  version, and a likely-truncation flag without adding more comment content.
 - A sparse list refresh must never overwrite richer full metadata.
 - Exact upload dates may replace approximate list dates; approximate data must
   never downgrade an exact date.
@@ -100,13 +126,13 @@ payloads.
 
 ## Bumping yt-dlp
 
-YouTube extractors break often. The runtime pin is currently maintained in
-`requirements.txt` (currently `yt-dlp==2026.7.4`). After confirming that a
-failure is extractor-related:
+YouTube extractors break often. The runtime pins are currently maintained in
+`requirements.txt` (`yt-dlp[default]==2026.8.19` and `deno==2.9.5`). After
+confirming that a failure is extractor-related:
 
 ```bash
 cd backend
-pip install -U yt-dlp
+pip install -U "yt-dlp[default]" deno
 # reproduce the scrape, then pin the verified version in requirements.txt
 python -m pytest
 ```

@@ -88,6 +88,54 @@ class TestCommentAnalyzerDetection:
             "Song B",
         ]
 
+    def test_pinned_comment_accepts_two_songs_without_heading(self):
+        text = _setlist(
+            "08:44 Song A / Artist A",
+            "33:38 Song B / Artist B",
+        )
+        analyzer = CommentAnalyzer(
+            [_comment(text, is_pinned=True)],
+            video_id=VIDEO_ID,
+        )
+
+        assert analyzer.has_song_list_comment() is True
+        assert [song.title for song in analyzer.extract_song_list()] == [
+            "Song A / Artist A",
+            "Song B / Artist B",
+        ]
+
+    def test_uploader_comment_accepts_two_songs_without_heading(self):
+        text = _setlist(
+            "2:37 Song A / Artist A",
+            "6:27 Song B / Artist B",
+        )
+        analyzer = CommentAnalyzer(
+            [_comment(text, author_is_uploader=True)],
+            video_id=VIDEO_ID,
+        )
+
+        assert analyzer.has_song_list_comment() is True
+
+    def test_authority_does_not_turn_generic_chapters_into_two_songs(self):
+        text = "0:00 Opening Remarks\n10:00 Closing Remarks"
+        for authority in (
+            {"is_pinned": True},
+            {"author_is_uploader": True},
+        ):
+            analyzer = CommentAnalyzer(
+                [_comment(text, **authority)],
+                video_id=VIDEO_ID,
+            )
+            assert analyzer.has_song_list_comment() is False
+
+    def test_untrusted_two_song_comment_still_needs_a_heading(self):
+        analyzer = CommentAnalyzer(
+            [_comment("0:30 First event\n1:00 Second event")],
+            video_id=VIDEO_ID,
+        )
+
+        assert analyzer.has_song_list_comment() is False
+
     def test_unlabelled_two_song_comment_still_does_not_qualify(self):
         analyzer = CommentAnalyzer(
             [_comment("01:00 Song A\n05:00 Song B")],
@@ -101,6 +149,189 @@ class TestCommentAnalyzerDetection:
             video_id=VIDEO_ID,
         )
         assert analyzer.has_song_list_comment() is False
+
+    def test_late_prose_setlist_mention_does_not_hide_unheaded_songs(self):
+        analyzer = CommentAnalyzer(
+            [
+                _comment(
+                    _setlist(
+                        "0:10 Song A",
+                        "3:20 Song B",
+                        "7:30 Song C",
+                        "I love this setlist so much",
+                    )
+                )
+            ],
+            video_id=VIDEO_ID,
+        )
+
+        assert analyzer.has_song_list_comment() is True
+        assert [song.title for song in analyzer.extract_song_list()] == [
+            "Song A",
+            "Song B",
+            "Song C",
+        ]
+
+    def test_line_initial_prose_setlist_mention_is_not_a_header(self):
+        analyzer = CommentAnalyzer(
+            [
+                _comment(
+                    _setlist(
+                        "0:10 Song A",
+                        "3:20 Song B",
+                        "7:30 Song C",
+                        "Setlist is amazing",
+                    )
+                )
+            ],
+            video_id=VIDEO_ID,
+        )
+
+        assert analyzer.has_song_list_comment() is True
+        assert [song.title for song in analyzer.extract_song_list()] == [
+            "Song A",
+            "Song B",
+            "Song C",
+        ]
+
+    def test_unheaded_timestamp_regression_stops_following_chapters(self):
+        analyzer = CommentAnalyzer(
+            [
+                _comment(
+                    _setlist(
+                        "0:10 Song A",
+                        "3:20 Song B",
+                        "7:30 Song C",
+                        "0:30 Greeting",
+                        "1:00 Superchat Reading",
+                        "I saved this setlist for later",
+                    )
+                )
+            ],
+            video_id=VIDEO_ID,
+        )
+
+        assert analyzer.has_song_list_comment() is True
+        assert [song.title for song in analyzer.extract_song_list()] == [
+            "Song A",
+            "Song B",
+            "Song C",
+        ]
+
+    def test_early_out_of_order_song_does_not_hide_following_setlist(self):
+        analyzer = CommentAnalyzer(
+            [
+                _comment(
+                    _setlist(
+                        "1:03:01 Encore Song",
+                        "6:21 Song A",
+                        "11:28 Song B",
+                        "17:08 Song C",
+                        "3:58 Greeting",
+                        "This setlist was great",
+                    )
+                )
+            ],
+            video_id=VIDEO_ID,
+        )
+
+        assert analyzer.has_song_list_comment() is True
+        assert [song.title for song in analyzer.extract_song_list()] == [
+            "Encore Song",
+            "Song A",
+            "Song B",
+            "Song C",
+        ]
+
+    def test_unheaded_analysis_section_stops_song_detection(self):
+        analyzer = CommentAnalyzer(
+            [
+                _comment(
+                    _setlist(
+                        "9:35 Song A",
+                        "【考察】",
+                        "18:09 Story discussion",
+                        "20:38 Character discussion",
+                        "22:14 Lyrics discussion",
+                        "セトリのレパートリーについて",
+                    )
+                )
+            ],
+            video_id=VIDEO_ID,
+        )
+
+        assert analyzer.has_song_list_comment() is False
+
+    def test_unheaded_generic_chapters_are_not_a_setlist(self):
+        analyzer = CommentAnalyzer(
+            [_comment("0:10 Opening\n3:20 Greeting\n7:30 Superchat Reading")],
+            video_id=VIDEO_ID,
+        )
+
+        assert analyzer.has_song_list_comment() is False
+
+    def test_song_titles_containing_chapter_words_are_preserved(self):
+        analyzer = CommentAnalyzer(
+            [
+                _comment(
+                    _setlist(
+                        "Set list",
+                        "0:10 Opening / Artist",
+                        "3:20 Opening Night",
+                        "7:30 Superchat Love",
+                    )
+                )
+            ],
+            video_id=VIDEO_ID,
+        )
+
+        assert analyzer.has_song_list_comment() is True
+        assert [song.title for song in analyzer.extract_song_list()] == [
+            "Opening / Artist",
+            "Opening Night",
+            "Superchat Love",
+        ]
+
+    def test_ordinal_placeholders_without_song_names_are_not_a_setlist(self):
+        analyzer = CommentAnalyzer(
+            [
+                _comment(
+                    _setlist(
+                        "Set list",
+                        "0:10 第1首",
+                        "3:20 第２首",
+                        "7:30 第三曲",
+                        "9:40 4曲目",
+                        "12:10 Song 5",
+                    )
+                )
+            ],
+            video_id=VIDEO_ID,
+        )
+
+        assert analyzer.has_song_list_comment() is False
+
+    def test_named_ordinal_titles_are_preserved(self):
+        analyzer = CommentAnalyzer(
+            [
+                _comment(
+                    _setlist(
+                        "Set list",
+                        "0:10 第1首歌：Real Title",
+                        "3:20 Song 3 / Artist",
+                        "7:30 Track No. 4 - Final Title",
+                    )
+                )
+            ],
+            video_id=VIDEO_ID,
+        )
+
+        assert analyzer.has_song_list_comment() is True
+        assert [song.title for song in analyzer.extract_song_list()] == [
+            "第1首歌:Real Title",
+            "Song 3 / Artist",
+            "Track No. 4 - Final Title",
+        ]
 
     def test_invalid_timestamps_do_not_qualify(self):
         text = "1:99 nope\n2:77 nope\n3:60 nope"
@@ -260,6 +491,56 @@ class TestCommentAnalyzerParsing:
         assert songs[0].timestamp == "12:34"
         assert songs[0].title == "曲名"
 
+    def test_fullwidth_colon_can_separate_timestamp_and_title(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set List",
+                "0:10：Song A",
+                "3:20：Song B",
+                "7:30：Song C",
+            )
+        )
+        assert [(song.timestamp, song.title) for song in songs] == [
+            ("0:10", "Song A"),
+            ("3:20", "Song B"),
+            ("7:30", "Song C"),
+        ]
+
+    def test_custom_emoji_tokens_can_touch_timestamp_ranges(self):
+        songs = self._songs_from(
+            _setlist(
+                "01.:_left:00:10:26 ~ 00:15:11:_right: Song A / Artist A",
+                "02.:_left:00:19:39 ~ 00:23:36:_right: Song B / Artist B",
+                "03.:_left:00:25:17 ~ 00:29:19:_right: Song C / Artist C",
+            )
+        )
+        assert [(song.timestamp, song.title) for song in songs] == [
+            ("00:10:26", "Song A / Artist A"),
+            ("00:19:39", "Song B / Artist B"),
+            ("00:25:17", "Song C / Artist C"),
+        ]
+
+    def test_four_fullwidth_numbered_rows_select_only_song_entries(self):
+        songs = self._songs_from(
+            _setlist(
+                "0:00：delivery Start",
+                "4:34：opening talk",
+                "１：7:16：Song A / Artist A",
+                "10:54：Intermediate MC",
+                "２：12:50：Song B / Artist B",
+                "17:44：Intermediate MC",
+                "３：19:53：Song C / Artist C",
+                "24:41：Announcement Time",
+                "４：39:51：Song D / Artist D",
+            )
+        )
+        assert [(song.timestamp, song.title) for song in songs] == [
+            ("7:16", "Song A / Artist A"),
+            ("12:50", "Song B / Artist B"),
+            ("19:53", "Song C / Artist C"),
+            ("39:51", "Song D / Artist D"),
+        ]
+
     def test_clock_time_in_title_is_not_a_second_timestamp(self):
         songs = self._songs_from(
             _setlist(
@@ -388,6 +669,54 @@ class TestCommentAnalyzerParsing:
             "Song C - Artist",
         ]
 
+    def test_timestamped_song_titles_that_sound_like_headers_are_preserved(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set list",
+                "0:10 Chapter One",
+                "3:20 The Announcement",
+                "7:30 Talk Part of Me",
+            )
+        )
+
+        assert [song.title for song in songs] == [
+            "Chapter One",
+            "The Announcement",
+            "Talk Part of Me",
+        ]
+
+    def test_exact_announcement_chapter_stops_explicit_setlist(self):
+        songs = self._songs_from(
+            _setlist(
+                "Set list",
+                "0:10 Song A",
+                "3:20 Song B",
+                "7:30 Announcements",
+                "9:00 Unrelated chapter",
+            )
+        )
+
+        assert [song.title for song in songs] == ["Song A", "Song B"]
+
+    def test_live_singing_section_stops_at_cute_scenes(self):
+        songs = self._songs_from(
+            _setlist(
+                "生歌",
+                "0:47 Song A",
+                "10:24 Song B",
+                "32:43 Song C (first live performance)",
+                "かわいいシーン",
+                "6:54 laughter",
+                "6:09 27:21 30:09 32:26 voices",
+            )
+        )
+
+        assert [song.title for song in songs] == [
+            "Song A",
+            "Song B",
+            "Song C (first live performance)",
+        ]
+
     def test_unicode_and_localized_setlist_headers_are_recognized(self):
         for header in ("ＳＥＴ ＬＩＳＴ", "歌單時間軸在此", "Set Rest"):
             songs = self._songs_from(
@@ -401,6 +730,20 @@ class TestCommentAnalyzerParsing:
                 )
             )
             assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
+
+    def test_earliest_localized_header_wins_over_later_english_header(self):
+        songs = self._songs_from(
+            _setlist(
+                "歌單時間軸在此",
+                "0:10 Song A",
+                "3:20 Song B",
+                "7:30 Song C",
+                "Setlist",
+                "9:00 Unrelated chapter",
+            )
+        )
+
+        assert [song.title for song in songs] == ["Song A", "Song B", "Song C"]
 
     def test_timestamped_mention_of_song_list_is_not_a_section_header(self):
         songs = self._songs_from(
@@ -654,6 +997,33 @@ class TestCommentAnalyzerParsing:
     def test_late_song_named_start_is_preserved(self):
         songs = self._songs_from("25:12 StaRt")
         assert songs[0].title == "StaRt"
+
+    def test_mixed_chinese_interval_chapters_are_skipped(self):
+        songs = self._songs_from(
+            _setlist(
+                "00:00~06:29 OP",
+                "06:29~10:47 開場雜談",
+                "10:47~12:22 Song A [Artist A]",
+                "12:22~14:58 雜談",
+                "14:58~18:24 Song B [Artist B]",
+                "18:24~21:52 杂谈",
+                "21:52~25:15 Song C [Artist C]",
+                "25:15~26:32 手滑",
+                "26:32~30:41 Song D [Artist D]",
+                "30:41~32:51 收場",
+            )
+        )
+
+        assert [song.title for song in songs] == [
+            "Song A [Artist A]",
+            "Song B [Artist B]",
+            "Song C [Artist C]",
+            "Song D [Artist D]",
+        ]
+
+    def test_late_song_named_op_is_preserved(self):
+        songs = self._songs_from("25:12 OP")
+        assert songs[0].title == "OP"
 
     def test_start_prefix_before_first_song_is_removed(self):
         songs = self._songs_from("0:10 開始 & 01. Song A")

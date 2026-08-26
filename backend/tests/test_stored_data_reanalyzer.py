@@ -7,7 +7,10 @@ import pytest
 
 from models.song import Song
 from models.video import YouTubeVideo
-from services.stored_data_reanalyzer import StoredDataReanalyzer
+from services.stored_data_reanalyzer import (
+    StoredDataReanalyzer,
+    UnsafeStoredDataReanalysisError,
+)
 
 
 def _video(
@@ -59,6 +62,9 @@ async def test_dry_run_reclassifies_replays_and_rolls_back():
         cleaned=True,
     )
     existing = {
+        "not-karaoke": [
+            Song(title="Unsafe old song", timestamp="0:05", video_id="not-karaoke")
+        ],
         "recovered": [],
         "negative": [Song(title="Old", timestamp="0:10", video_id="negative")],
         "cleaned": [Song(title="LLM result", timestamp="0:10", video_id="cleaned")],
@@ -102,6 +108,9 @@ async def test_dry_run_reclassifies_replays_and_rolls_back():
     assert result.requeued_unresolved_videos == 0
     assert result.songs_before == 2
     assert result.songs_after == 4
+    assert result.cleared_songs == 1
+    assert result.destructive_clear_video_ids == ("not-karaoke",)
+    assert result.recovered_video_ids == ("recovered",)
     session.rollback.assert_awaited_once()
     session.commit.assert_not_awaited()
     assert song_repo.replace_for_video.await_args_list[0] == call("not-karaoke", [])
@@ -128,6 +137,68 @@ async def test_apply_commits_complete_empty_pass():
     result = await service.run(apply=True)
 
     assert result.applied is True
+    session.commit.assert_awaited_once()
+    session.rollback.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_apply_rolls_back_unapproved_song_clearing():
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    video_repo = SimpleNamespace(
+        clear_analysis_for_non_karaoke=AsyncMock(return_value=["unsafe"]),
+        reclassify_for_channel=AsyncMock(return_value=1),
+        get_with_stored_comments=AsyncMock(return_value=[]),
+    )
+    song_repo = SimpleNamespace(
+        get_by_video_id=AsyncMock(
+            return_value=[Song(title="Old", timestamp="0:10", video_id="unsafe")]
+        ),
+        replace_for_video=AsyncMock(return_value=[]),
+    )
+    service = StoredDataReanalyzer(
+        session,
+        SimpleNamespace(get_all=AsyncMock(return_value=[SimpleNamespace(id="ch")])),
+        video_repo,
+        song_repo,
+        max_analysis_attempts=3,
+    )
+
+    with pytest.raises(UnsafeStoredDataReanalysisError) as exc_info:
+        await service.run(apply=True)
+
+    assert exc_info.value.clear_video_ids == ("unsafe",)
+    session.rollback.assert_awaited_once()
+    session.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_apply_accepts_exact_approved_song_clearing():
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    video_repo = SimpleNamespace(
+        clear_analysis_for_non_karaoke=AsyncMock(return_value=["reviewed"]),
+        reclassify_for_channel=AsyncMock(return_value=1),
+        get_with_stored_comments=AsyncMock(return_value=[]),
+    )
+    song_repo = SimpleNamespace(
+        get_by_video_id=AsyncMock(
+            return_value=[Song(title="Old", timestamp="0:10", video_id="reviewed")]
+        ),
+        replace_for_video=AsyncMock(return_value=[]),
+    )
+    service = StoredDataReanalyzer(
+        session,
+        SimpleNamespace(get_all=AsyncMock(return_value=[SimpleNamespace(id="ch")])),
+        video_repo,
+        song_repo,
+        max_analysis_attempts=3,
+    )
+
+    result = await service.run(
+        apply=True,
+        approved_clear_video_ids=frozenset({"reviewed"}),
+    )
+
+    assert result.destructive_clear_video_ids == ("reviewed",)
     session.commit.assert_awaited_once()
     session.rollback.assert_not_awaited()
 
@@ -161,9 +232,61 @@ async def test_successful_setlists_are_rewritten_only_when_explicitly_enabled():
     result = await service.run(apply=False, include_successful=True)
 
     assert result.changed_setlists == 1
+    assert result.changed_successful_video_ids == ("successful",)
     assert result.skipped_existing_setlists == 0
     assert result.recovered_setlists == 0
     video_repo.update_analysis.assert_awaited_once_with(successful)
+
+
+@pytest.mark.asyncio
+async def test_apply_rolls_back_unapproved_successful_setlist_rewrite():
+    successful = _video(
+        "successful",
+        comments=[
+            {
+                "text": "Set list\n0:10 New A\n3:20 New B\n7:30 New C",
+                "is_pinned": True,
+            }
+        ],
+        has_setlist=True,
+    )
+    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    video_repo = SimpleNamespace(
+        clear_analysis_for_non_karaoke=AsyncMock(return_value=[]),
+        reclassify_for_channel=AsyncMock(return_value=0),
+        get_with_stored_comments=AsyncMock(return_value=[successful]),
+        update_analysis=AsyncMock(),
+    )
+    song_repo = SimpleNamespace(
+        get_by_video_id=AsyncMock(
+            return_value=[Song(title="Old A", timestamp="0:10", video_id="successful")]
+        ),
+        replace_for_video=AsyncMock(return_value=[]),
+    )
+    service = StoredDataReanalyzer(
+        session,
+        SimpleNamespace(get_all=AsyncMock(return_value=[])),
+        video_repo,
+        song_repo,
+        max_analysis_attempts=3,
+    )
+
+    with pytest.raises(UnsafeStoredDataReanalysisError) as exc_info:
+        await service.run(apply=True, include_successful=True)
+
+    assert exc_info.value.successful_video_ids == ("successful",)
+    session.rollback.assert_awaited_once()
+    session.commit.assert_not_awaited()
+
+    session.rollback.reset_mock()
+    result = await service.run(
+        apply=True,
+        include_successful=True,
+        approved_successful_video_ids=frozenset({"successful"}),
+    )
+    assert result.changed_successful_video_ids == ("successful",)
+    session.commit.assert_awaited_once()
+    session.rollback.assert_not_awaited()
 
 
 @pytest.mark.asyncio

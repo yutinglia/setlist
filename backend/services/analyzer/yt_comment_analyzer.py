@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Cumulative mm:ss or hh:mm:ss (after normalizing full-width colons).
 # Validation is completed by ``timestamp_to_seconds``.
 _TIMESTAMP_RE = re.compile(
-    r"(?<![\d:])(?:\d{1,3}:\d{1,2}:\d{2}|\d{1,4}:\d{2})(?![\d:])"
+    r"(?<![\d:])(?:\d{1,3}:\d{1,2}:\d{2}|\d{1,4}:\d{2})(?!\d|:\d)"
 )
 
 # Separators commonly placed around timestamps in setlist comments
@@ -29,6 +29,7 @@ _NUMBERING_RE = re.compile(
     r"^(?:"
     r"[(\[【]\d+[)\]】]|"
     r"[①-⑳㉑-㉟㊱-㊿]|"
+    r"[０-９]+\s*:(?=\s*\d{1,4}:\d{2})|"
     r"\d+\s*[.)\]、．]|"
     r"#\d+(?:\s+|[.)\]、．]\s*)|"
     r"(?:ex|encore)\s*[.)\]、．:]"
@@ -38,7 +39,7 @@ _NUMBERING_RE = re.compile(
 _CIRCLED_NUMBER_CHARS = frozenset(
     "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿"
 )
-_MIN_CONVENTIONAL_NUMBERED_ROWS = 5
+_MIN_CONVENTIONAL_NUMBERED_ROWS = 4
 
 # Some excellent community comments contain a clean setlist followed by a
 # general stream chapter list. When a setlist heading is explicit, keep that
@@ -51,7 +52,7 @@ _LEGACY_SETLIST_HEADER_RE = re.compile(
 _SETLIST_HEADER_RE = re.compile(
     r"(?:set\s*list|setlist|song\s*list|track\s*list|tracklist|"
     r"set\s*rest|"
-    r"セトリ|セットリスト|曲目|歌った曲|"
+    r"セトリ|セットリスト|曲目|歌った曲|生歌\s*$|"
     r"歌單(?:時間軸(?:在此|如下)?)?|歌单(?:时间轴(?:在此|如下)?)?)",
     flags=re.IGNORECASE,
 )
@@ -61,7 +62,7 @@ _NON_SETLIST_HEADER_RE = re.compile(
     r"talk\s*part|"
     r"announcements?|"
     r"配信内容|配信チャプター|チャプター|その他の?タイムスタンプ|"
-    r"告知|お知らせ|雑談(?:など)?|"
+    r"告知|お知らせ|雑談(?:など)?|かわいいシーン|可愛いシーン|"
     r"chapters?|stream\s+contents?"
     r")",
     flags=re.IGNORECASE,
@@ -76,21 +77,29 @@ _SETLIST_CONTINUATION_HEADER_RE = re.compile(
     flags=re.IGNORECASE,
 )
 _TITLE_CHAR_RE = re.compile(r"[\w\u3040-\u30ff\u3400-\u9fff]")
-_CUSTOM_EMOJI_RE = re.compile(r":[\w+-]{2,}:")
+_SONG_ARTIST_SEPARATOR_RE = re.compile(r"(?:[/／]|\s+[-–—]\s+)")
+# YouTube custom emoji tokens include at least one letter or underscore.
+# Requiring that non-digit word character prevents timestamp fragments such as
+# ``:01:`` in ``00:01:23`` from being mistaken for emoji.
+_CUSTOM_EMOJI_RE = re.compile(r":(?=[\w+-]*[^\W\d])[\w+-]{2,}:")
 _RANGE_SEPARATOR_RE = re.compile(r"[-~～〜–—]")
 _NON_SONG_ROW_RE = re.compile(
     r"^(?:"
-    r"(?:【|\[|\()\s*(?:雑談|mc|talk|chat|告知|お知らせ|announcement)"
+    r"(?:【|\[|\()\s*(?:雑談|雜談|杂谈|mc|talk|chat|告知|お知らせ|announcement)"
     r"\s*(?:】|\]|\))|"
-    r"(?:雑談|告知|お知らせ|重大発表|タイトルコール|声入り)"
+    r"(?:(?:開場|开场|中場|中场|幕間)?(?:雑談|雜談|杂谈)|"
+    r"告知|お知らせ|重大発表|タイトルコール|声入り|手滑)"
     r"(?:\s|[/／:：-]|$)|"
-    r"(?:mc|talk|chat|announcement)(?:"
+    r"(?:mc|talk|chat|announcements?)(?:"
     r"\s*$|\s+\d+\s*$|\s*[/／:：-]|"
-    r"\s+(?:part|time|section|break|segment|starts?|ends?|chat(?:ting)?)\b"
+    r"\s+(?:part|time|section|break|segment)(?:\s+\d+)?\s*$|"
+    r"\s+(?:starts?|ends?)(?:\s+here)?\s*$|"
+    r"\s+chat(?:ting)?\s*$"
     r")|"
     r"(?:intro|outro)(?:\s*\+\s*(?:superchat\s+)?talk(?:\s+\d+)?)?\s*$|"
     r"(?:歌單|歌单)(?:不足|不完整|未完成|待補|待补)\s*$|"
-    r".+(?:の)?(?:告知|お知らせ|announcement)\s*$|"
+    r".+(?:の)?(?:告知|お知らせ)\s*$|"
+    r"(?:event|stream|important|big)\s+announcement\s*$|"
     r".+(?:info|いんふぉ|インフォ)\s*$"
     r")",
     flags=re.IGNORECASE,
@@ -101,17 +110,30 @@ _CHAPTER_ONLY_TITLE_RE = re.compile(
     r"(?:\s*(?:[|｜/]|\()\s*(?:開始|配信開始|スタート)\s*\)?)?|"
     r"(?:開始|配信開始|スタート)"
     r"(?:\s*(?:[|｜/]|\()\s*(?:start|sᴛᴀʀᴛ|stream\s+start)\s*\)?)?|"
-    r"ending?|stream\s+end|end|終了|配信終了|ed|outro|"
-    r"bye(?:\s+bye)?|終わりの挨拶|声入り|voice\s+in|chat"
+    r"op|ending?|stream\s+end|end|終了|配信終了|ed|outro|"
+    r"bye(?:\s+bye)?|終わりの挨拶|声入り|voice\s+in|chat|"
+    r"opening|greetings?|收場|收场|super\s*chat(?:\s+(?:reading|time))?"
     r")",
+    flags=re.IGNORECASE,
+)
+_ORDINAL_ONLY_TITLE_RE = re.compile(
+    r"(?:"
+    r"(?:第\s*)?[0-9０-９一二三四五六七八九十百]+\s*"
+    r"(?:首(?:歌)?|曲(?:目)?)|"
+    r"(?:song|track)\s*#?\s*[0-9０-９]+"
+    r")",
+    flags=re.IGNORECASE,
+)
+_UNHEADED_SECTION_BOUNDARY_RE = re.compile(
+    r"[【\[（(]?\s*(?:考察|鳴き声(?:集)?)\s*[】\]）)]?",
     flags=re.IGNORECASE,
 )
 _CHAPTER_PREFIX_RE = re.compile(
     r"(?:開始|配信開始|start|stream\s+start)\s*[&＆]\s*",
     flags=re.IGNORECASE,
 )
-_ASCII_START_ONLY_TITLE_RE = re.compile(
-    r"(?:start|sᴛᴀʀᴛ|stream\s+start)",
+_EARLY_ONLY_CHAPTER_TITLE_RE = re.compile(
+    r"(?:start|sᴛᴀʀᴛ|stream\s+start|op)",
     flags=re.IGNORECASE,
 )
 _EARLY_CHAPTER_MAX_SECONDS = 10 * 60
@@ -157,12 +179,23 @@ class CommentAnalyzer:
             # Two real songs are enough when the author explicitly labels the
             # section as a setlist. Unlabelled timestamp clusters keep the
             # normal (default three-song) threshold to reject chat chapters.
-            explicit_two_song_setlist = len(songs) >= 2 and (
-                self._has_explicit_setlist_header(text)
+            trusted_authority = bool(comment.get("is_pinned")) or bool(
+                comment.get("author_is_uploader")
+            )
+            authority_two_song_setlist = (
+                trusted_authority
+                and len(songs) >= 2
+                and all(
+                    _SONG_ARTIST_SEPARATOR_RE.search(song.title) is not None
+                    for song in songs
+                )
+            )
+            trusted_two_song_setlist = len(songs) >= 2 and (
+                self._has_explicit_setlist_header(text) or authority_two_song_setlist
             )
             if (
                 len(songs) < self.minimum_timestamp_count
-                and not explicit_two_song_setlist
+                and not trusted_two_song_setlist
             ):
                 continue
             score = self._score_comment(comment, len(songs))
@@ -196,13 +229,21 @@ class CommentAnalyzer:
 
     @staticmethod
     def _timestamp_matches(text: str) -> list[re.Match[str]]:
+        # yt-dlp custom-emoji tokens can directly touch a timestamp, for
+        # example ``:_left:00:10``. Replace them with equal-width whitespace so
+        # the regex sees the timestamp boundary while match spans still index
+        # the original text used by the parser.
+        searchable = _CUSTOM_EMOJI_RE.sub(
+            lambda match: " " * len(match.group(0)),
+            text,
+        )
         return [
             match
-            for match in _TIMESTAMP_RE.finditer(text)
+            for match in _TIMESTAMP_RE.finditer(searchable)
             if timestamp_to_seconds(match.group(0)) is not None
             and re.match(
                 r"\s*(?:a\.?m\.?|p\.?m\.?)\b",
-                text[match.end() :],
+                searchable[match.end() :],
                 flags=re.IGNORECASE,
             )
             is None
@@ -245,8 +286,6 @@ class CommentAnalyzer:
 
     @classmethod
     def _has_explicit_setlist_header(cls, text: str) -> bool:
-        if _LEGACY_SETLIST_HEADER_RE.search(text) is not None:
-            return True
         return any(cls._is_setlist_header_line(line) for line in text.splitlines())
 
     @classmethod
@@ -280,6 +319,13 @@ class CommentAnalyzer:
         lines, explicit_section = self._song_section_lines(
             self._normalize_text(text).splitlines()
         )
+        # A prose mention such as "I love this setlist" used to be mistaken
+        # for a late header, which hid valid earlier rows. Only those comments
+        # need the additional unheaded section/regression recovery path; keep
+        # the long-established behavior for ordinary unheaded lists.
+        recover_from_invalid_legacy_header = (
+            not explicit_section and _LEGACY_SETLIST_HEADER_RE.search(text) is not None
+        )
         if not explicit_section:
             # Community setlists often number only the song rows while mixing
             # them with an unnumbered chapter list. Once enough numbered,
@@ -308,20 +354,34 @@ class CommentAnalyzer:
                 lines = numbered_lines
         latest_timestamp_seconds: int | None = None
         for line in lines:
+            line_timestamps = self._timestamp_matches(line)
+            if (
+                not explicit_section
+                and recover_from_invalid_legacy_header
+                and songs
+                and not line_timestamps
+                and self._is_unheaded_section_boundary(line)
+            ):
+                break
             parsed = self._parse_song_line(line)
             for song in parsed:
                 timestamp_seconds = timestamp_to_seconds(song.timestamp)
-                if (
-                    explicit_section
-                    and len(songs) >= 2
-                    and timestamp_seconds is not None
+                regressed = (
+                    timestamp_seconds is not None
                     and latest_timestamp_seconds is not None
                     and timestamp_seconds
                     < latest_timestamp_seconds - _TIMESTAMP_REGRESSION_TOLERANCE_SECONDS
+                )
+                regression_threshold = (
+                    2 if explicit_section else max(3, self.minimum_timestamp_count)
+                )
+                if (
+                    regressed
+                    and (explicit_section or recover_from_invalid_legacy_header)
+                    and len(songs) >= regression_threshold
                 ):
                     logger.debug(
-                        "Stopping explicit setlist for video %s at "
-                        "out-of-order timestamp %s",
+                        "Stopping setlist for video %s at out-of-order timestamp %s",
                         self.video_id,
                         song.timestamp,
                     )
@@ -330,11 +390,23 @@ class CommentAnalyzer:
                     song.analyzed_by_llm = True
                 songs.append(song)
                 if timestamp_seconds is not None:
-                    latest_timestamp_seconds = max(
-                        latest_timestamp_seconds or 0,
-                        timestamp_seconds,
+                    reset_early_outlier = regressed and (
+                        explicit_section or recover_from_invalid_legacy_header
+                    )
+                    latest_timestamp_seconds = (
+                        timestamp_seconds
+                        if (reset_early_outlier)
+                        else max(latest_timestamp_seconds or 0, timestamp_seconds)
                     )
         return self._dedupe_songs(songs)
+
+    @classmethod
+    def _is_unheaded_section_boundary(cls, line: str) -> bool:
+        searchable = cls._searchable_text(line).strip()
+        return bool(
+            _NON_SETLIST_HEADER_RE.search(searchable)
+            or _UNHEADED_SECTION_BOUNDARY_RE.fullmatch(searchable)
+        )
 
     @classmethod
     def _song_section_lines(cls, lines: list[str]) -> tuple[list[str], bool]:
@@ -369,15 +441,8 @@ class CommentAnalyzer:
         cls,
         lines: list[str],
     ) -> tuple[int | None, str | None]:
-        # Preserve the established parser's first plain-text header choice.
-        # The enhanced Unicode/locale-aware matcher is a fallback so a later
-        # translated header cannot replace an already-valid original section.
-        for index, line in enumerate(lines):
-            header = _LEGACY_SETLIST_HEADER_RE.search(line)
-            if header is not None:
-                suffix = line[header.end() :]
-                inline = suffix if cls._timestamp_matches(suffix) else None
-                return index + 1, inline
+        # Select the first structurally valid header regardless of locale. A
+        # later English header must not replace an earlier localized section.
         for index, line in enumerate(lines):
             if cls._is_setlist_header_line(line):
                 timestamp = next(iter(cls._timestamp_matches(line)), None)
@@ -399,14 +464,19 @@ class CommentAnalyzer:
         if saw_timestamp and cls._is_setlist_header_line(line):
             return "stop"
         if _NON_SETLIST_HEADER_RE.search(searchable):
+            if line_timestamps:
+                # Header words can be real song titles (for example,
+                # ``Chapter One``). Keep the row only when the normal title
+                # filters also consider it song-like; descriptive chapter
+                # rows such as ``event announcement`` still end the section.
+                if cls._line_has_timestamp_title(line):
+                    return "keep"
+                return "stop" if saw_timestamp else "skip"
             if saw_timestamp:
                 return "stop"
-            if not line_timestamps:
-                return (
-                    "skip"
-                    if _SETLIST_PREFACE_RE.search(searchable) is not None
-                    else "stop"
-                )
+            return (
+                "skip" if _SETLIST_PREFACE_RE.search(searchable) is not None else "stop"
+            )
         if (
             saw_timestamp
             and _SECTION_DIVIDER_RE.fullmatch(line)
@@ -451,6 +521,12 @@ class CommentAnalyzer:
         # A late prose remark such as 「セトリで見ると…」 is not a section
         # heading and must not hide timestamp rows that came before it.
         if re.match(r"^(?:で|を|の|が|は|について)", suffix):
+            return False
+        if re.match(
+            r"^(?:is|was|looks?|seems?|has|contains?|includes?|makes?)\b",
+            suffix,
+            flags=re.IGNORECASE,
+        ):
             return False
         return True
 
@@ -637,6 +713,19 @@ class CommentAnalyzer:
         before = re.sub(r"[(\[【（]+$", "", before).strip()
         after = re.sub(r"^[)\]】）]+", "", after).strip()
 
+        # Remove custom emoji before stripping an adjacent punctuation colon;
+        # otherwise the colon that opens ``:_emoji:`` would be mistaken for
+        # the timestamp/title delimiter.
+        before = _CUSTOM_EMOJI_RE.sub(" ", before).strip()
+        after = _CUSTOM_EMOJI_RE.sub(" ", after).strip()
+
+        # A full-width colon is commonly used as punctuation after a complete
+        # timestamp (``4:34`` followed by a full-width colon). Normalization
+        # turns it into a second ASCII
+        # colon; treat that single adjacent colon as a field separator.
+        before = re.sub(r":\s*$", "", before).strip()
+        after = re.sub(r"^:\s*", "", after).strip()
+
         before = re.sub(rf"^{_LEADING_SEPARATORS}|{_SEPARATORS}$", "", before).strip()
         after = re.sub(rf"^{_LEADING_SEPARATORS}|{_SEPARATORS}$", "", after).strip()
         return before, after
@@ -716,17 +805,19 @@ class CommentAnalyzer:
             return None
         if _NON_SONG_ROW_RE.match(title):
             return None
+        if _ORDINAL_ONLY_TITLE_RE.fullmatch(title):
+            return None
         if _CHAPTER_ONLY_TITLE_RE.fullmatch(title):
             timestamp_seconds = timestamp_to_seconds(timestamp)
-            # Bare ``Start`` is also a real song title. Treat it as a chapter
-            # only near the beginning; bilingual/CJK start and explicit end
-            # labels remain unambiguous chapter rows at any position.
-            is_late_song_named_start = (
-                _ASCII_START_ONLY_TITLE_RE.fullmatch(title) is not None
+            # Bare ``Start`` and ``OP`` can also be real song titles. Treat
+            # them as chapters only near the beginning; bilingual/CJK start
+            # and explicit end labels remain unambiguous at any position.
+            is_late_ambiguous_chapter_title = (
+                _EARLY_ONLY_CHAPTER_TITLE_RE.fullmatch(title) is not None
                 and timestamp_seconds is not None
                 and timestamp_seconds > _EARLY_CHAPTER_MAX_SECONDS
             )
-            if not is_late_song_named_start:
+            if not is_late_ambiguous_chapter_title:
                 return None
         if len(title) > 500:
             title = title[:500].rstrip()

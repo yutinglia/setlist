@@ -1,4 +1,4 @@
-# Runtime dependencies (Jul 2026). Install with:
+# Runtime dependencies (Aug 2026). Install with:
 #   pip install -r requirements.txt
 # Development/test tools live in requirements-dev.txt.
 
@@ -11,4 +11,7 @@ python-dotenv==1.2.3
 pydantic==2.13.4
 httpx2==2.12.0
 redis==8.1.0
-yt-dlp==2026.8.19
+# yt-dlp's default extra supplies the version-matched EJS challenge scripts;
+# the pinned Deno wheel supplies its recommended JavaScript runtime.
+yt-dlp[default]==2026.8.19
+deno==2.9.5

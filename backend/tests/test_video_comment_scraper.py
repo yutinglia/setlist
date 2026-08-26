@@ -58,9 +58,30 @@ def test_unexpected_comments_shape_is_retryable_error():
             scraper.get_video_top_comments(10)
 
 
+def test_missing_comments_field_is_distinct_from_an_empty_comment_list():
+    scraper = YouTubeVideoCommentScraper("https://www.youtube.com/watch?v=test")
+
+    with patch(
+        "services.yt_scraper.video_comment_scraper.yt_dlp.YoutubeDL",
+        _FakeYdl,
+    ):
+        _FakeYdl.response = {"comment_count": 12}
+        unavailable = scraper.scrape(10)
+        _FakeYdl.response = {"comment_count": 0, "comments": []}
+        available_but_empty = scraper.scrape(10)
+
+    assert unavailable.comments == []
+    assert unavailable.comments_available is False
+    assert unavailable.reported_comment_count == 12
+    assert available_but_empty.comments == []
+    assert available_but_empty.comments_available is True
+    assert available_but_empty.reported_comment_count == 0
+
+
 def test_malformed_comment_items_are_dropped():
     _FakeYdl.response = {
-        "comments": [{"text": "valid"}, None, "invalid", {"text": "also valid"}]
+        "comment_count": 25,
+        "comments": [{"text": "valid"}, None, "invalid", {"text": "also valid"}],
     }
     scraper = YouTubeVideoCommentScraper("https://www.youtube.com/watch?v=test")
 
@@ -78,6 +99,13 @@ def test_malformed_comment_items_are_dropped():
         "max_comments": ["10", "10", "0", "0", "1"],
         "comment_sort": ["top"],
     }
+    assert scraper.last_result is not None
+    assert scraper.last_result.requested_max_comments == 10
+    assert scraper.last_result.reported_comment_count == 25
+    assert scraper.last_result.comment_sort == "top"
+    assert scraper.last_result.max_replies == 0
+    assert scraper.last_result.max_depth == 1
+    assert scraper.last_result.yt_dlp_version
 
 
 def test_comment_scrape_exposes_existing_full_video_metadata():

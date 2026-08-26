@@ -369,13 +369,35 @@ class VideoAnalysisService:
     def _comment_snapshot(
         scrape_result: VideoCommentScrapeResult,
     ) -> dict[str, Any]:
-        return {
+        snapshot: dict[str, Any] = {
             "schema_version": 1,
             "comments": scrape_result.comments,
             "comments_available": scrape_result.comments_available,
             "captured_at": scrape_result.scraped_at.isoformat() + "Z",
             "source": "yt-dlp:top",
         }
+        requested = scrape_result.requested_max_comments
+        if requested is not None:
+            returned = len(scrape_result.comments)
+            reported = scrape_result.reported_comment_count
+            snapshot["schema_version"] = 2
+            snapshot["retrieval"] = {
+                "requested_max_comments": requested,
+                "returned_comments": returned,
+                "reported_comment_count": reported,
+                "comment_sort": scrape_result.comment_sort,
+                "max_replies": scrape_result.max_replies,
+                "max_depth": scrape_result.max_depth,
+                "possibly_truncated": bool(
+                    scrape_result.comments_available
+                    and (
+                        returned >= requested
+                        or (reported is not None and reported > returned)
+                    )
+                ),
+                "yt_dlp_version": scrape_result.yt_dlp_version,
+            }
+        return snapshot
 
     @staticmethod
     def record_comments_observation(

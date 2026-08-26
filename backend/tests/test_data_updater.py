@@ -578,6 +578,12 @@ async def test_comment_rechecks_use_deeper_top_comment_window(
                 comments_available=True,
                 metadata_raw_data={},
                 scraped_at=datetime.now(UTC).replace(tzinfo=None),
+                requested_max_comments=max_comments,
+                reported_comment_count=25,
+                comment_sort="top",
+                max_replies=0,
+                max_depth=1,
+                yt_dlp_version="test-version",
             )
 
     policy = replace(
@@ -599,6 +605,17 @@ async def test_comment_rechecks_use_deeper_top_comment_window(
     await updater._analyze_video(video)
 
     assert seen_limits == [expected_limit]
+    assert video.comments_raw_data["schema_version"] == 2
+    assert video.comments_raw_data["retrieval"] == {
+        "requested_max_comments": expected_limit,
+        "returned_comments": 0,
+        "reported_comment_count": 25,
+        "comment_sort": "top",
+        "max_replies": 0,
+        "max_depth": 1,
+        "possibly_truncated": True,
+        "yt_dlp_version": "test-version",
+    }
 
 
 @pytest.mark.asyncio
@@ -628,6 +645,38 @@ async def test_youtube_block_does_not_exhaust_video_attempt():
     assert video.analysis_status == "retry"
     assert video.next_analysis_at is not None
     video_repo.update_analysis.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_age_restriction_is_a_per_video_retry_not_a_global_block():
+    class AgeRestrictedCommentScraper:
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        def get_video_top_comments(self, _max_comments: int) -> list[dict]:
+            raise RuntimeError(
+                "ERROR: [youtube] video: Sign in to confirm your age. "
+                "This video may be inappropriate for some users."
+            )
+
+    video_repo = SimpleNamespace(update_analysis=AsyncMock())
+    updater = DataUpdater(
+        SimpleNamespace(),
+        SimpleNamespace(),
+        video_repo,
+        SimpleNamespace(),
+        **_comment_scraper_dependencies(AgeRestrictedCommentScraper()),
+    )
+    video = _video()
+    video.analyze_attempts = 2
+
+    with pytest.raises(RetryableVideoAnalysisError, match="confirm your age"):
+        await updater._analyze_video(video)
+
+    assert video.analyze_attempts == 3
+    assert video.analysis_status == "retry"
+    assert video.next_analysis_at is not None
+    video_repo.update_analysis.assert_awaited_once_with(video)
 
 
 @pytest.mark.asyncio
