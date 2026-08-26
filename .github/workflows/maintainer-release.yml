@@ -74,6 +74,10 @@ jobs:
           fi
 
           version_commit="$(git log -1 --format=%H -- VERSION)"
+          if [[ "$version_commit" != "$TESTED_SHA" ]]; then
+            echo "The release version was not introduced by the tested current main commit."
+            exit 0
+          fi
           release_prs="$(gh api "repos/$REPOSITORY/commits/$version_commit/pulls")"
           matching_release_prs="$(
             jq \
@@ -99,7 +103,6 @@ jobs:
           fi
 
           release_pr_number="$(jq -r '.[0].number' <<< "$matching_release_prs")"
-          release_pr_author="$(jq -r '.[0].user.login' <<< "$matching_release_prs")"
 
           files_json="$(
             gh api --paginate \
@@ -118,21 +121,16 @@ jobs:
             exit 1
           fi
 
-          reviews_json="$(
-            gh api --paginate \
-              "repos/$REPOSITORY/pulls/$release_pr_number/reviews?per_page=100" \
-              --slurp
+          local_sha="$(git rev-parse HEAD)"
+          remote_sha="$(gh api "repos/$REPOSITORY/commits/main" --jq .sha)"
+          release_merge_sha="$(
+            gh api "repos/$REPOSITORY/pulls/$release_pr_number" --jq .merge_commit_sha
           )"
-          if ! jq -e --arg author "$release_pr_author" '
-            [.[][]] |
-            any(.[];
-              .state == "APPROVED" and
-              .user.login != $author and
-              .user.login != "github-actions[bot]"
-            )
-          ' <<< "$reviews_json" > /dev/null; then
-            echo "::error::Release PR lacks independent approval."
-            exit 1
+          if [[ "$local_sha" != "$TESTED_SHA" ||
+                "$remote_sha" != "$TESTED_SHA" ||
+                "$release_merge_sha" != "$TESTED_SHA" ]]; then
+            echo "main or the release PR changed before tagging; a newer run must retry."
+            exit 0
           fi
 
           git config user.name "github-actions[bot]"

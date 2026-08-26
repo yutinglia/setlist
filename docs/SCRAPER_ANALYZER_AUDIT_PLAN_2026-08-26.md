@@ -28,7 +28,7 @@ findings will be updated as work progresses.
 - [x] Follow the current GitHub repository rules. The user explicitly removed
   the independent-approval requirement on 2026-08-27; retain pull requests,
   required CI, exact-head merge checks, and the guarded release sequence.
-- [ ] Require a valid pre-deployment PostgreSQL backup before any production
+- [x] Require a valid pre-deployment PostgreSQL backup before any production
   mutation.
 
 ## Phase 1 — Establish the evidence baseline
@@ -54,14 +54,14 @@ findings will be updated as work progresses.
 
 | Metric | Before | Candidate rules | After apply |
 | --- | ---: | ---: | ---: |
-| Total videos | 52,159 | 52,159 | Pending |
-| Karaoke videos | 6,147 | 6,187 | Pending |
-| Song videos | 2,678 | 2,724 | Pending |
-| Other videos | 43,334 | 43,248 | Pending |
-| Karaoke videos with setlists | 5,841 | 5,849 | Pending |
-| Setlist success rate | 95.022% | 94.537% | Pending |
-| Stored songs | 99,233 | 98,851 | Pending |
-| Unresolved karaoke videos | 306 | 338 | Pending |
+| Total videos | 52,159 | 52,159 | 52,159 |
+| Karaoke videos | 6,147 | 6,187 | 6,187 |
+| Song videos | 2,678 | 2,724 | 2,724 |
+| Other videos | 43,334 | 43,248 | 43,248 |
+| Karaoke videos with setlists | 5,841 | 5,849 | 5,849 |
+| Setlist success rate | 95.022% | 94.537% | 94.537% |
+| Stored songs | 99,233 | 98,851 | 98,851 |
+| Unresolved karaoke videos | 306 | 338 | 338 |
 
 ## Phase 2 — Live yt-dlp sampling
 
@@ -122,43 +122,57 @@ findings will be updated as work progresses.
 
 ## Phase 5 — Protected feature and release workflow
 
-- [ ] Commit only scoped files with a Conventional Commits message.
-- [ ] Push the feature branch and open a source pull request.
-- [ ] Wait for all required feature checks and verify the exact PR head.
-- [ ] After checks pass, squash-merge the feature PR with an exact-head guard
+- [x] Commit only scoped files with a Conventional Commits message.
+- [x] Push the feature branch and open a source pull request.
+- [x] Wait for all required feature checks and verify the exact PR head.
+- [x] After checks pass, squash-merge the feature PR with an exact-head guard
   and verify the resulting `main` commit.
-- [ ] Compare the merged change against the private deployment control plane.
-- [ ] If required, update the deployment repository through its own reviewed
+- [x] Compare the merged change against the private deployment control plane.
+- [x] If required, update the deployment repository through its own reviewed
   pull request and wait for merge; otherwise record compatibility evidence.
-- [ ] From clean current source `main`, run the repository patch-version bump
+- [x] From clean current source `main`, run the repository patch-version bump
   script and verify that only the three version files change.
-- [ ] Open, check, and merge the exact-head release pull request without an
+- [x] Open, check, and merge the exact-head release pull request without an
   independent approval wait, as explicitly requested by the user.
-- [ ] Wait for the exact release commit's protected-main CI and CodeQL results.
-- [ ] Create the immutable annotated tag with the repository script and push
+- [x] Wait for the exact release commit's protected-main CI and CodeQL results.
+- [x] Create the immutable annotated tag with the repository script and push
   only that tag.
-- [ ] Verify all four images, attestations, GitHub Release publication, and the
+- [x] Verify all four images, attestations, GitHub Release publication, and the
   exact-tag deployment dispatch.
 
 ## Phase 6 — Production deployment and recovery
 
-- [ ] Confirm the deployment workflow creates a nonempty mode-`600`
+- [x] Confirm the deployment workflow creates a nonempty mode-`600`
   custom-format backup accepted by `pg_restore --list`.
-- [ ] Confirm Flyway and all containers deploy the exact release and report
+- [x] Confirm Flyway and all containers deploy the exact release and report
   healthy without unexplained restarts or OOM events.
-- [ ] Run the stored-data reanalysis dry run on the deployed code.
-- [ ] Review dry-run totals against the pre-release audit and then apply only
+- [x] Run the stored-data reanalysis dry run on the deployed code.
+- [x] Review dry-run totals against the pre-release audit and then apply only
   the approved safe scope.
-- [ ] Requeue unresolved retryable karaoke records without overwriting existing
+- [x] Requeue unresolved retryable karaoke records without overwriting existing
   successful setlists.
-- [ ] Run or wake the normal paced updater; never clear or bypass a persisted
+- [x] Run or wake the normal paced updater; never clear or bypass a persisted
   YouTube cooldown.
-- [ ] Verify post-apply corpus totals, invariants, setlist success rate, and a
+- [x] Verify post-apply corpus totals, invariants, setlist success rate, and a
   second idempotent dry run.
-- [ ] Independently verify public health, deployed release, migration state,
+- [x] Independently verify public health, deployed release, migration state,
   updater heartbeat/outcome, backup validity, cache policy, and cache hit/TTL
   behavior.
-- [ ] Return both repositories to clean synchronized `main` branches.
+- [x] Return both repositories to clean synchronized `main` branches.
+
+## Phase 7 — Dependabot maintenance and follow-up release
+
+- [ ] Audit every open source and deployment Dependabot pull request for
+  expected files, trusted commit identity, signature verification, and current
+  CI results.
+- [ ] Rebase the source Dependabot branches onto the current protected `main`
+  and wait for checks on their exact heads.
+- [ ] Merge only exact tested heads without administrator bypass; coordinate
+  the matching Valkey digest update in the private deployment control plane.
+- [ ] Verify that the automated Patch release contains every merged dependency
+  update and changes only the three synchronized version files.
+- [ ] Verify the Patch release images, attestations, deployment backup, exact
+  production version, service health, and preserved data invariants.
 
 ## Findings and decisions
 
@@ -237,6 +251,38 @@ findings will be updated as work progresses.
   records, mismatches between success flags and songs, non-karaoke attribution,
   and non-karaoke queue states all remained zero. An immediate second dry run
   reported zero classifications, clears, recoveries, rewrites, and requeues.
+- Feature PR #97 merged as `c0fd41b`; release PR #98 changed only the three
+  synchronized version files and merged as `9db5505`. The exact release commit
+  passed backend, frontend, security, image-build, and CodeQL checks. Annotated
+  tag `v0.8.1` peels to that commit; all four images, attestations, the GitHub
+  Release, and deployment dispatch completed successfully.
+- The private deployment control plane required no source-contract update.
+  Its `v0.8.1` deployment created and validated a roughly 72 MB mode-`600`
+  custom dump before replacement. All services then reported healthy with zero
+  restarts and OOM events, and Flyway remained successfully applied through
+  V14. A separate, equally validated pre-reanalysis dump was created before
+  the stored-data mutation.
+- The deployed dry run exactly matched the clone: 190 reclassifications, 54
+  non-karaoke normalizations, 15 approved destructive video ids / 645 songs,
+  23 recoveries, 248 unresolved requeues, and no successful-setlist rewrite.
+  The atomic apply produced the candidate totals above. Orphan songs,
+  non-karaoke songs, success/song mismatches, stale non-karaoke attribution,
+  and non-karaoke queue states are all zero; the immediate second dry run has
+  zero mutations and requeues.
+- Two hard-bounded direct probes from the deployed `v0.8.1` backend used the
+  same production egress without touching scraper state. A public control
+  returned one requested top-level comment with yt-dlp 2026.08.19. The exact
+  age-restricted record still returned its age-confirmation error but the new
+  detector classified it as `blocked=false`. A normal one-shot updater then
+  honored the existing persisted cooldown and made no upstream call or new
+  block report.
+- Production cache verification found the intended 80 MiB / `allkeys-lru` /
+  5% client policy, equal 128 MiB memory and swap ceilings, and TTLs of
+  900/900/3600/300 seconds. Two identical catalog requests succeeded; the
+  second incremented cache hits, the exact catalog key existed, and its TTL was
+  3,600 seconds. Seventeen generic error replies accumulated over 28 days, but
+  there were no rejected connections, evictions, recent cache logs, or error
+  increase during verification.
 - The candidate success rate is 94.537%, lower than the old 95.022% because
   the corrected classifier adds 92 previously omitted karaoke records while
   removing false-positive song rows. This is a more accurate denominator, not
@@ -300,8 +346,10 @@ findings will be updated as work progresses.
 - Persisted scraper state records the cooldown deadline and coarse outcome but
   not a durable reason category; detailed block causes remain available only
   in bounded server logs.
-- Reviewed release, backup, deployment, and post-deploy reanalysis remain
-  pending.
+- The false-positive cooldown created before `v0.8.1` remains durable until its
+  original deadline; it was not manually cleared. New age/member/private/region
+  failures no longer extend it, and the normal paced updater resumes after it
+  expires.
 
 ## Verification log
 
@@ -318,8 +366,8 @@ findings will be updated as work progresses.
 | Clone apply and invariants | Pass | 98,851 songs; all consistency checks zero; second dry run has no mutations |
 | Live cross-channel sample | Pass | 58/58 records across 50/50 channels; 40 extracts, 1,685 comments, 18 parser successes / 270 songs, 0 blocks/timeouts/cap anomalies |
 | Production block diagnosis | Pass | 47 false cooldown triggers were one age-restricted record; same-container public control returned 50 comments and the expected eight-song setlist |
-| Feature PR checks | Pending | |
-| Release CI and images | Pending | |
-| Deployment and backup | Pending | |
-| Post-deploy reanalysis | Pending | |
-| Independent production verification | Pending | |
+| Feature PR checks | Pass | PR #97 exact-head squash merge; all required checks green |
+| Release CI and images | Pass | `v0.8.1` exact commit; four images and attestations verified |
+| Deployment and backup | Pass | private workflow green; pre-deploy and pre-reanalysis dumps validated |
+| Post-deploy reanalysis | Pass | exact reviewed apply; 23 recoveries, 15 clears, 0 successful rewrites; second dry run empty |
+| Independent production verification | Pass | health, V14, runtime, containers, updater, cache hit/TTL, and yt-dlp detector probes |

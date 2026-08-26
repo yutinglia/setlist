@@ -30,24 +30,25 @@ public. Authenticate to GHCR before pulling or independently verifying them.
 
 ## Automated Dependabot release path
 
-After any reviewed and merged Dependabot pull request, the
+After any policy-eligible, tested, and merged Dependabot pull request, the
 [`Prepare dependency release`](../.github/workflows/dependency-release.yml)
 workflow waits for the protected `main` CI run to succeed. It accepts only
-same-repository Dependabot pull requests whose commits are GitHub-verified and
-have a surviving approval. It then:
+same-repository Dependabot pull requests whose commits are GitHub-verified. It
+then:
 
 1. creates or rebases a Patch release pull request containing only `VERSION`,
    `frontend/package.json`, and `frontend/package-lock.json`;
 2. explicitly dispatches CI for that branch and enables squash auto-merge;
-3. waits for the branch protection rule and an independent maintainer approval;
+3. waits for the protected branch checks and merge policy;
 4. verifies the merged release pull request, creates its annotated tag on the
    tested current `main`, and dispatches the normal release workflow.
 
 The privileged workflow never consumes pull-request artifacts or caches.
 Automatic pull requests and workflow dispatches use only the repository
 `GITHUB_TOKEN`, so this path does not introduce a maintainer PAT. If any
-identity, signature, review, version, changed-file, or current-revision check
-fails, it stops without publishing.
+identity, signature, version, changed-file, or current-revision check fails, it
+stops without publishing. Repository merge policy remains authoritative; the
+release workflows do not impose an additional independent-review requirement.
 
 After a release is published, its cross-repository deployment notification uses
 a separate GitHub App credential stored in the release environment. The App is
@@ -58,12 +59,9 @@ that single repository and permission.
 ## Before tagging
 
 Use these steps for a manual release. The automated Dependabot path performs the
-equivalent version synchronization, approval, tag, and dispatch checks.
+equivalent version synchronization, source, tag, and dispatch checks.
 
-1. Confirm the release pull request is approved, merged, and green.
-   Branch protection requires the approving reviewer to differ from the actor
-   that performed the latest push. Request final approval only after the release
-   branch's last push; any later push dismisses the stale review.
+1. Confirm the release pull request is merged and all required checks are green.
 2. Update local `main` without rewriting history:
 
    ```bash
