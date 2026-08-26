@@ -238,7 +238,7 @@ The argument may be `major`, `minor`, `patch`, or an explicit higher
 metadata, and the lockfile, then creates the release commit on a
 `release/vX.Y.Z` branch. It never pushes on the user's behalf.
 
-After the protected pull request is approved and merged, tag the resulting
+After the pull request passes the required checks and merges, tag the resulting
 current `main` commit:
 
 ```bash
@@ -255,14 +255,15 @@ After the tested `main` revision contains one or more verified Dependabot
 updates newer than the current release tag, the workflow creates or refreshes a
 Patch release pull request that changes only the three synchronized version
 files. It dispatches CI explicitly and enables squash auto-merge, but the
-release pull request still requires an independent maintainer approval. After
-that approved pull request merges, the workflow creates the annotated tag and
-dispatches the normal release-image workflow. The private production control
-plane is then notified through a short-lived, single-repository GitHub App token
-and deploys the complete matching image set. The dependency and release pull
-request automation uses the repository `GITHUB_TOKEN`; cross-repository
-notification uses a release-environment App credential instead of a maintainer
-personal access token.
+release pull request relies on the repository's required checks and merge
+policy rather than an additional independent-approval gate. After that pull
+request merges, the workflow creates the annotated tag and dispatches the
+normal release-image workflow. The private production control plane is then
+notified through a short-lived, single-repository GitHub App token and deploys
+the complete matching image set. The dependency and release pull request
+automation uses the repository `GITHUB_TOKEN`; cross-repository notification
+uses a release-environment App credential instead of a maintainer personal
+access token.
 
 Ordinary source builds display the tracked version (and add a short commit SHA
 when Git metadata is available). Release images display the clean semantic

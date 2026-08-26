@@ -180,7 +180,7 @@ console.log(`  git push --set-upstream origin ${releaseBranch}`)
 console.log(
   `  gh pr create --base main --head ${releaseBranch} --title "Release ${tag}"`
 )
-console.log("After the protected pull request is approved and merged:")
+console.log("After the pull request passes required checks and merges:")
 console.log("  git switch main")
 console.log("  git pull --ff-only")
 console.log("  node scripts/bump-version.mjs tag")

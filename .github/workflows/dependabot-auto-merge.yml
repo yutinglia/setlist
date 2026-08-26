@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   auto-merge:
-    name: Approve eligible updates and enable auto-merge
+    name: Validate eligible updates and enable auto-merge
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: >-
@@ -52,7 +52,6 @@ jobs:
           set -euo pipefail
 
           echo "eligible=false" >> "$GITHUB_OUTPUT"
-          echo "requires_external_approval=false" >> "$GITHUB_OUTPUT"
 
           case "$HEAD_BRANCH" in
             dependabot/*)
@@ -217,11 +216,6 @@ jobs:
               exit 0
             fi
 
-            # The notice workflow and this workflow both use github-actions[bot].
-            # It therefore cannot satisfy a rule requiring approval from someone
-            # other than the most recent pusher. Enable auto-merge, but leave the
-            # independent approval to a repository collaborator.
-            echo "requires_external_approval=true" >> "$GITHUB_OUTPUT"
           elif [[ "$CI_EVENT" != "pull_request" ]]; then
             echo "A dispatched CI run without a generated notice commit is ineligible."
             exit 0
@@ -244,35 +238,34 @@ jobs:
           echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
           echo "Dependabot policy: $reason."
 
-      - name: Approve eligible update
-        if: >-
-          steps.policy.outputs.eligible == 'true' &&
-          steps.policy.outputs.requires_external_approval != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_URL: ${{ steps.policy.outputs.pr_url }}
-        run: |
-          review_decision="$(
-            gh pr view "$PR_URL" --json reviewDecision --jq .reviewDecision
-          )"
-          if [[ "$review_decision" == "APPROVED" ]]; then
-            echo "Pull request is already approved."
-          else
-            gh pr review --approve "$PR_URL"
-          fi
-
       - name: Enable squash auto-merge for eligible update
         if: steps.policy.outputs.eligible == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_URL: ${{ steps.policy.outputs.pr_url }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          auto_merge_enabled="$(
-            gh pr view "$PR_URL" --json autoMergeRequest \
-              --jq '.autoMergeRequest != null'
+          pr_json="$(
+            gh pr view "$PR_URL" \
+              --json autoMergeRequest,headRefOid,isDraft,state
           )"
+          head_sha="$(jq -r '.headRefOid' <<< "$pr_json")"
+          pr_state="$(jq -r '.state' <<< "$pr_json")"
+          draft="$(jq -r '.isDraft' <<< "$pr_json")"
+          auto_merge_enabled="$(
+            jq -r '.autoMergeRequest != null' <<< "$pr_json"
+          )"
+
+          if [[ "$head_sha" != "$TESTED_SHA" ||
+                "$pr_state" != "OPEN" ||
+                "$draft" != "false" ]]; then
+            echo "The PR changed after the successful CI run; a newer run must retry."
+            exit 0
+          fi
+
           if [[ "$auto_merge_enabled" == "true" ]]; then
             echo "Auto-merge is already enabled."
           else
-            gh pr merge --auto --squash "$PR_URL"
+            gh pr merge --auto --squash \
+              --match-head-commit "$TESTED_SHA" "$PR_URL"
           fi
