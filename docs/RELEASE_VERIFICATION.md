@@ -38,10 +38,23 @@ then:
 
 1. creates or rebases a Patch release pull request containing only `VERSION`,
    `frontend/package.json`, and `frontend/package-lock.json`;
-2. explicitly dispatches CI for that branch and enables squash auto-merge;
-3. waits for the protected branch checks and merge policy;
-4. verifies the merged release pull request, creates its annotated tag on the
-   tested current `main`, and dispatches the normal release workflow.
+2. explicitly dispatches CI for that branch, captures the exact run id, and
+   verifies its workflow path, event, branch, commit, bot identity, first
+   attempt, and successful conclusion;
+3. revalidates the pull request identity, same-repository head, exact changed
+   files, single release commit, and exact head before requesting an ordinary
+   squash merge that remains subject to repository policy;
+4. explicitly dispatches CI for the exact merge commit and queues a bot-only
+   continuation carrying that run id and commit. The continuation waits for
+   that exact CI run, rechecks current `main`, verifies the merged release pull
+   request, creates its annotated tag, and dispatches the normal release
+   workflow.
+
+The explicit post-merge dispatch is required because GitHub intentionally does
+not create another push-triggered workflow when a repository `GITHUB_TOKEN`
+merges the release pull request. The bot-only continuation avoids depending on
+recursive `workflow_run` delivery while still refusing a stale, rerun,
+wrong-workflow, wrong-actor, or wrong-commit CI result.
 
 The privileged workflow never consumes pull-request artifacts or caches.
 Automatic pull requests and workflow dispatches use only the repository

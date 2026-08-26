@@ -235,13 +235,16 @@ git push origin vX.Y.Z
 [`Prepare dependency release`](.github/workflows/dependency-release.yml) 沿用
 同一套受保護 release 規則。當通過測試的 `main` 包含比目前 release tag 更新的
 已驗證 Dependabot 更新時，workflow 會建立或更新一個 Patch release pull
-request，且只變更三個同步版本檔。它會明確 dispatch CI 並啟用 squash
-auto-merge；release pull request 依 repo 的必要檢查與合併政策決定，不再額外要求
-維護者獨立核准。合併後，workflow 會建立 annotated tag，再 dispatch 既有的
-release image workflow；之後再透過僅限單一 repo 的短效 GitHub App token 通知
-私有 production 控制面，由它部署完整且版本一致的 image 組合。相依套件與
-release pull request 自動化使用 repo 的 `GITHUB_TOKEN`；跨 repo 通知則使用
-release environment 中的 App 憑證，而非維護者 personal access token。
+request，且只變更三個同步版本檔。它會明確 dispatch 並驗證該 release branch 的
+精確 CI run，再重新檢查 pull request，並依 repo 的必要檢查與合併政策要求
+exact-head squash merge，不再額外要求維護者獨立核准。因為 `GITHUB_TOKEN`
+合併不會再產生 push workflow，流程會對精確 merge commit 明確 dispatch CI，
+並排入綁定該 run id 與 commit 的 bot-only continuation。只有該 CI 成功且目前
+`main` 仍完全相符，才會建立 annotated tag 並 dispatch 既有的 release image
+workflow；之後再透過僅限單一 repo 的短效 GitHub App token 通知私有
+production 控制面，由它部署完整且版本一致的 image 組合。相依套件與 release
+pull request 自動化使用 repo 的 `GITHUB_TOKEN`；跨 repo 通知則使用 release
+environment 中的 App 憑證，而非維護者 personal access token。
 
 一般 source build 會顯示 repo 內的版本；若有 Git metadata，還會加上短 commit
 SHA。Release image 則顯示乾淨的語意版本。Branch push 與 pull request 只會執行
