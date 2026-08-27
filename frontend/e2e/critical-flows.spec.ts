@@ -199,6 +199,17 @@ test("searches from the home page and opens a song detail", async ({ page }) => 
   await page.goto("/")
 
   await expect(
+    page.locator(
+      'meta[name="theme-color"][media="(prefers-color-scheme: light)"]',
+    ),
+  ).toHaveAttribute("content", "#f6f7fb")
+  await expect(
+    page.locator(
+      'meta[name="theme-color"][media="(prefers-color-scheme: dark)"]',
+    ),
+  ).toHaveAttribute("content", "#0a0f1e")
+
+  await expect(
     page.getByRole("heading", { name: "Start with a channel" }),
   ).toBeVisible()
   await expect(page.getByText(channel.name).first()).toBeVisible()
