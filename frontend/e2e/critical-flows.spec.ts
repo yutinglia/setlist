@@ -307,6 +307,21 @@ test("searches channels and browses recent catalog updates", async ({ page }) =>
   await expect(page).toHaveURL(/\/channels\?.*q=Test(?:\+|%20)Singer/)
   await expect(page.getByText(channel.name)).toBeVisible()
 
+  await page.setViewportSize({ width: 1600, height: 900 })
+  const channelsSection = await page.locator("main > section").boundingBox()
+  const channelSearch = await page
+    .getByRole("search", { name: "Search channels" })
+    .boundingBox()
+  expect(channelsSection).not.toBeNull()
+  expect(channelSearch).not.toBeNull()
+  expect(Math.abs(channelSearch!.x - channelsSection!.x)).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(
+      channelSearch!.x + channelSearch!.width -
+        (channelsSection!.x + channelsSection!.width),
+    ),
+  ).toBeLessThanOrEqual(1)
+
   await page.getByRole("link", { name: "Recent" }).click()
   await expect(page).toHaveURL(/\/updates$/)
   await expect(
@@ -432,6 +447,19 @@ test("redirects a guest to login before showing administrator status", async ({
   expect(accountShape.borderRadius).toBeGreaterThanOrEqual(
     accountShape.width / 2,
   )
+  const accountInitial = await accountButton.locator("span").first().evaluate(
+    (element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        width: rect.width,
+        height: rect.height,
+        backgroundColor: getComputedStyle(element).backgroundColor,
+      }
+    },
+  )
+  expect(accountInitial.width).toBeLessThan(accountShape.width / 2)
+  expect(accountInitial.height).toBeLessThan(accountShape.height / 2)
+  expect(accountInitial.backgroundColor).toBe("rgba(0, 0, 0, 0)")
 
   const bottomNav = page.locator("nav.fixed").filter({ hasText: "Home" })
   await expect(bottomNav).toBeVisible()

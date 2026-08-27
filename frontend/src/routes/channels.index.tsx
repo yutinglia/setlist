@@ -116,7 +116,7 @@ function ChannelsPage() {
       <form
         role="search"
         aria-label={m.channels_search_label()}
-        className="surface mt-6 flex max-w-3xl flex-col gap-2 p-3 sm:flex-row sm:p-4"
+        className="surface mt-6 flex w-full flex-col gap-2 p-3 sm:flex-row sm:p-4"
         onSubmit={submitSearch}
       >
         <label htmlFor="channel-search" className="sr-only">
