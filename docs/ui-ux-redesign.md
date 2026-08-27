@@ -88,7 +88,7 @@ every public and administrator feature. The implementation follows
 - [x] Run i18n validation, lint, tests, coverage, build, audit, notices, secret
       scan, Compose parsing, and the production frontend Docker build.
 - [x] Perform visual and interaction QA in the browser across key routes.
-- [ ] Commit with a Conventional Commit, push a feature PR, wait for protected
+- [x] Commit with a Conventional Commit, push a feature PR, wait for protected
       checks, merge, create the patch release PR/tag, publish images, deploy, and
       independently verify production.
 
@@ -120,3 +120,8 @@ every public and administrator feature. The implementation follows
   production Compose policy parsing, zero-vulnerability audit, repository
   security/quality/release checks, production build, and frontend image/runtime
   smoke testing. Release publication and production verification remain.
+- 2026-08-27: Merged the redesign and browser-theme follow-up through protected
+  pull requests, released `v0.8.4`, published and attested all four images, and
+  completed automated plus independent production verification. Public routes,
+  responsive browser QA, Flyway V14, the updater heartbeat, the pre-deployment
+  backup, and the Valkey cache policy/hit probe all passed.
