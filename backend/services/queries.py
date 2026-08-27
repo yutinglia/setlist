@@ -29,6 +29,9 @@ from services.cache import (
     ResponseCache,
 )
 
+RECENT_CHANNEL_LIMIT = 12
+RECENT_SONG_LIMIT = 100
+
 
 class ChannelIngestQueryService:
     """Private reads for the durable administrator ingest queue."""
@@ -230,8 +233,8 @@ class CatalogQueryService:
 
     async def get_recent_updates(self) -> RecentUpdates:
         async def load() -> RecentUpdates:
-            channels = await self.channel_repo.get_recent(limit=10)
-            songs = await self.song_repo.get_recent(limit=100)
+            channels = await self.channel_repo.get_recent(limit=RECENT_CHANNEL_LIMIT)
+            songs = await self.song_repo.get_recent(limit=RECENT_SONG_LIMIT)
             return RecentUpdates(
                 channels=[ChannelRead.model_validate(item) for item in channels],
                 songs=songs,

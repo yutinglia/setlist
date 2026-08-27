@@ -34,6 +34,7 @@ export function SiteHeader() {
     select: (state) => state.location.pathname,
   })
   const isHome = pathname === "/"
+  const showHeaderSearch = !isHome && pathname !== "/search"
   const theme = useUiStore((state) => state.theme)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -86,7 +87,7 @@ export function SiteHeader() {
         <BrandLogo className="mr-1 shrink-0" />
         <DesktopNavigation />
 
-        {!isHome ? (
+        {showHeaderSearch ? (
           <div className="mx-auto hidden min-w-52 max-w-md flex-1 justify-center xl:flex">
             <GlobalSearch />
           </div>
@@ -94,8 +95,8 @@ export function SiteHeader() {
           <div className="hidden flex-1 xl:block" aria-hidden />
         )}
 
-        <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
-          {!isHome ? (
+        <div className="ml-auto flex shrink-0 items-center gap-1 lg:ml-0">
+          {showHeaderSearch ? (
             <Button
               asChild
               variant="ghost"
@@ -153,7 +154,7 @@ function PreferencesMenu() {
           type="button"
           variant="ghost"
           className={cn(
-            "h-11 rounded-xl px-2.5 sm:px-3",
+            "size-11 rounded-full p-0 sm:h-11 sm:w-auto sm:rounded-xl sm:px-3",
             isAdmin && "bg-secondary",
           )}
           aria-label={m.nav_more()}

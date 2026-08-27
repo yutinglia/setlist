@@ -13,8 +13,9 @@ privacy posture, and WCAG AA requirements.
 - Primary job: find a song quickly and open the saved YouTube timestamp.
 - Secondary jobs: browse performers and streams, understand catalog freshness,
   credit setlist contributors, and operate the private administrator tools.
-- Visual idea: a modern midnight music archive—calm enough for long browsing,
-  energetic at the play/search actions, and neutral around colorful thumbnails.
+- Visual idea: a modern red-and-neutral music archive—calm enough for long
+  browsing, energetic at play/search actions, and neutral around colorful
+  thumbnails. The established red identity is a product invariant.
 - Pattern: search-first directory with a compact persistent navigation shell.
 - Design dials: variance 6/10, motion 4/10, density 5/10.
 
@@ -22,7 +23,8 @@ privacy posture, and WCAG AA requirements.
 
 - Keep every existing route and feature reachable by URL and keyboard.
 - Search is the primary action on the home and search pages and remains readily
-  available from other desktop pages.
+  available from other desktop pages. Do not render a duplicate global search
+  control in the header while the user is already on `/search`.
 - Every interactive target is at least 44px high and wide where applicable.
 - Never require hover to discover a primary action.
 - Use one `h1` per route, sequential headings, semantic landmarks, and the skip
@@ -35,25 +37,27 @@ privacy posture, and WCAG AA requirements.
 
 ## Color tokens
 
-The generated dark-audio palette is implemented as paired semantic themes.
-Both themes are first-class; dark mode is not the only polished presentation.
+The confirmed pre-redesign red/neutral palette is implemented as paired semantic
+themes. Both themes are first-class; dark mode is not the only polished
+presentation. Green is reserved for semantic success/health states and never
+replaces red as the product identity.
 
 | Token | Light | Dark | Purpose |
 |---|---|---|---|
-| `background` | `#f6f7fb` | `#0a0f1e` | Page canvas |
-| `foreground` | `#101426` | `#f7f8fc` | Primary text |
-| `card` | `#ffffff` | `#11182a` | Raised content |
-| `primary` | `#0b6b5c` | `#6ee7b7` | Search, play, active state |
-| `primary-foreground` | `#ffffff` | `#07150f` | Text on primary |
-| `secondary` | `#e9edf7` | `#1b2540` | Quiet controls and grouping |
-| `muted-foreground` | `#586174` | `#aeb7ce` | Secondary text |
-| `accent` | `#ede9fe` | `#302659` | Special metadata and highlights |
-| `accent-foreground` | `#5b21b6` | `#e9e4ff` | Text on accent |
-| `border` | `#d8ddeb` | `#2d3855` | Dividers and outlines |
-| `input` | `#aab2c8` | `#55617e` | Form boundaries |
-| `ring` | `#0f766e` | `#6ee7b7` | Keyboard focus |
-| `destructive` | `#b42318` | `#ff8a80` | Errors/destructive actions |
-| `brand` | `#0f9f79` | `#34d399` | Logo and decorative identity |
+| `background` | `#f9f9f9` | `#0f0f0f` | Page canvas |
+| `foreground` | `#0f0f0f` | `#f1f1f1` | Primary text |
+| `card` | `#ffffff` | `#181818` | Raised content |
+| `primary` | `#c9002b` | `#ff667a` | Search, play, active state |
+| `primary-foreground` | `#ffffff` | `#210008` | Text on primary |
+| `secondary` | `#eeeeee` | `#272727` | Quiet controls and grouping |
+| `muted-foreground` | `#5f6368` | `#b8b8b8` | Secondary text |
+| `accent` | `#ffe8ed` | `#43131d` | Special metadata and highlights |
+| `accent-foreground` | `#86001d` | `#ffc1c9` | Text on accent |
+| `border` | `#dedede` | `#3f3f3f` | Dividers and outlines |
+| `input` | `#b8b8b8` | `#5b5b5b` | Form boundaries |
+| `ring` | `#c9002b` | `#ff667a` | Keyboard focus |
+| `destructive` | `#b3261e` | `#ff897d` | Errors/destructive actions |
+| `brand` | `#f40035` | `#ff1747` | Approved logo identity |
 
 Use semantic utilities in components. Raw colors are limited to the token
 definitions, thumbnail scrims, and verified status colors.
@@ -74,20 +78,26 @@ definitions, thumbnail scrims, and verified status colors.
 
 - Desktop (>=1024px): one 72px sticky top bar with brand, primary navigation,
   global search, and preferences. Do not reserve a permanent left sidebar.
+- Between 1024px and 1279px, keep icon navigation and preferences grouped at
+  the right edge; at 1280px and above, restore the full labelled desktop flow.
 - Mobile/tablet: compact 64px top bar plus four-item bottom navigation for Home,
   Search, Channels, and Recent. Secondary and administrator destinations live in
   the accessible menu.
+- The mobile account/preferences trigger is a 44x44px circle. It may expand to a
+  labelled/chevron control only from the `sm` breakpoint upward.
 - Content width: 1440px maximum, with 16/24/32px responsive gutters.
 - Page rhythm: 24px mobile and 40–56px desktop vertical section spacing.
 - Repeated media grids use one column on phones, two on small tablets, three on
   desktop, and four only when cards retain a readable width.
+- Recent updates return 12 channels so two-, three-, and four-column grids can
+  form complete rows whenever the catalog contains at least 12 channels.
 - Fixed navigation must reserve content padding including safe-area insets.
 
 ## Surfaces and components
 
 - Default surfaces use a 1px semantic border, 16–24px radius, and restrained
   shadow. Elevation communicates hierarchy; it is not added to every container.
-- The home hero may use subtle ambient radial light. Avoid decorative blur on
+- The home hero may use subtle red ambient radial light. Avoid decorative blur on
   dense lists, reports, and forms.
 - Primary buttons are solid semantic `primary`; secondary actions are outline or
   quiet. Each screen has one visually dominant action.
@@ -115,8 +125,8 @@ definitions, thumbnail scrims, and verified status colors.
 
 - Home: asymmetric search-first hero, live collection proof, recently refreshed
   channels, and recently indexed songs.
-- Search: query and filters form one coherent workspace; result count and active
-  filters are obvious; no-results guidance avoids a dead end.
+- Search: query and filters form one coherent full-width workspace; result count
+  and active filters are obvious; no-results guidance avoids a dead end.
 - Channels/updates: make catalog scanning faster with stronger avatars,
   timestamps, and clear destination actions.
 - Song/video/channel detail: establish a stable hierarchy of artwork, identity,

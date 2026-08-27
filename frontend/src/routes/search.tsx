@@ -112,7 +112,7 @@ function SearchPage() {
         <p className="page-intro">{m.search_page_intro()}</p>
       </header>
 
-      <div className="surface mt-6 max-w-6xl p-4 sm:p-5 lg:p-6">
+      <div className="surface mt-6 w-full p-4 sm:p-5 lg:p-6">
         <SearchForm
           initialQuery={q}
           onQuerySubmit={setQuery}

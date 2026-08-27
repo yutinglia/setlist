@@ -130,7 +130,7 @@
   "recent_updates_heading": "Recent updates",
   "recent_updates_intro": "See the channels refreshed most recently and the newest songs added to the searchable index.",
   "recent_channels_heading": "Recently updated channels",
-  "recent_channels_hint": "The 10 channels most recently refreshed by the updater.",
+  "recent_channels_hint": "The 12 channels most recently refreshed by the updater.",
   "recent_channels_count": "{count} channels",
   "recent_songs_heading": "Recently indexed songs",
   "recent_songs_hint": "The 100 most recently saved setlist entries.",

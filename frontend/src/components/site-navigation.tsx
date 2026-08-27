@@ -111,7 +111,7 @@ export function DesktopNavigation() {
 
   return (
     <nav
-      className="hidden min-w-0 shrink-0 items-center gap-1 lg:flex"
+      className="hidden min-w-0 shrink-0 items-center gap-1 lg:ml-auto lg:flex xl:ml-0"
       aria-label={m.nav_menu()}
     >
       {items.map((item) => {

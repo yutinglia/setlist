@@ -38,57 +38,57 @@
 
 :root {
   --radius: 0.9rem;
-  --background: #f6f7fb;
-  --foreground: #101426;
+  --background: #f9f9f9;
+  --foreground: #0f0f0f;
   --card: #ffffff;
-  --card-foreground: #101426;
+  --card-foreground: #0f0f0f;
   --popover: #ffffff;
-  --popover-foreground: #101426;
-  --primary: #0b6b5c;
+  --popover-foreground: #0f0f0f;
+  --primary: #c9002b;
   --primary-foreground: #ffffff;
-  --secondary: #e9edf7;
-  --secondary-foreground: #1a2240;
-  --muted: #eef1f7;
-  --muted-foreground: #586174;
-  --accent: #ede9fe;
-  --accent-foreground: #5b21b6;
-  --destructive: #b42318;
+  --secondary: #eeeeee;
+  --secondary-foreground: #0f0f0f;
+  --muted: #eeeeee;
+  --muted-foreground: #5f6368;
+  --accent: #ffe8ed;
+  --accent-foreground: #86001d;
+  --destructive: #b3261e;
   --destructive-foreground: #ffffff;
   --success: #147d5d;
   --success-foreground: #ffffff;
-  --border: #d8ddeb;
-  --input: #aab2c8;
-  --ring: #0f766e;
-  --brand: #0f9f79;
-  --ambient: rgb(15 159 121 / 0.08);
-  --surface-shadow: 0 18px 50px -38px rgb(31 39 64 / 0.45);
+  --border: #dedede;
+  --input: #b8b8b8;
+  --ring: #c9002b;
+  --brand: #f40035;
+  --ambient: rgb(244 0 53 / 0.07);
+  --surface-shadow: 0 18px 50px -38px rgb(44 18 24 / 0.38);
 }
 
 .dark {
   color-scheme: dark;
-  --background: #0a0f1e;
-  --foreground: #f7f8fc;
-  --card: #11182a;
-  --card-foreground: #f7f8fc;
-  --popover: #151e33;
-  --popover-foreground: #f7f8fc;
-  --primary: #6ee7b7;
-  --primary-foreground: #07150f;
-  --secondary: #1b2540;
-  --secondary-foreground: #f4f6ff;
-  --muted: #171f35;
-  --muted-foreground: #aeb7ce;
-  --accent: #302659;
-  --accent-foreground: #e9e4ff;
-  --destructive: #ff8a80;
+  --background: #0f0f0f;
+  --foreground: #f1f1f1;
+  --card: #181818;
+  --card-foreground: #f1f1f1;
+  --popover: #282828;
+  --popover-foreground: #f1f1f1;
+  --primary: #ff667a;
+  --primary-foreground: #210008;
+  --secondary: #272727;
+  --secondary-foreground: #f1f1f1;
+  --muted: #272727;
+  --muted-foreground: #b8b8b8;
+  --accent: #43131d;
+  --accent-foreground: #ffc1c9;
+  --destructive: #ff897d;
   --destructive-foreground: #250403;
   --success: #52d6a3;
   --success-foreground: #06130d;
-  --border: #2d3855;
-  --input: #55617e;
-  --ring: #6ee7b7;
-  --brand: #34d399;
-  --ambient: rgb(52 211 153 / 0.07);
+  --border: #3f3f3f;
+  --input: #5b5b5b;
+  --ring: #ff667a;
+  --brand: #ff1747;
+  --ambient: rgb(255 23 71 / 0.07);
   --surface-shadow: 0 22px 60px -42px rgb(0 0 0 / 0.9);
 }
 
@@ -137,20 +137,14 @@
 }
 
 .brand-mark {
-  @apply relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-2xl bg-primary text-primary-foreground;
-  box-shadow: 0 12px 30px -18px color-mix(in srgb, var(--brand) 85%, transparent);
-}
-
-.brand-mark::before {
-  content: "";
-  @apply absolute inset-0 opacity-35;
-  background: linear-gradient(145deg, transparent 35%, var(--accent-foreground));
+  @apply relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand text-white;
+  box-shadow: 0 6px 18px -10px rgb(244 0 53 / 0.9);
 }
 
 .brand-mark::after {
   content: "";
-  @apply absolute right-1.5 bottom-1.5 size-1 rounded-full bg-current opacity-75;
-  box-shadow: -4px 1px 0 currentColor, -8px -1px 0 currentColor;
+  @apply absolute right-1.5 bottom-1.5 size-1 rounded-full bg-white/90;
+  box-shadow: -4px 1px 0 rgb(255 255 255 / 0.7), -8px -1px 0 rgb(255 255 255 / 0.45);
 }
 
 .surface {

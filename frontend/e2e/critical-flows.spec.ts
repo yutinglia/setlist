@@ -9,6 +9,13 @@ const channel = {
   updated_at: "2026-07-29T00:00:00Z",
 }
 
+const recentChannels = Array.from({ length: 12 }, (_, index) => ({
+  ...channel,
+  id: `UC${index + 1}`,
+  name: index === 0 ? channel.name : `Test Singer ${index + 1}`,
+  url: `https://www.youtube.com/@test-singer-${index + 1}`,
+}))
+
 const video = {
   id: "video-1",
   title: "Karaoke Night",
@@ -153,7 +160,7 @@ async function installApiStub(page: Page) {
     }
     if (path === "/v1/songs/1") return json(route, song)
     if (path === "/v1/updates/recent") {
-      return json(route, { channels: [channel], songs: [song] })
+      return json(route, { channels: recentChannels, songs: [song] })
     }
     if (path === "/v1/channels") {
       return json(route, { items: [channel], total: 1, limit: 100, offset: 0 })
@@ -202,12 +209,45 @@ test("searches from the home page and opens a song detail", async ({ page }) => 
     page.locator(
       'meta[name="theme-color"][media="(prefers-color-scheme: light)"]',
     ),
-  ).toHaveAttribute("content", "#f6f7fb")
+  ).toHaveAttribute("content", "#f9f9f9")
   await expect(
     page.locator(
       'meta[name="theme-color"][media="(prefers-color-scheme: dark)"]',
     ),
-  ).toHaveAttribute("content", "#0a0f1e")
+  ).toHaveAttribute("content", "#0f0f0f")
+
+  const brandIdentity = await page.evaluate(() => {
+    const root = document.documentElement
+    const light = getComputedStyle(root)
+    const lightTokens = {
+      primary: light.getPropertyValue("--primary").trim(),
+      brand: light.getPropertyValue("--brand").trim(),
+    }
+    root.classList.add("dark")
+    const dark = getComputedStyle(root)
+    const darkTokens = {
+      primary: dark.getPropertyValue("--primary").trim(),
+      brand: dark.getPropertyValue("--brand").trim(),
+    }
+    root.classList.remove("dark")
+    return { lightTokens, darkTokens }
+  })
+  expect(brandIdentity).toEqual({
+    lightTokens: { primary: "#c9002b", brand: "#f40035" },
+    darkTokens: { primary: "#ff667a", brand: "#ff1747" },
+  })
+
+  const favicon = await page.request.get("/favicon.svg")
+  expect(await favicon.text()).toContain('fill="#F40035"')
+  const manifestResponse = await page.request.get("/site.webmanifest")
+  const manifest = (await manifestResponse.json()) as {
+    background_color: string
+    theme_color: string
+  }
+  expect(manifest).toMatchObject({
+    background_color: "#f9f9f9",
+    theme_color: "#f40035",
+  })
 
   await expect(
     page.getByRole("heading", { name: "Start with a channel" }),
@@ -275,6 +315,79 @@ test("searches channels and browses recent catalog updates", async ({ page }) =>
   await expect(page.getByText(song.title)).toBeVisible()
   await expect(page.getByText(channel.name).first()).toBeVisible()
   await expectNoHorizontalOverflow(page)
+
+  await page.setViewportSize({ width: 1600, height: 900 })
+  const recentChannelCards = page
+    .locator('section[aria-labelledby="recent-channels-heading"]')
+    .locator(".media-card")
+  await expect(recentChannelCards).toHaveCount(12)
+  const columnCount = await recentChannelCards
+    .locator("xpath=..")
+    .evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").length)
+  expect(columnCount).toBe(4)
+  expect((await recentChannelCards.count()) % columnCount).toBe(0)
+})
+
+test("keeps the search workspace full width and aligns responsive header actions", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1600, height: 900 })
+  await page.goto("/search")
+
+  await expect(
+    page.locator("header").getByRole("search", { name: "Search" }),
+  ).toHaveCount(0)
+  const searchSection = await page.locator("main > section").boundingBox()
+  const searchWorkspace = await page
+    .locator("main .surface")
+    .first()
+    .boundingBox()
+  expect(searchSection).not.toBeNull()
+  expect(searchWorkspace).not.toBeNull()
+  expect(Math.abs(searchWorkspace!.x - searchSection!.x)).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(
+      searchWorkspace!.x + searchWorkspace!.width -
+        (searchSection!.x + searchSection!.width),
+    ),
+  ).toBeLessThanOrEqual(1)
+
+  await page.setViewportSize({ width: 1024, height: 720 })
+  await page.goto("/summary")
+  const siteHeader = page.locator("header").first()
+  const headerContent = await siteHeader.locator(":scope > div").boundingBox()
+  const desktopNavigation = await siteHeader
+    .getByRole("navigation", { name: "Navigation" })
+    .boundingBox()
+  const preferences = await siteHeader
+    .getByRole("button", { name: "More" })
+    .boundingBox()
+  expect(headerContent).not.toBeNull()
+  expect(desktopNavigation).not.toBeNull()
+  expect(preferences).not.toBeNull()
+  expect(desktopNavigation!.x).toBeGreaterThan(
+    headerContent!.x + headerContent!.width / 2,
+  )
+  expect(
+    preferences!.x - (desktopNavigation!.x + desktopNavigation!.width),
+  ).toBeLessThanOrEqual(16)
+
+  await page.setViewportSize({ width: 375, height: 740 })
+  const preferencesButton = page.getByRole("button", { name: "More" })
+  const triggerShape = await preferencesButton.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    return {
+      width: rect.width,
+      height: rect.height,
+      borderRadius: Number.parseFloat(getComputedStyle(element).borderRadius),
+    }
+  })
+  expect(triggerShape.width).toBe(triggerShape.height)
+  expect(triggerShape.width).toBeGreaterThanOrEqual(44)
+  expect(triggerShape.borderRadius).toBeGreaterThanOrEqual(
+    triggerShape.width / 2,
+  )
+  await expectNoHorizontalOverflow(page)
 })
 
 test("redirects a guest to login before showing administrator status", async ({
@@ -305,6 +418,21 @@ test("redirects a guest to login before showing administrator status", async ({
   }
 
   await page.setViewportSize({ width: 375, height: 740 })
+  const accountButton = page.getByRole("button", { name: "More" })
+  const accountShape = await accountButton.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    return {
+      width: rect.width,
+      height: rect.height,
+      borderRadius: Number.parseFloat(getComputedStyle(element).borderRadius),
+    }
+  })
+  expect(accountShape.width).toBe(accountShape.height)
+  expect(accountShape.width).toBeGreaterThanOrEqual(44)
+  expect(accountShape.borderRadius).toBeGreaterThanOrEqual(
+    accountShape.width / 2,
+  )
+
   const bottomNav = page.locator("nav.fixed").filter({ hasText: "Home" })
   await expect(bottomNav).toBeVisible()
   const touchTargets = await bottomNav.getByRole("link").evaluateAll((links) =>
