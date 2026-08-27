@@ -145,4 +145,11 @@ every public and administrator feature. The implementation follows
   widths. The correction passed 379 backend tests at 87.23% coverage, 87
   frontend tests above every 80% threshold, five Playwright flows, lint, build,
   zero-vulnerability audit, repository checks, both production image builds,
-  and frontend/backend image smoke tests. Patch release publication remains.
+  and frontend/backend image smoke tests. All pre-release gates passed.
+- 2026-08-27: Published `v0.8.5` through the protected release path. The exact
+  merged SHA passed main CI; all four versioned images, attestations, the GitHub
+  Release, deployment dispatch, automated rollout, and independent production
+  verification passed. Production serves the approved red identity and 12
+  recent channels; container health, Flyway V14, updater heartbeat, backup
+  restore-list, Valkey limits/TTL/hit probe, and 1600/1024/375px browser checks
+  all passed.

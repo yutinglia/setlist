@@ -117,4 +117,9 @@
   寬版、中寬與手機版搜尋／頁首行為。修正版通過 379 項後端測試（coverage
   87.23%）、87 項前端測試（所有 coverage 指標高於 80%）、5 條 Playwright
   流程、lint、build、零漏洞 audit、repository 檢查、兩個正式映像建置，以及
-  前後端映像 smoke test；尚待發布 patch release。
+  前後端映像 smoke test；所有發布前閘門均已通過。
+- 2026-08-27：已透過受保護發布流程發布 `v0.8.5`。精確 merged SHA 的 main CI、
+  四個版本化映像與 attestation、GitHub Release、部署 dispatch、自動 rollout 與
+  獨立 production 驗證全數通過。Production 已提供核准紅色品牌與 12 個最近更新
+  頻道；容器健康、Flyway V14、updater heartbeat、備份 restore-list、Valkey
+  限制／TTL／hit probe，以及 1600／1024／375px 瀏覽器檢查皆通過。
