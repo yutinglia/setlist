@@ -40,22 +40,20 @@ function ThanksPage() {
         description={m.thanks_intro()}
       />
 
-      <header className="mx-auto max-w-4xl text-center">
-        <span className="mx-auto grid size-14 place-items-center rounded-full bg-primary/10 text-primary">
-          <HeartHandshake className="size-7" aria-hidden />
-        </span>
-        <p className="eyebrow mt-5">{m.thanks_eyebrow()}</p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">
-          {m.thanks_heading()}
-        </h1>
-        <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-muted-foreground">
-          {m.thanks_intro()}
-        </p>
+      <header className="page-header md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:gap-10">
+        <div className="max-w-3xl">
+          <div className="flex items-center gap-3">
+            <span className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <HeartHandshake className="size-5" aria-hidden />
+            </span>
+            <p className="eyebrow">{m.thanks_eyebrow()}</p>
+          </div>
+          <h1 className="page-title mt-4">{m.thanks_heading()}</h1>
+          <p className="page-intro mt-4">{m.thanks_intro()}</p>
+        </div>
         {query.data ? (
-          <p className="mt-3 text-xs tracking-wide text-muted-foreground tabular-nums">
-            {m.thanks_total({
-              count: formatInteger(query.data.total),
-            })}
+          <p className="w-fit rounded-xl border border-primary/20 bg-primary/8 px-4 py-3 text-sm font-semibold text-primary tabular-nums">
+            {m.thanks_total({ count: formatInteger(query.data.total) })}
           </p>
         ) : null}
       </header>
@@ -69,54 +67,56 @@ function ThanksPage() {
           loadingLayout="grid"
           onRetry={() => void query.refetch()}
         >
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {query.data?.items.map((contributor, index) => (
               <li
                 key={contributor.author_id}
-                className={`surface animate-rise p-5 stagger-${Math.min((index % 4) + 1, 4)}`}
+                className={`surface animate-rise overflow-hidden stagger-${Math.min((index % 4) + 1, 4)}`}
               >
                 <a
                   href={youtubeChannelUrl(contributor.author_id)}
                   target="_blank"
                   rel="noreferrer"
-                  className="group flex items-start justify-between gap-3"
+                  className="group block min-h-44 p-5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   aria-label={m.thanks_open_channel({
                     author: contributor.author,
                   })}
                 >
-                  <span className="min-w-0">
-                    <span className="block truncate text-lg font-bold tracking-tight transition-colors group-hover:text-primary">
-                      {contributor.author}
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="block truncate text-lg font-bold tracking-tight transition-colors group-hover:text-primary">
+                        {contributor.author}
+                      </span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {m.thanks_youtube_commenter()}
+                      </span>
                     </span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      {m.thanks_youtube_commenter()}
-                    </span>
+                    <ExternalLink
+                      className="mt-1 size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
+                      aria-hidden
+                    />
                   </span>
-                  <ExternalLink
-                    className="mt-1 size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
-                    aria-hidden
-                  />
+                  <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-border/60 pt-4">
+                    <div>
+                      <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <ListMusic className="size-3.5" aria-hidden />
+                        {m.thanks_songs()}
+                      </dt>
+                      <dd className="mt-1 text-xl font-bold tabular-nums">
+                        {formatInteger(contributor.song_count)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Video className="size-3.5" aria-hidden />
+                        {m.thanks_setlists()}
+                      </dt>
+                      <dd className="mt-1 text-xl font-bold tabular-nums">
+                        {formatInteger(contributor.video_count)}
+                      </dd>
+                    </div>
+                  </dl>
                 </a>
-                <dl className="mt-5 grid grid-cols-2 gap-2 border-t border-border/60 pt-4">
-                  <div>
-                    <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <ListMusic className="size-3.5" aria-hidden />
-                      {m.thanks_songs()}
-                    </dt>
-                    <dd className="mt-1 text-lg font-semibold tabular-nums">
-                      {formatInteger(contributor.song_count)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Video className="size-3.5" aria-hidden />
-                      {m.thanks_setlists()}
-                    </dt>
-                    <dd className="mt-1 text-lg font-semibold tabular-nums">
-                      {formatInteger(contributor.video_count)}
-                    </dd>
-                  </div>
-                </dl>
               </li>
             ))}
           </ul>
@@ -132,7 +132,7 @@ function ThanksPage() {
         </QueryState>
       </div>
 
-      <p className="mx-auto mt-10 max-w-3xl text-center text-xs leading-6 text-muted-foreground">
+      <p className="surface-subtle mx-auto mt-10 max-w-3xl px-5 py-4 text-center text-xs leading-6 text-muted-foreground">
         {m.thanks_note()}
       </p>
     </section>

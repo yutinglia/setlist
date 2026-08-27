@@ -183,12 +183,25 @@ async function installApiStub(page: Page) {
   })
 }
 
+async function expectNoHorizontalOverflow(page: Page) {
+  const widths = await page.evaluate(() => ({
+    client: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }))
+  expect(widths.scroll).toBeLessThanOrEqual(widths.client)
+}
+
 test.beforeEach(async ({ page }) => {
   await installApiStub(page)
 })
 
 test("searches from the home page and opens a song detail", async ({ page }) => {
   await page.goto("/")
+
+  await expect(
+    page.getByRole("heading", { name: "Start with a channel" }),
+  ).toBeVisible()
+  await expect(page.getByText(channel.name).first()).toBeVisible()
 
   await page.getByRole("combobox", { name: "Search a song title…" }).fill(
     "Test Song",
@@ -214,6 +227,7 @@ test("searches from the home page and opens a song detail", async ({ page }) => 
 test("renders a video setlist with a timestamped YouTube link", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 320, height: 700 })
   await page.goto(`/videos/${video.id}`)
 
   await expect(
@@ -225,9 +239,11 @@ test("renders a video setlist with a timestamped YouTube link", async ({
   await expect(
     page.getByRole("link", { name: `Play from ${song.timestamp}` }),
   ).toHaveAttribute("href", song.video_url)
+  await expectNoHorizontalOverflow(page)
 })
 
 test("searches channels and browses recent catalog updates", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 })
   await page.goto("/channels")
 
   await page.getByRole("searchbox", { name: "Search channels" }).fill(
@@ -247,6 +263,7 @@ test("searches channels and browses recent catalog updates", async ({ page }) =>
   ).toBeVisible()
   await expect(page.getByText(song.title)).toBeVisible()
   await expect(page.getByText(channel.name).first()).toBeVisible()
+  await expectNoHorizontalOverflow(page)
 })
 
 test("redirects a guest to login before showing administrator status", async ({
@@ -265,17 +282,26 @@ test("redirects a guest to login before showing administrator status", async ({
   ).toBeVisible()
   await expect(page.getByText("Waiting for the next cycle")).toBeVisible()
 
-  for (const width of [1280, 1024]) {
+  for (const width of [1440, 1280, 1024]) {
     await page.setViewportSize({ width, height: 720 })
-    const sidebar = page.getByRole("complementary")
-    const sidebarNav = sidebar.getByRole("navigation")
+    const headerNav = page
+      .locator("header")
+      .getByRole("navigation", { name: "Navigation" })
     await expect(
-      sidebarNav.getByRole("link", { name: "Status" }),
+      headerNav.getByRole("link", { name: "Status" }),
     ).toBeInViewport()
-    const navWidths = await sidebar.evaluate((element) => ({
-      client: element.clientWidth,
-      scroll: element.scrollWidth,
-    }))
-    expect(navWidths.scroll).toBeLessThanOrEqual(navWidths.client)
+    await expectNoHorizontalOverflow(page)
   }
+
+  await page.setViewportSize({ width: 375, height: 740 })
+  const bottomNav = page.locator("nav.fixed").filter({ hasText: "Home" })
+  await expect(bottomNav).toBeVisible()
+  const touchTargets = await bottomNav.getByRole("link").evaluateAll((links) =>
+    links.map((link) => link.getBoundingClientRect().height),
+  )
+  expect(touchTargets.every((height) => height >= 44)).toBe(true)
+
+  await page.getByRole("button", { name: "Open navigation" }).click()
+  await expect(page.getByRole("link", { name: "Status" })).toBeVisible()
+  await page.getByRole("button", { name: "Close navigation" }).click()
 })

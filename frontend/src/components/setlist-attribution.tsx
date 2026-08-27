@@ -25,7 +25,7 @@ export function SetlistAttribution({
   return (
     <div
       className={cn(
-        "flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground",
+        "flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground",
         className,
       )}
     >
@@ -36,7 +36,7 @@ export function SetlistAttribution({
           href={youtubeChannelUrl(authorId)}
           target="_blank"
           rel="noreferrer"
-          className="truncate font-semibold text-foreground underline-offset-2 hover:text-primary hover:underline"
+          className="inline-flex min-h-11 min-w-0 items-center truncate rounded-lg px-1 font-semibold text-foreground underline-offset-2 hover:bg-secondary hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {author}
         </a>
@@ -48,7 +48,7 @@ export function SetlistAttribution({
           href={youtubeCommentUrl(videoId, commentId)}
           target="_blank"
           rel="noreferrer"
-          className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="grid size-11 shrink-0 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label={m.setlist_source_comment()}
           title={m.setlist_source_comment()}
         >

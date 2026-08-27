@@ -10,7 +10,7 @@ import {
   RefreshCw,
 } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, type ReactNode } from "react"
 
 import { useApi } from "@/api/context"
 import {
@@ -197,8 +197,8 @@ function VideoDetailPage() {
                 </div>
               </header>
 
-              <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
-                <div>
+              <div className="mt-6 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+                <div className="min-w-0">
                   {isSong ? (
                     <div className="surface flex min-h-44 flex-col items-center justify-center px-6 py-10 text-center">
                       <span className="grid size-12 place-items-center rounded-full bg-secondary text-primary">
@@ -243,7 +243,7 @@ function VideoDetailPage() {
                                   song.id ??
                                   `${song.title}-${song.timestamp}-${index}`
                                 }
-                                className={`animate-rise flex items-center gap-1 rounded-xl border border-transparent p-1 transition-colors hover:border-border hover:bg-secondary/60 stagger-${Math.min((index % 4) + 1, 4)}`}
+                                className={`animate-rise flex min-w-0 items-center gap-1 rounded-xl border border-transparent p-1 transition-colors hover:border-border hover:bg-secondary/60 stagger-${Math.min((index % 4) + 1, 4)}`}
                               >
                                 <a
                                   href={
@@ -256,7 +256,7 @@ function VideoDetailPage() {
                                   }
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="group flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2"
+                                  className="group flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2"
                                   aria-label={
                                     song.timestamp
                                       ? m.play_from_timestamp({
@@ -318,7 +318,7 @@ function VideoDetailPage() {
                   )}
                 </div>
 
-                <aside className="surface h-fit p-5">
+                <aside className="surface h-fit min-w-0 overflow-hidden p-5">
                   <dl className="space-y-5">
                     <MetaRow
                       icon={Radio}
@@ -327,7 +327,7 @@ function VideoDetailPage() {
                         <Link
                           to="/channels/$channelId"
                           params={{ channelId: videoQuery.data.channel_id }}
-                          className="font-medium text-primary hover:underline"
+                          className="inline-flex min-h-11 max-w-full items-center break-words font-medium whitespace-normal text-primary hover:underline"
                         >
                           {channelQuery.data?.name ?? m.channel_videos_heading()}
                         </Link>
@@ -426,7 +426,7 @@ function MetaRow({
 }: {
   icon: typeof Radio
   label: string
-  value: React.ReactNode
+  value: ReactNode
 }) {
   return (
     <div className="border-b border-border/60 pb-4 last:border-0 last:pb-0">

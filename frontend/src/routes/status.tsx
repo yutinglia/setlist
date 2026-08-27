@@ -106,14 +106,10 @@ function StatusPage() {
         description={m.status_hint()}
         noIndex
       />
-      <header className="border-b border-border pb-7">
+      <header className="page-header max-w-4xl">
         <p className="eyebrow">{m.home_library_live()}</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-          {m.status_heading()}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          {m.status_hint()}
-        </p>
+        <h1 className="page-title mt-1">{m.status_heading()}</h1>
+        <p className="page-intro">{m.status_hint()}</p>
       </header>
 
       <div className="mt-7">
@@ -158,7 +154,7 @@ function StatusPage() {
                 </p>
               </div>
 
-              <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <dl className="surface grid gap-px overflow-hidden bg-border/80 sm:grid-cols-2 xl:grid-cols-3">
                 <StatusField
                   label={m.status_channel()}
                   value={
@@ -168,7 +164,7 @@ function StatusPage() {
                             <Link
                               to="/channels/$channelId"
                               params={{ channelId: data.channel_id }}
-                              className="text-primary underline-offset-2 hover:underline"
+                              className="inline-flex min-h-11 items-center text-primary underline-offset-2 hover:underline"
                             >
                               {data.channel_name || data.channel_id}
                             </Link>
@@ -185,7 +181,7 @@ function StatusPage() {
                           <Link
                             to="/videos/$videoId"
                             params={{ videoId: data.video_id }}
-                            className="text-primary underline-offset-2 hover:underline"
+                            className="inline-flex min-h-11 items-center text-primary underline-offset-2 hover:underline"
                           >
                             {data.video_title || data.video_id}
                           </Link>
@@ -294,7 +290,7 @@ function StatusField({
   value: ReactNode
 }) {
   return (
-    <div className="surface min-w-0 p-4">
+    <div className="min-w-0 bg-card p-5">
       <dt className="text-[0.68rem] font-semibold tracking-[0.11em] text-muted-foreground uppercase">
         {label}
       </dt>

@@ -79,7 +79,7 @@ function AddChannelPage() {
   const isTooMany = urls.length > MAX_BULK_CHANNELS
 
   return (
-    <section className="animate-fade mx-auto w-full max-w-3xl py-7 sm:py-10">
+    <section className="animate-fade mx-auto w-full max-w-5xl py-7 sm:py-10 lg:py-12">
       <PageMetadata
         path="/channels/new"
         title={`${m.channel_add_heading()} | Setlist`}
@@ -93,13 +93,11 @@ function AddChannelPage() {
         }
       />
 
-      <p className="eyebrow mt-8">{m.channel_library_eyebrow()}</p>
-      <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-        {m.channel_add_heading()}
-      </h1>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-        {m.channel_add_hint()}
-      </p>
+      <header className="page-header mt-7 max-w-4xl">
+        <p className="eyebrow">{m.channel_library_eyebrow()}</p>
+        <h1 className="page-title mt-1">{m.channel_add_heading()}</h1>
+        <p className="page-intro">{m.channel_add_hint()}</p>
+      </header>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <TipCard
@@ -150,7 +148,7 @@ function AddChannelPage() {
             placeholder={m.channel_add_url_placeholder()}
             maxLength={5_010}
             rows={8}
-            className="min-h-48 w-full resize-y rounded-xl border border-input bg-card px-4 py-3 font-mono text-sm leading-7 shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-48 w-full resize-y rounded-xl border border-input bg-card px-4 py-3 font-mono text-base leading-7 shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
             autoFocus
             disabled={isSubmitting}
             aria-invalid={error || isTooMany ? true : undefined}
@@ -167,7 +165,7 @@ function AddChannelPage() {
             </p>
             <Button
               type="submit"
-              className="h-11 shrink-0 px-5"
+              className="shrink-0 px-5"
               size="lg"
               disabled={
                 isSubmitting || urls.length === 0 || urls.length > MAX_BULK_CHANNELS
@@ -208,7 +206,7 @@ function TipCard({
   body: string
 }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-card/55 p-4">
+    <div className="surface-subtle p-4">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
           <Icon className="size-4" aria-hidden />
@@ -271,7 +269,7 @@ function BulkResult({ result }: { result: ChannelBulkAddResponse }) {
                 <Link
                   to="/channels/$channelId"
                   params={{ channelId: item.channel_id }}
-                  className="block truncate text-sm font-semibold text-primary underline-offset-2 hover:underline"
+                  className="inline-flex min-h-11 max-w-full items-center truncate text-sm font-semibold text-primary underline-offset-2 hover:underline"
                 >
                   {item.channel_name || item.channel_id}
                 </Link>

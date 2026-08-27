@@ -191,7 +191,7 @@ function ChannelVideosPage() {
   const videos = sortVideosByUploadDateDesc(query.data?.items ?? [])
 
   return (
-    <section className="animate-fade py-7 sm:py-10">
+    <section className="animate-fade py-7 sm:py-10 lg:py-12">
       <PageMetadata
         path={`/channels/${encodeURIComponent(channelId)}`}
         title={m.meta_channel_title({
@@ -209,33 +209,36 @@ function ChannelVideosPage() {
         }
       />
 
-      <header className="surface mt-5 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <header className="surface relative mt-6 flex flex-col gap-6 overflow-hidden p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7 lg:p-8">
+        <span className="pointer-events-none absolute -top-28 -left-20 size-64 rounded-full bg-primary/10 blur-3xl" aria-hidden />
         <div className="flex min-w-0 items-center gap-4 sm:gap-5">
           {channelQuery.data?.thumbnail_url ? (
             <img
               src={channelQuery.data.thumbnail_url}
               alt=""
-              className="size-18 shrink-0 rounded-full object-cover ring-2 ring-border sm:size-20"
+              width={96}
+              height={96}
+              className="relative size-20 shrink-0 rounded-2xl object-cover ring-1 ring-border sm:size-24"
             />
           ) : (
-            <span className="grid size-18 shrink-0 place-items-center rounded-full bg-primary/10 text-2xl font-bold text-primary ring-2 ring-border sm:size-20">
+            <span className="relative grid size-20 shrink-0 place-items-center rounded-2xl bg-primary/10 text-2xl font-bold text-primary ring-1 ring-border sm:size-24">
               {channelQuery.data?.name.slice(0, 1) ?? "—"}
             </span>
           )}
-          <div className="min-w-0">
+          <div className="relative min-w-0">
             <p className="eyebrow">{m.channel_library_eyebrow()}</p>
-            <h1 className="mt-2 truncate text-3xl font-bold tracking-tight sm:text-4xl">
+            <h1 className="mt-2 text-3xl leading-tight font-bold tracking-[-0.04em] sm:text-4xl lg:text-5xl">
               {channelQuery.data?.name ?? m.channel_videos_heading()}
             </h1>
             {channelQuery.data ? (
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-3 w-fit max-w-full rounded-lg bg-secondary px-2.5 py-1.5 text-xs text-muted-foreground">
                 <span className="font-medium">{m.channel_id_label()}:</span>{" "}
                 <span className="break-all">{channelId}</span>
               </p>
             ) : null}
           </div>
         </div>
-        <div className="flex flex-col items-start gap-2 sm:items-end">
+        <div className="relative flex flex-col items-start gap-2 sm:items-end">
           {channelQuery.data ? (
             <Button asChild variant="outline" size="sm">
               <a
@@ -285,9 +288,9 @@ function ChannelVideosPage() {
         </div>
       </header>
 
-      <div className="mt-5 flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="surface-subtle mt-6 flex flex-col gap-4 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
         <div
-          className="inline-flex self-start rounded-full bg-secondary p-1"
+          className="inline-flex self-start rounded-xl bg-secondary p-1"
           role="tablist"
           aria-label={m.channel_tabs_label()}
         >
@@ -344,7 +347,7 @@ function ChannelVideosPage() {
         ) : null}
       </div>
 
-      <div className="mt-7" role="tabpanel">
+      <div className="mt-8" role="tabpanel">
         {query.data ? (
           <p className="mb-4 text-xs text-muted-foreground tabular-nums">
             {m.videos_count({ total: String(query.data.total) })}

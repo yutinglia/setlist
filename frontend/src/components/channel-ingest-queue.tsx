@@ -78,7 +78,7 @@ export function ChannelIngestQueuePanel() {
                     href={item.channel_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="block break-all font-mono text-sm font-semibold text-primary underline-offset-2 hover:underline"
+                    className="inline-flex min-h-11 items-center break-all font-mono text-sm font-semibold text-primary underline-offset-2 hover:underline"
                   >
                     {item.channel_url}
                   </a>

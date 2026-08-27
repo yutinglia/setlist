@@ -340,6 +340,22 @@ session/rate-limit storage.
 
 ---
 
+## Phase 11 — Whole-site UI/UX redesign
+
+Detailed plan, route inventory, audit findings, and the live implementation
+checklist are tracked in [docs/ui-ux-redesign.md](docs/ui-ux-redesign.md) and
+[docs/ui-ux-redesign.zh-Hant.md](docs/ui-ux-redesign.zh-Hant.md). The design
+source of truth is [design-system/setlist/MASTER.md](design-system/setlist/MASTER.md).
+
+- [x] Audit every public and administrator route in code and production.
+- [x] Generate and adapt a search-first music-catalog design system.
+- [x] Replace the desktop sidebar with a responsive top navigation shell.
+- [x] Redesign discovery, browse, detail, data, information, and administrator pages.
+- [x] Enforce 44px targets, WCAG AA themes, reduced motion, and responsive behavior.
+- [ ] Complete browser, unit, E2E, build, Docker, and production validation.
+
+---
+
 ## Release and homelab deployment automation
 
 - [x] Track a portable application version outside CI and expose it in the
