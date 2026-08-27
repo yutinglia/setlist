@@ -155,13 +155,14 @@ function PreferencesMenu() {
           variant="ghost"
           className={cn(
             "size-11 rounded-full p-0 sm:h-11 sm:w-auto sm:rounded-xl sm:px-3",
-            isAdmin && "bg-secondary",
+            isAdmin &&
+              "bg-primary text-primary-foreground hover:bg-primary/90 sm:bg-secondary sm:text-secondary-foreground sm:hover:bg-muted",
           )}
           aria-label={m.nav_more()}
           title={m.nav_more()}
         >
           {isAdmin ? (
-            <span className="grid size-7 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            <span className="grid place-items-center text-sm leading-none font-bold sm:size-7 sm:rounded-full sm:bg-primary sm:text-xs sm:text-primary-foreground">
               {(auth.data?.username ?? "A").slice(0, 1).toUpperCase()}
             </span>
           ) : (
