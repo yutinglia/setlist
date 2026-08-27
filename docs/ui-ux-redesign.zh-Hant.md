@@ -72,7 +72,7 @@
 - [x] 更新 unit／component／E2E，涵蓋新 shell 與首頁頻道區塊。
 - [x] 執行 i18n、lint、測試、coverage、build、audit、notices、secret scan、Compose 解析與正式前端 Docker build。
 - [x] 在瀏覽器跨主要路由完成視覺與互動 QA。
-- [ ] 依 Conventional Commit 提交、推送功能 PR、等待保護檢查與合併，建立 patch release PR／tag、發布映像、部署並獨立驗證 production。
+- [x] 依 Conventional Commit 提交、推送功能 PR、等待保護檢查與合併，建立 patch release PR／tag、發布映像、部署並獨立驗證 production。
 
 ## 驗收檢查表
 
@@ -97,3 +97,7 @@
   （所有 coverage 指標高於 80%）、4 條 Playwright 流程、production Compose
   policy 解析、零漏洞 audit、repository 安全／品質／發布檢查、正式 build、
   前端映像與 runtime smoke test 全數通過；尚待發布與 production 驗證。
+- 2026-08-27：全站重設與瀏覽器主題色後續修正均透過受保護 PR 合併，
+  已發布 `v0.8.4`、產生並驗證四個映像的 attestation，且完成自動與獨立
+  production 驗證。公開路由、響應式瀏覽器 QA、Flyway V14、updater heartbeat、
+  部署前備份與 Valkey 快取政策／命中 probe 全數通過。

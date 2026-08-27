@@ -352,7 +352,7 @@ source of truth is [design-system/setlist/MASTER.md](design-system/setlist/MASTE
 - [x] Replace the desktop sidebar with a responsive top navigation shell.
 - [x] Redesign discovery, browse, detail, data, information, and administrator pages.
 - [x] Enforce 44px targets, WCAG AA themes, reduced motion, and responsive behavior.
-- [ ] Complete browser, unit, E2E, build, Docker, and production validation.
+- [x] Complete browser, unit, E2E, build, Docker, and production validation.
 
 ---
 
