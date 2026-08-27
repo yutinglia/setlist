@@ -364,7 +364,7 @@ source of truth is [design-system/setlist/MASTER.md](design-system/setlist/MASTE
       circular while preserving 44px touch targets.
 - [x] Add regression coverage and complete responsive, accessibility, build,
       production-image, and repository release-gate validation.
-- [ ] Publish the patch release and independently verify production.
+- [x] Publish the patch release and independently verify production.
 
 ---
 
