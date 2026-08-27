@@ -29,8 +29,9 @@ every public and administrator feature. The implementation follows
 - The summary gives ten metrics equal weight, slowing comprehension.
 - At 375px, several visible links and icon actions are only 32–40px high, below
   the 44px touch-target goal.
-- The current visual identity is narrowly red/neutral; a calm media-focused
-  system can better frame colorful VTuber thumbnails in both themes.
+- The redesign unintentionally replaced the confirmed red/neutral product
+  identity. The approved red palette, favicon, and browser/PWA colors must
+  remain brand invariants while the new layout and interaction model evolve.
 
 ## Scope and route inventory
 
@@ -50,7 +51,7 @@ every public and administrator feature. The implementation follows
 - [x] Replace the desktop sidebar with a responsive sticky top navigation.
 - [x] Keep a four-item mobile bottom navigation and move secondary destinations
       into the menu.
-- [x] Implement the paired mint/indigo light and dark semantic token system.
+- [x] Restore the approved red/neutral light and dark semantic token system.
 - [x] Rework spacing, type, surfaces, focus, motion, and shared page-width rules.
 - [x] Keep the global search discoverable without crowding tablet widths.
 
@@ -92,6 +93,20 @@ every public and administrator feature. The implementation follows
       checks, merge, create the patch release PR/tag, publish images, deploy, and
       independently verify production.
 
+### 6. Confirmed-brand and responsive correction
+
+- [x] Restore the exact approved red semantic colors from `v0.8.2`, the red
+      favicon, and matching static/generated manifest and browser theme colors.
+- [x] Return 12 recently refreshed channels so the four-column desktop grid can
+      render complete rows when at least 12 channels are available.
+- [x] Make the search workspace span the full content width and suppress the
+      duplicate header search control while already on `/search`.
+- [x] Push medium-width header navigation and preferences to the right while
+      preserving the full labelled desktop layout at wider breakpoints.
+- [x] Make the mobile account/preferences trigger a true 44x44px circle.
+- [x] Cover the corrections with backend, component/E2E, metadata, responsive,
+      dark/light, build, and production-image validation before release.
+
 ## Acceptance checklist
 
 - [x] Every route above renders and every pre-existing action remains available.
@@ -125,3 +140,9 @@ every public and administrator feature. The implementation follows
   completed automated plus independent production verification. Public routes,
   responsive browser QA, Flyway V14, the updater heartbeat, the pre-deployment
   backup, and the Valkey cache policy/hit probe all passed.
+- 2026-08-27: Restored the confirmed red identity and favicon, returned 12 recent
+  channels, and corrected search/header behavior at wide, medium, and mobile
+  widths. The correction passed 379 backend tests at 87.23% coverage, 87
+  frontend tests above every 80% threshold, five Playwright flows, lint, build,
+  zero-vulnerability audit, repository checks, both production image builds,
+  and frontend/backend image smoke tests. Patch release publication remains.

@@ -354,6 +354,18 @@ source of truth is [design-system/setlist/MASTER.md](design-system/setlist/MASTE
 - [x] Enforce 44px targets, WCAG AA themes, reduced motion, and responsive behavior.
 - [x] Complete browser, unit, E2E, build, Docker, and production validation.
 
+### Phase 11 brand and responsive correction
+
+- [x] Restore the confirmed pre-redesign red palette, favicon, and browser/PWA
+      identity without reverting the redesigned information architecture.
+- [x] Return 12 recent channels, make the search workspace full width, and hide
+      redundant header search controls on the search route.
+- [x] Right-align medium-width header actions and keep the mobile account trigger
+      circular while preserving 44px touch targets.
+- [x] Add regression coverage and complete responsive, accessibility, build,
+      production-image, and repository release-gate validation.
+- [ ] Publish the patch release and independently verify production.
+
 ---
 
 ## Release and homelab deployment automation

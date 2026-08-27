@@ -213,7 +213,7 @@ async def test_catalog_query_service_loads_every_public_projection():
     assert songs.items == [song]
     song_repo.search_by_title.assert_awaited_once()
     song_repo.suggest_titles.assert_awaited_once()
-    channel_repo.get_recent.assert_awaited_once_with(limit=10)
+    channel_repo.get_recent.assert_awaited_once_with(limit=12)
     song_repo.get_recent.assert_awaited_once_with(limit=100)
     assert cache.remembered == [
         (SEARCH_CACHE_NAMESPACE, "search_songs"),
