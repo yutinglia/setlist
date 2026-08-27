@@ -43,7 +43,7 @@ export function ChannelRequestNotice({ className }: { className?: string }) {
             target="_blank"
             rel="noreferrer"
             className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
+              buttonVariants({ variant: "outline" }),
               "mt-4",
             )}
           >

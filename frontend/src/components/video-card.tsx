@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { ExternalLink, Info } from "lucide-react"
+import { ExternalLink, Info, Play } from "lucide-react"
 
 import type { YouTubeVideo } from "@/api/types"
 import { buttonVariants } from "@/components/ui/button"
@@ -43,19 +43,17 @@ export function VideoCard({ video, index = 0 }: Props) {
           className="size-full object-cover transition-transform duration-300 group-hover/thumbnail:scale-[1.025]"
           loading="lazy"
         />
-        <span className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
-        <span className="absolute inset-0 grid place-items-center opacity-0 transition-opacity group-hover/thumbnail:opacity-100 group-focus-visible/thumbnail:opacity-100">
-          <span className="grid size-12 place-items-center rounded-full bg-brand text-white shadow-xl">
-            <Info className="size-5" aria-hidden />
-          </span>
+        <span className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />
+        <span className="absolute bottom-3 left-3 grid size-11 place-items-center rounded-xl bg-primary text-primary-foreground shadow-lg transition-transform duration-200 group-hover/thumbnail:scale-105 group-focus-visible/thumbnail:scale-105">
+          <Info className="size-4.5" aria-hidden />
         </span>
       </Link>
 
-      <div className="flex min-w-0 flex-1 flex-col pt-3">
+      <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
         <Link
           to="/videos/$videoId"
           params={{ videoId: video.id }}
-          className="line-clamp-2 text-base leading-snug font-semibold tracking-[-0.01em] transition-colors hover:text-primary"
+          className="-m-1 line-clamp-2 rounded-lg p-1 text-lg leading-snug font-bold tracking-[-0.02em] transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {video.title}
         </Link>
@@ -71,34 +69,35 @@ export function VideoCard({ video, index = 0 }: Props) {
               video.upload_date,
               video.upload_date_precision,
             )}
-            className="text-xs leading-relaxed text-muted-foreground tabular-nums"
+            className="text-xs leading-relaxed font-medium text-muted-foreground tabular-nums"
           >
             {dateLabel ?? m.video_date_unknown()}
           </time>
-          <div className="mt-2 flex flex-wrap justify-end gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <a
               href={youtubeVideoUrl(video.id)}
               target="_blank"
               rel="noreferrer"
               className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-                "shrink-0",
+                buttonVariants({ variant: "secondary", size: "sm" }),
+                "min-w-0",
               )}
               aria-label={m.open_youtube()}
             >
-              YouTube
+              <Play className="fill-current" aria-hidden />
+              <span className="truncate">YouTube</span>
               <ExternalLink aria-hidden />
             </a>
             <Link
               to="/videos/$videoId"
               params={{ videoId: video.id }}
               className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-                "shrink-0",
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "min-w-0",
               )}
             >
               <Info aria-hidden />
-              {m.view_details()}
+              <span className="truncate">{m.view_details()}</span>
             </Link>
           </div>
         </div>

@@ -7,8 +7,6 @@ import {
   LogOut,
   Menu,
   Moon,
-  PanelLeftClose,
-  PanelLeftOpen,
   Search,
   Settings2,
   ShieldCheck,
@@ -21,7 +19,10 @@ import { useEffect, useState } from "react"
 import { useAuthSession, useHealth, useLogout } from "@/api/hooks"
 import { BrandLogo } from "@/components/brand-logo"
 import { GlobalSearch } from "@/components/global-search"
-import { MobileNavigationContent } from "@/components/site-navigation"
+import {
+  DesktopNavigation,
+  MobileNavigationContent,
+} from "@/components/site-navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
@@ -34,8 +35,6 @@ export function SiteHeader() {
   })
   const isHome = pathname === "/"
   const theme = useUiStore((state) => state.theme)
-  const collapsed = useUiStore((state) => state.sidebarCollapsed)
-  const toggleSidebar = useUiStore((state) => state.toggleSidebar)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -43,15 +42,15 @@ export function SiteHeader() {
   }, [theme])
 
   return (
-    <header className="sticky top-0 z-40 h-16 border-b border-border bg-background/95 backdrop-blur-xl">
-      <div className="flex h-full items-center gap-2 px-3 sm:px-4">
+    <header className="sticky top-0 z-40 h-16 border-b border-border/85 bg-background/92 backdrop-blur-xl lg:h-[4.5rem]">
+      <div className="mx-auto flex h-full w-full max-w-[90rem] items-center gap-2 px-3 sm:px-6 lg:gap-3 lg:px-8">
         <Dialog.Root open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <Dialog.Trigger asChild>
             <Button
               type="button"
               variant="ghost"
               size="icon-lg"
-              className="size-11 rounded-full lg:hidden"
+              className="size-11 rounded-xl lg:hidden"
               aria-label={m.nav_open_menu()}
             >
               <Menu aria-hidden />
@@ -59,7 +58,7 @@ export function SiteHeader() {
           </Dialog.Trigger>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out data-[state=open]:fade-in" />
-            <Dialog.Content className="fixed inset-y-0 left-0 z-[60] flex w-[min(21rem,88vw)] flex-col border-r border-border bg-background shadow-2xl outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left">
+            <Dialog.Content className="fixed inset-y-0 left-0 z-[60] flex w-[min(22rem,90vw)] flex-col border-r border-border bg-background shadow-2xl outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left">
               <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
                 <Dialog.Title className="sr-only">{m.nav_menu()}</Dialog.Title>
                 <BrandLogo onNavigate={() => setMobileMenuOpen(false)} />
@@ -68,14 +67,14 @@ export function SiteHeader() {
                     type="button"
                     variant="ghost"
                     size="icon-lg"
-                    className="size-11 rounded-full"
+                    className="size-11 rounded-xl"
                     aria-label={m.nav_close_menu()}
                   >
                     <X aria-hidden />
                   </Button>
                 </Dialog.Close>
               </div>
-              <div className="scrollbar-none flex-1 overflow-y-auto px-3 py-5">
+              <div className="scrollbar-none flex-1 overflow-y-auto px-3 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                 <MobileNavigationContent
                   onNavigate={() => setMobileMenuOpen(false)}
                 />
@@ -84,23 +83,16 @@ export function SiteHeader() {
           </Dialog.Portal>
         </Dialog.Root>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-lg"
-          className="hidden size-11 rounded-full xl:inline-flex"
-          onClick={toggleSidebar}
-          aria-label={collapsed ? m.nav_expand() : m.nav_collapse()}
-          title={collapsed ? m.nav_expand() : m.nav_collapse()}
-        >
-          {collapsed ? <PanelLeftOpen aria-hidden /> : <PanelLeftClose aria-hidden />}
-        </Button>
-
         <BrandLogo className="mr-1 shrink-0" />
+        <DesktopNavigation />
 
-        <div className="mx-auto hidden min-w-0 flex-1 justify-center px-3 md:flex lg:px-8">
-          {!isHome ? <GlobalSearch /> : null}
-        </div>
+        {!isHome ? (
+          <div className="mx-auto hidden min-w-52 max-w-md flex-1 justify-center xl:flex">
+            <GlobalSearch />
+          </div>
+        ) : (
+          <div className="hidden flex-1 xl:block" aria-hidden />
+        )}
 
         <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
           {!isHome ? (
@@ -108,7 +100,7 @@ export function SiteHeader() {
               asChild
               variant="ghost"
               size="icon-lg"
-              className="size-11 rounded-full md:hidden"
+              className="hidden size-11 rounded-xl sm:inline-flex lg:hidden"
             >
               <Link
                 to="/search"
@@ -161,7 +153,7 @@ function PreferencesMenu() {
           type="button"
           variant="ghost"
           className={cn(
-            "h-11 rounded-full px-2.5 sm:px-3",
+            "h-11 rounded-xl px-2.5 sm:px-3",
             isAdmin && "bg-secondary",
           )}
           aria-label={m.nav_more()}
@@ -182,7 +174,7 @@ function PreferencesMenu() {
         <DropdownMenu.Content
           align="end"
           sideOffset={8}
-          className="z-[70] min-w-64 rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-xl outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out data-[state=open]:fade-in data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+          className="z-[70] min-w-68 rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-xl outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out data-[state=open]:fade-in data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
         >
           <div className="px-2 py-2">
             {isAdmin ? (
@@ -210,7 +202,7 @@ function PreferencesMenu() {
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
 
           <DropdownMenu.Item
-            className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2.5 text-sm outline-none select-none data-[highlighted]:bg-secondary"
+            className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 text-sm outline-none select-none data-[highlighted]:bg-secondary"
             onSelect={toggleTheme}
           >
             {theme === "dark" ? (
@@ -222,7 +214,7 @@ function PreferencesMenu() {
           </DropdownMenu.Item>
 
           <DropdownMenu.Sub>
-            <DropdownMenu.SubTrigger className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2.5 text-sm outline-none select-none data-[highlighted]:bg-secondary data-[state=open]:bg-secondary">
+            <DropdownMenu.SubTrigger className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 text-sm outline-none select-none data-[highlighted]:bg-secondary data-[state=open]:bg-secondary">
               <Languages className="size-4.5" aria-hidden />
               <span className="flex-1">{m.locale_label()}</span>
               <ChevronDown className="size-3.5 -rotate-90 text-muted-foreground" aria-hidden />
@@ -244,7 +236,7 @@ function PreferencesMenu() {
                     <DropdownMenu.RadioItem
                       key={value}
                       value={value}
-                      className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-sm outline-none select-none data-[highlighted]:bg-secondary"
+                      className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl px-3 text-sm outline-none select-none data-[highlighted]:bg-secondary"
                     >
                       <span className="grid size-4 place-items-center">
                         {current === value ? (
@@ -263,7 +255,7 @@ function PreferencesMenu() {
 
           {isAdmin ? (
             <DropdownMenu.Item
-              className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2.5 text-sm text-destructive outline-none select-none data-[highlighted]:bg-destructive/10"
+              className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 text-sm text-destructive outline-none select-none data-[highlighted]:bg-destructive/10"
               disabled={logout.isPending}
               aria-label={m.auth_sign_out()}
               onSelect={() =>
@@ -279,7 +271,7 @@ function PreferencesMenu() {
             <DropdownMenu.Item asChild>
               <Link
                 to="/admin/login"
-                className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2.5 text-sm outline-none select-none data-[highlighted]:bg-secondary"
+                className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 text-sm outline-none select-none data-[highlighted]:bg-secondary"
               >
                 <LogIn className="size-4.5" aria-hidden />
                 {m.auth_sign_in()}
@@ -287,12 +279,12 @@ function PreferencesMenu() {
             </DropdownMenu.Item>
           )}
 
-          <div className="mt-1 flex items-center gap-2 rounded-lg bg-secondary/70 px-2.5 py-2 text-xs text-muted-foreground">
+          <div className="mt-1 flex min-h-11 items-center gap-2.5 rounded-xl bg-secondary/70 px-3 py-2 text-xs font-medium text-muted-foreground">
             <span
               className={cn(
                 "size-2 rounded-full",
                 health.isSuccess
-                  ? "bg-emerald-600 dark:bg-emerald-400"
+                  ? "bg-success"
                   : health.isLoading
                     ? "bg-muted-foreground"
                     : "bg-destructive",

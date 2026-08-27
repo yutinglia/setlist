@@ -54,28 +54,32 @@ function AdminLoginPage() {
   }
 
   return (
-    <section className="animate-fade mx-auto flex w-full max-w-md flex-1 items-center py-10 sm:py-16">
+    <section className="animate-fade mx-auto flex w-full max-w-5xl flex-1 items-center py-10 sm:py-16 lg:py-20">
       <PageMetadata
         path="/admin/login"
         title={`${m.auth_login_heading()} | Setlist`}
         description={m.auth_login_hint()}
         noIndex
       />
-      <div className="surface w-full overflow-hidden">
-        <div className="border-b border-border bg-secondary/45 px-6 py-6">
-          <span className="grid size-11 place-items-center rounded-full bg-primary/10 text-primary">
+      <div className="surface grid w-full overflow-hidden md:grid-cols-[minmax(17rem,0.85fr)_minmax(0,1.15fr)]">
+        <div className="relative isolate overflow-hidden border-b border-border bg-secondary/50 px-6 py-8 md:border-r md:border-b-0 md:px-8 md:py-10 lg:px-10 lg:py-14">
+          <div className="pointer-events-none absolute -top-24 -left-20 -z-10 size-64 rounded-full bg-primary/15 blur-3xl" />
+          <span className="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
             <ShieldCheck className="size-5" aria-hidden />
           </span>
-          <p className="eyebrow mt-5">{m.auth_admin_only()}</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">
+          <p className="eyebrow mt-8">{m.auth_admin_only()}</p>
+          <h1 className="mt-3 text-3xl font-bold tracking-[-0.035em] sm:text-4xl">
             {m.auth_login_heading()}
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-4 max-w-sm text-sm leading-7 text-muted-foreground">
             {m.auth_login_hint()}
           </p>
         </div>
 
-        <form className="space-y-5 p-6" onSubmit={(event) => void handleSubmit(event)}>
+        <form
+          className="space-y-6 bg-card p-6 sm:p-8 lg:p-12"
+          onSubmit={(event) => void handleSubmit(event)}
+        >
           <div>
             <label className="text-sm font-semibold" htmlFor="admin-username">
               {m.auth_username()}
@@ -87,7 +91,7 @@ function AdminLoginPage() {
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               maxLength={128}
-              className="mt-2 h-11"
+              className="mt-2"
               disabled={login.isPending}
               autoFocus
               required
@@ -110,7 +114,7 @@ function AdminLoginPage() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 maxLength={256}
-                className="h-11 pl-10"
+                className="pl-10"
                 disabled={login.isPending}
                 required
               />

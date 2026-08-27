@@ -129,7 +129,7 @@ function SongDetailPage() {
                       <Link
                         to="/channels/$channelId"
                         params={{ channelId: query.data.channel_id }}
-                        className="font-semibold text-foreground underline-offset-2 hover:text-primary hover:underline"
+                        className="inline-flex min-h-11 items-center font-semibold text-foreground underline-offset-2 hover:text-primary hover:underline"
                       >
                         {query.data.channel_name}
                       </Link>
@@ -144,7 +144,7 @@ function SongDetailPage() {
                       <Link
                         to="/videos/$videoId"
                         params={{ videoId: query.data.video_id }}
-                        className="font-medium underline-offset-2 hover:text-primary hover:underline"
+                        className="inline-flex min-h-11 items-center font-medium underline-offset-2 hover:text-primary hover:underline"
                       >
                         {query.data.video_title ?? query.data.video_id}
                       </Link>

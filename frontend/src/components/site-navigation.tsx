@@ -16,7 +16,6 @@ import {
 import { useAuthSession, useHealth } from "@/api/hooks"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
-import { useUiStore } from "@/stores/ui-store"
 
 type NavigationPath =
   | "/"
@@ -35,6 +34,7 @@ type NavigationItem = {
   label: string
   icon: LucideIcon
   exact?: boolean
+  private?: boolean
 }
 
 function primaryItems(): NavigationItem[] {
@@ -66,7 +66,12 @@ function useAdminNavigation() {
   const items: NavigationItem[] = []
 
   if (isAdmin) {
-    items.push({ to: "/status", label: m.nav_status(), icon: Activity })
+    items.push({
+      to: "/status",
+      label: m.nav_status(),
+      icon: Activity,
+      private: true,
+    })
   }
   if (canManage) {
     items.push({
@@ -74,6 +79,7 @@ function useAdminNavigation() {
       label: m.channel_add_cta(),
       icon: CirclePlus,
       exact: true,
+      private: true,
     })
   }
 
@@ -91,20 +97,73 @@ function pathIsActive(pathname: string, item: NavigationItem): boolean {
   return pathname === item.to || pathname.startsWith(`${item.to}/`)
 }
 
-function NavigationLink({
+function usePathname() {
+  return useRouterState({
+    select: (state) => state.location.pathname,
+  })
+}
+
+export function DesktopNavigation() {
+  const pathname = usePathname()
+  const { items: adminItems } = useAdminNavigation()
+  const items = [...primaryItems(), ...libraryItems(), ...adminItems]
+  const hasAdminItems = adminItems.length > 0
+
+  return (
+    <nav
+      className="hidden min-w-0 shrink-0 items-center gap-1 lg:flex"
+      aria-label={m.nav_menu()}
+    >
+      {items.map((item) => {
+        const active = pathIsActive(pathname, item)
+        const Icon = item.icon
+        return (
+          <Link
+            key={item.to}
+            to={item.to}
+            className={cn(
+              "relative inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted-foreground outline-none transition-colors duration-200 hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+              active && "bg-secondary text-foreground",
+              item.private && "text-accent-foreground dark:text-accent-foreground",
+            )}
+            aria-current={active ? "page" : undefined}
+            aria-label={item.label}
+            title={item.label}
+          >
+            <Icon
+              className={cn("size-4.5 shrink-0", active && "text-primary")}
+              strokeWidth={active ? 2.35 : 1.9}
+              aria-hidden
+            />
+            <span
+              className={cn(
+                "hidden",
+                hasAdminItems && !item.private ? "2xl:inline" : "xl:inline",
+              )}
+            >
+              {item.label}
+            </span>
+            {active ? (
+              <span
+                className="absolute right-3 bottom-0 left-3 h-0.5 rounded-full bg-primary"
+                aria-hidden
+              />
+            ) : null}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+
+function MobileNavigationLink({
   item,
-  compact = false,
-  mobile = false,
   onNavigate,
 }: {
   item: NavigationItem
-  compact?: boolean
-  mobile?: boolean
-  onNavigate?: () => void
+  onNavigate: () => void
 }) {
-  const pathname = useRouterState({
-    select: (state) => state.location.pathname,
-  })
+  const pathname = usePathname()
   const active = pathIsActive(pathname, item)
   const Icon = item.icon
 
@@ -112,45 +171,21 @@ function NavigationLink({
     <Link
       to={item.to}
       className={cn(
-        "group relative flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
-        active && "bg-secondary font-semibold text-foreground",
-        compact
-          ? "justify-center px-0"
-          : "lg:max-xl:justify-center lg:max-xl:px-0",
-        mobile && "min-h-12",
+        "relative flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-muted-foreground outline-none transition-colors duration-200 hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+        active && "bg-secondary text-foreground",
       )}
       aria-current={active ? "page" : undefined}
-      aria-label={compact ? item.label : undefined}
-      title={item.label}
       onClick={onNavigate}
     >
-      <Icon
-        className={cn(
-          "size-5 shrink-0 transition-colors",
-          active && "text-primary",
-        )}
-        strokeWidth={active ? 2.35 : 1.9}
-        aria-hidden
-      />
       <span
         className={cn(
-          "truncate lg:max-xl:sr-only",
-          compact && "hidden",
+          "grid size-8 shrink-0 place-items-center rounded-lg bg-muted",
+          active && "bg-primary text-primary-foreground",
         )}
       >
-        {item.label}
+        <Icon className="size-4" strokeWidth={active ? 2.35 : 1.9} aria-hidden />
       </span>
-      {active ? (
-        <span
-          className={cn(
-            "absolute top-2 bottom-2 left-0 w-0.5 rounded-full bg-primary",
-            compact
-              ? "top-auto right-2 bottom-0 left-2 h-0.5 w-auto"
-              : "lg:max-xl:top-auto lg:max-xl:right-2 lg:max-xl:bottom-0 lg:max-xl:left-2 lg:max-xl:h-0.5 lg:max-xl:w-auto",
-          )}
-          aria-hidden
-        />
-      ) : null}
+      <span className="truncate">{item.label}</span>
     </Link>
   )
 }
@@ -158,35 +193,24 @@ function NavigationLink({
 function NavigationSection({
   label,
   items,
-  compact = false,
-  mobile = false,
   onNavigate,
 }: {
   label: string
   items: NavigationItem[]
-  compact?: boolean
-  mobile?: boolean
-  onNavigate?: () => void
+  onNavigate: () => void
 }) {
   if (items.length === 0) return null
 
   return (
     <div>
-      <p
-        className={cn(
-          "mb-2 px-3 text-[0.68rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase",
-          compact ? "sr-only" : "lg:max-xl:sr-only",
-        )}
-      >
+      <p className="mb-2 px-3 text-[0.68rem] font-bold tracking-[0.14em] text-muted-foreground uppercase">
         {label}
       </p>
       <div className="grid gap-1">
         {items.map((item) => (
-          <NavigationLink
+          <MobileNavigationLink
             key={item.to}
             item={item}
-            compact={compact}
-            mobile={mobile}
             onNavigate={onNavigate}
           />
         ))}
@@ -195,7 +219,7 @@ function NavigationSection({
   )
 }
 
-function ApiHealth({ compact = false }: { compact?: boolean }) {
+function ApiHealth() {
   const health = useHealth()
   const label = health.isLoading
     ? m.api_checking()
@@ -205,75 +229,23 @@ function ApiHealth({ compact = false }: { compact?: boolean }) {
 
   return (
     <div
-      className={cn(
-        "flex min-h-10 items-center gap-2 rounded-xl border border-border bg-card px-3 text-xs text-muted-foreground lg:max-xl:justify-center lg:max-xl:px-0",
-        compact && "justify-center px-0",
-      )}
+      className="flex min-h-11 items-center gap-2.5 rounded-xl border border-border/80 bg-card px-3 text-xs font-medium text-muted-foreground"
       title={label}
       role="status"
     >
       <span
         className={cn(
-          "size-2 shrink-0 rounded-full",
+          "size-2.5 shrink-0 rounded-full",
           health.isSuccess
-            ? "bg-emerald-600 dark:bg-emerald-400"
+            ? "bg-success"
             : health.isLoading
               ? "bg-muted-foreground"
               : "bg-destructive",
         )}
         aria-hidden
       />
-      <span
-        className={cn("truncate lg:max-xl:sr-only", compact && "sr-only")}
-      >
-        {label}
-      </span>
+      <span className="truncate">{label}</span>
     </div>
-  )
-}
-
-export function DesktopSidebar() {
-  const collapsed = useUiStore((state) => state.sidebarCollapsed)
-  const { items: adminItems } = useAdminNavigation()
-
-  return (
-    <aside
-      className={cn(
-        "sticky top-16 hidden h-[calc(100svh-4rem)] shrink-0 flex-col border-r border-border bg-background transition-[width] duration-200 lg:flex",
-        collapsed ? "w-[4.75rem]" : "w-[4.75rem] xl:w-60",
-      )}
-    >
-      <nav
-        className="scrollbar-none flex-1 space-y-6 overflow-y-auto px-2 py-4"
-        aria-label={m.nav_menu()}
-      >
-        <NavigationSection
-          label={m.nav_menu()}
-          items={primaryItems()}
-          compact={collapsed}
-        />
-        <NavigationSection
-          label={m.nav_library()}
-          items={libraryItems()}
-          compact={collapsed}
-        />
-        {adminItems.length > 0 ? (
-          <NavigationSection
-            label={m.auth_admin()}
-            items={adminItems}
-            compact={collapsed}
-          />
-        ) : null}
-        <NavigationSection
-          label={m.nav_information()}
-          items={informationItems()}
-          compact={collapsed}
-        />
-      </nav>
-      <div className="border-t border-border p-2">
-        <ApiHealth compact={collapsed} />
-      </div>
-    </aside>
   )
 }
 
@@ -289,27 +261,23 @@ export function MobileNavigationContent({
       <NavigationSection
         label={m.nav_menu()}
         items={primaryItems()}
-        mobile
         onNavigate={onNavigate}
       />
       <NavigationSection
         label={m.nav_library()}
         items={libraryItems()}
-        mobile
         onNavigate={onNavigate}
       />
       {adminItems.length > 0 ? (
         <NavigationSection
           label={m.auth_admin()}
           items={adminItems}
-          mobile
           onNavigate={onNavigate}
         />
       ) : null}
       <NavigationSection
         label={m.nav_information()}
         items={informationItems()}
-        mobile
         onNavigate={onNavigate}
       />
       <ApiHealth />
@@ -318,48 +286,38 @@ export function MobileNavigationContent({
 }
 
 export function MobileBottomNavigation() {
-  const items = primaryItems()
+  const pathname = usePathname()
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 grid h-[calc(4rem+env(safe-area-inset-bottom))] grid-cols-4 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_-24px_rgba(0,0,0,0.45)] backdrop-blur-xl lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 grid h-[calc(4.5rem+env(safe-area-inset-bottom))] grid-cols-4 border-t border-border/85 bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-16px_40px_-30px_rgba(5,10,25,0.75)] backdrop-blur-xl lg:hidden"
       aria-label={m.nav_menu()}
     >
-      {items.map((item) => (
-        <MobileBottomLink key={item.to} item={item} />
-      ))}
+      {primaryItems().map((item) => {
+        const active = pathIsActive(pathname, item)
+        const Icon = item.icon
+        return (
+          <Link
+            key={item.to}
+            to={item.to}
+            className={cn(
+              "relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[0.7rem] font-semibold text-muted-foreground outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+              active && "text-foreground",
+            )}
+            aria-current={active ? "page" : undefined}
+          >
+            <span
+              className={cn(
+                "grid h-7 min-w-11 place-items-center rounded-full transition-colors duration-200",
+                active && "bg-primary text-primary-foreground",
+              )}
+            >
+              <Icon className="size-4.5" strokeWidth={active ? 2.4 : 1.9} aria-hidden />
+            </span>
+            <span className="max-w-full truncate">{item.label}</span>
+          </Link>
+        )
+      })}
     </nav>
-  )
-}
-
-function MobileBottomLink({ item }: { item: NavigationItem }) {
-  const pathname = useRouterState({
-    select: (state) => state.location.pathname,
-  })
-  const active = pathIsActive(pathname, item)
-  const Icon = item.icon
-
-  return (
-    <Link
-      to={item.to}
-      className={cn(
-        "relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[0.68rem] font-medium text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-        active && "font-semibold text-foreground",
-      )}
-      aria-current={active ? "page" : undefined}
-    >
-      <Icon
-        className={cn("size-5", active && "text-primary")}
-        strokeWidth={active ? 2.4 : 1.9}
-        aria-hidden
-      />
-      <span className="max-w-full truncate">{item.label}</span>
-      {active ? (
-        <span
-          className="absolute top-0 right-[28%] left-[28%] h-0.5 rounded-full bg-primary"
-          aria-hidden
-        />
-      ) : null}
-    </Link>
   )
 }

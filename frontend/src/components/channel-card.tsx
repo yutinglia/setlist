@@ -20,23 +20,25 @@ export function ChannelCard({
     <li
       className={`media-card animate-rise stagger-${Math.min((index % 4) + 1, 4)}`}
     >
-      <article className="surface flex h-full min-h-40 flex-col p-4 transition-colors hover:border-input hover:bg-card sm:p-5">
-        <div className="flex min-w-0 items-center gap-4">
+      <article className="flex h-full min-h-48 flex-col p-5 sm:p-6">
+        <div className="flex min-w-0 items-start gap-4">
           <Link
             to="/channels/$channelId"
             params={{ channelId: channel.id }}
-            className="group shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="group shrink-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label={channel.name}
           >
             {channel.thumbnail_url ? (
               <img
                 src={channel.thumbnail_url}
                 alt=""
-                className="size-16 rounded-full object-cover ring-2 ring-border transition-[transform,ring-color] duration-200 group-hover:scale-[1.03] group-hover:ring-primary/40"
+                width={72}
+                height={72}
+                className="size-18 rounded-2xl object-cover ring-1 ring-border transition-[transform,ring-color] duration-200 group-hover:scale-[1.025] group-hover:ring-primary/55"
                 loading="lazy"
               />
             ) : (
-              <span className="grid size-16 place-items-center rounded-full bg-primary/10 text-xl font-bold text-primary ring-2 ring-border">
+              <span className="grid size-18 place-items-center rounded-2xl bg-primary/10 text-2xl font-bold text-primary ring-1 ring-border">
                 {channel.name.slice(0, 1)}
               </span>
             )}
@@ -45,11 +47,11 @@ export function ChannelCard({
             <Link
               to="/channels/$channelId"
               params={{ channelId: channel.id }}
-              className="line-clamp-2 text-lg leading-snug font-semibold tracking-tight transition-colors hover:text-primary"
+              className="-m-1 min-h-11 line-clamp-2 rounded-lg p-1 text-xl leading-snug font-bold tracking-[-0.025em] transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {channel.name}
             </Link>
-            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Radio className="size-3.5 text-primary" aria-hidden />
               {m.channel_content_label()}
             </p>
@@ -66,12 +68,12 @@ export function ChannelCard({
             ) : null}
           </div>
         </div>
-        <div className="mt-auto flex items-center justify-between gap-3 pt-5">
+        <div className="mt-auto grid grid-cols-2 gap-2 pt-6">
           <a
             href={channel.url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             YouTube
             <ExternalLink className="size-3" aria-hidden />
@@ -79,7 +81,7 @@ export function ChannelCard({
           <Link
             to="/channels/$channelId"
             params={{ channelId: channel.id }}
-            className="inline-flex min-h-9 items-center gap-1 rounded-full px-2 text-sm font-semibold text-primary hover:bg-primary/8"
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:border-input hover:bg-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {m.view_channel()}
             <ArrowRight className="size-4" aria-hidden />

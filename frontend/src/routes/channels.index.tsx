@@ -65,26 +65,26 @@ function ChannelsPage() {
   }, [navigate])
 
   return (
-    <section className="animate-fade py-7 sm:py-10">
+    <section className="animate-fade py-7 sm:py-10 lg:py-12">
       <PageMetadata
         path="/channels"
         title={`${m.channels_heading()} | Setlist`}
         description={m.channels_hint()}
         noIndex={page > 0 || Boolean(q)}
       />
-      <header className="flex flex-col gap-5 border-b border-border pb-7 sm:flex-row sm:items-end sm:justify-between">
+      <header className="page-header lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-10">
         <div>
           <p className="eyebrow">{m.home_explore_title()}</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="page-title mt-2">
             {m.channels_heading()}
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <p className="page-intro mt-3">
             {m.channels_hint()}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {query.data ? (
-            <span className="text-xs text-muted-foreground tabular-nums">
+            <span className="inline-flex min-h-11 items-center rounded-xl bg-secondary px-3 text-xs font-semibold text-secondary-foreground tabular-nums">
               {m.channels_count({ total: formatInteger(query.data.total) })}
             </span>
           ) : null}
@@ -116,7 +116,7 @@ function ChannelsPage() {
       <form
         role="search"
         aria-label={m.channels_search_label()}
-        className="mt-6 flex max-w-2xl flex-col gap-2 sm:flex-row"
+        className="surface mt-6 flex max-w-3xl flex-col gap-2 p-3 sm:flex-row sm:p-4"
         onSubmit={submitSearch}
       >
         <label htmlFor="channel-search" className="sr-only">
@@ -133,7 +133,7 @@ function ChannelsPage() {
             value={draftQuery}
             maxLength={200}
             placeholder={m.channels_search_placeholder()}
-            className="pl-9"
+            className="h-12 pl-10"
             onChange={(event) => setDraftQuery(event.target.value)}
           />
         </div>
@@ -149,7 +149,7 @@ function ChannelsPage() {
         ) : null}
       </form>
 
-      <div className="mt-8">
+      <div className="mt-10">
         <QueryState
           isLoading={query.isLoading}
           isError={query.isError}
@@ -182,7 +182,7 @@ function ChannelsPage() {
       </div>
 
       {!auth.isLoading && !isAdmin ? (
-        <ChannelRequestNotice className="mt-12" />
+        <ChannelRequestNotice className="mt-14" />
       ) : null}
     </section>
   )

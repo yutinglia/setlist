@@ -47,11 +47,11 @@ export function SearchFilters({ filters, onChange }: Props) {
   }, [activeCount])
 
   return (
-    <section className="mt-4 overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="flex min-h-12 items-center justify-between gap-3 px-3 sm:px-4">
+    <section className="mt-4 overflow-hidden rounded-xl border border-border/80 bg-background/45">
+      <div className="flex min-h-14 items-center justify-between gap-3 px-3 sm:px-4">
         <button
           type="button"
-          className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl px-1 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl px-2 text-sm font-semibold outline-none transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
         >
@@ -74,7 +74,7 @@ export function SearchFilters({ filters, onChange }: Props) {
         {activeCount > 0 ? (
           <button
             type="button"
-            className="min-h-9 shrink-0 rounded-full px-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className="min-h-11 shrink-0 rounded-xl px-3 text-xs font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={() =>
               onChange({
                 channel_ids: undefined,
@@ -92,7 +92,7 @@ export function SearchFilters({ filters, onChange }: Props) {
       {open ? (
         <div className="animate-fade border-t border-border px-3 pt-4 pb-4 sm:px-4">
           <div
-            className="inline-flex rounded-full bg-secondary p-1"
+            className="inline-flex rounded-xl bg-secondary p-1"
             role="group"
             aria-label={m.search_type_label()}
           >
@@ -200,7 +200,7 @@ function ChannelMultiSelect({
           <Button
             type="button"
             variant="outline"
-            className="h-11 w-full justify-between bg-card px-3 font-normal"
+            className="h-12 w-full justify-between bg-card px-3 font-normal"
           >
             <span className="truncate">
               {selected.length > 0
@@ -227,7 +227,7 @@ function ChannelMultiSelect({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={m.search_channel_search()}
-                className="h-10 pl-9"
+                className="h-11 pl-9"
                 autoFocus
               />
             </div>
@@ -255,7 +255,7 @@ function ChannelMultiSelect({
                       role="checkbox"
                       aria-checked={checked}
                       className={cn(
-                        "flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
+                        "flex min-h-11 w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-sm transition-colors",
                         checked
                           ? "bg-primary/10 text-primary"
                           : "hover:bg-secondary",
@@ -319,7 +319,7 @@ function ChannelMultiSelect({
             <button
               key={channelId}
               type="button"
-              className="inline-flex max-w-full items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/15"
+              className="inline-flex min-h-11 max-w-full items-center gap-1 rounded-xl bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => toggle(channelId)}
               aria-label={`${m.search_channel_remove()} ${names.get(channelId) ?? ""}`}
             >
@@ -356,7 +356,7 @@ function DateFilter({
       </span>
       <Input
         type="date"
-        className="h-11 bg-card"
+        className="h-12 bg-card"
         value={value}
         min={min}
         max={max}

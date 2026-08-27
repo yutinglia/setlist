@@ -19,24 +19,24 @@ function RecentUpdatesPage() {
   const songs = query.data?.songs ?? []
 
   return (
-    <section className="animate-fade flex flex-1 flex-col py-7 sm:py-10">
+    <section className="animate-fade flex flex-1 flex-col py-7 sm:py-10 lg:py-12">
       <PageMetadata
         path="/updates"
         title={`${m.recent_updates_heading()} | Setlist`}
         description={m.recent_updates_intro()}
       />
 
-      <header className="max-w-3xl border-b border-border pb-7">
+      <header className="page-header max-w-4xl">
         <p className="eyebrow">{m.recent_updates_eyebrow()}</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1 className="page-title mt-2">
           {m.recent_updates_heading()}
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
+        <p className="page-intro mt-3">
           {m.recent_updates_intro()}
         </p>
       </header>
 
-      <div className="mt-8">
+      <div className="mt-10">
         <QueryState
           isLoading={query.isLoading}
           isError={query.isError}
@@ -47,7 +47,7 @@ function RecentUpdatesPage() {
         >
           {channels.length > 0 ? (
             <section aria-labelledby="recent-channels-heading">
-              <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+              <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-border/75 pb-5">
                 <div>
                   <p className="eyebrow flex items-center gap-2">
                     <Radio className="size-3.5" aria-hidden />
@@ -55,7 +55,7 @@ function RecentUpdatesPage() {
                   </p>
                   <h2
                     id="recent-channels-heading"
-                    className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl"
+                    className="section-heading mt-2"
                   >
                     {m.recent_channels_heading()}
                   </h2>
@@ -85,9 +85,9 @@ function RecentUpdatesPage() {
           {songs.length > 0 ? (
             <section
               aria-labelledby="recent-songs-heading"
-              className={channels.length > 0 ? "mt-14 sm:mt-16" : undefined}
+              className={channels.length > 0 ? "mt-14 sm:mt-18" : undefined}
             >
-              <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+              <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-border/75 pb-5">
                 <div>
                   <p className="eyebrow flex items-center gap-2">
                     <ListMusic className="size-3.5" aria-hidden />
@@ -95,7 +95,7 @@ function RecentUpdatesPage() {
                   </p>
                   <h2
                     id="recent-songs-heading"
-                    className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl"
+                    className="section-heading mt-2"
                   >
                     {m.recent_songs_heading()}
                   </h2>

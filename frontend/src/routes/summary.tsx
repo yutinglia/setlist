@@ -50,18 +50,14 @@ function SummaryPage() {
         title={`${m.summary_heading()} | Setlist`}
         description={m.summary_hint()}
       />
-      <header className="flex flex-wrap items-end justify-between gap-5 border-b border-border pb-7">
-        <div>
+      <header className="page-header md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:gap-10">
+        <div className="max-w-3xl">
           <p className="eyebrow">{m.home_library_live()}</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-            {m.summary_heading()}
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            {m.summary_hint()}
-          </p>
+          <h1 className="page-title mt-3">{m.summary_heading()}</h1>
+          <p className="page-intro mt-4">{m.summary_hint()}</p>
         </div>
         {data ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="w-fit rounded-xl bg-secondary px-4 py-3 text-xs text-muted-foreground">
             {m.summary_updated_at({ when: formatWhen(data.generated_at) })}
           </p>
         ) : null}
@@ -77,18 +73,39 @@ function SummaryPage() {
         >
           {data ? (
             <div className="space-y-8">
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(24rem,1fr)]">
                 <MetricCard
-                  icon={BarChart3}
-                  label={m.summary_scraped_records()}
-                  value={data.videos.total}
+                  icon={Sparkles}
+                  label={m.summary_songs()}
+                  value={data.songs.total}
                   accent
+                  featured
                 />
-                <MetricCard
-                  icon={Radio}
-                  label={m.summary_karaoke()}
-                  value={data.videos.karaoke}
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <MetricCard
+                    icon={Radio}
+                    label={m.summary_karaoke()}
+                    value={data.videos.karaoke}
+                  />
+                  <MetricCard
+                    icon={Users}
+                    label={m.summary_channels()}
+                    value={data.channels}
+                  />
+                  <MetricCard
+                    icon={ListMusic}
+                    label={m.summary_setlists()}
+                    value={data.analysis.with_setlist}
+                  />
+                  <MetricCard
+                    icon={BarChart3}
+                    label={m.summary_scraped_records()}
+                    value={data.videos.total}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
                 <MetricCard
                   icon={Video}
                   label={m.summary_song_videos()}
@@ -100,11 +117,6 @@ function SummaryPage() {
                   value={data.videos.other}
                 />
                 <MetricCard
-                  icon={Users}
-                  label={m.summary_channels()}
-                  value={data.channels}
-                />
-                <MetricCard
                   icon={Tv}
                   label={m.summary_analysis_attempted()}
                   value={data.analysis.attempted}
@@ -113,17 +125,6 @@ function SummaryPage() {
                   icon={MessageSquareText}
                   label={m.summary_comments()}
                   value={data.analysis.comments}
-                />
-                <MetricCard
-                  icon={ListMusic}
-                  label={m.summary_setlists()}
-                  value={data.analysis.with_setlist}
-                />
-                <MetricCard
-                  icon={Sparkles}
-                  label={m.summary_songs()}
-                  value={data.songs.total}
-                  accent
                 />
                 <MetricCard
                   icon={HeartHandshake}
@@ -250,32 +251,53 @@ function MetricCard({
   label,
   value,
   accent = false,
+  featured = false,
 }: {
   icon: LucideIcon
   label: string
   value: number
   accent?: boolean
+  featured?: boolean
 }) {
   return (
     <div
       className={cn(
-        "surface p-4 transition-colors hover:border-input sm:p-5",
+        "surface relative overflow-hidden p-4 transition-colors hover:border-input sm:p-5",
+        featured && "flex min-h-56 flex-col justify-between p-6 sm:p-8",
         accent
-          ? "border-primary/25 bg-primary/7"
+          ? "border-primary/25 bg-primary/8"
           : "border-border/70 bg-card/80",
       )}
     >
+      {featured ? (
+        <span className="pointer-events-none absolute -top-20 -right-12 size-56 rounded-full bg-primary/15 blur-3xl" />
+      ) : null}
       <Icon
         className={cn(
-          "size-4",
+          "relative size-4",
+          featured && "size-7",
           accent ? "text-primary" : "text-muted-foreground",
         )}
         aria-hidden
       />
-      <p className="mt-5 text-3xl font-bold tabular-nums">
-        {formatInteger(value)}
-      </p>
-      <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+      <div className="relative">
+        <p
+          className={cn(
+            "mt-5 text-3xl font-bold tabular-nums",
+            featured && "text-5xl tracking-[-0.045em] sm:text-6xl",
+          )}
+        >
+          {formatInteger(value)}
+        </p>
+        <p
+          className={cn(
+            "mt-1 text-xs text-muted-foreground",
+            featured && "mt-2 text-sm font-semibold text-foreground/75",
+          )}
+        >
+          {label}
+        </p>
+      </div>
     </div>
   )
 }

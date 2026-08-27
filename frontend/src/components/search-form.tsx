@@ -210,11 +210,11 @@ export function SearchForm({
             placeholder={m.search_placeholder()}
             maxLength={200}
             className={cn(
-              "h-14 rounded-full border-input bg-card pr-20 pl-12 text-base shadow-sm focus-visible:bg-card",
+              "h-14 rounded-2xl border-input bg-card pr-20 pl-12 text-base shadow-sm focus-visible:bg-card",
               isHero &&
-                "h-14 border-border pl-12 shadow-[0_10px_35px_-22px_rgba(0,0,0,0.45)] sm:h-16 sm:pl-14 sm:text-lg",
+                "h-14 border-border pl-12 shadow-[0_18px_45px_-30px_rgba(0,0,0,0.65)] sm:h-16 sm:pl-14 sm:text-lg",
               isCompact &&
-                "h-10 rounded-r-none rounded-l-full border-r-0 bg-background pr-11 pl-11 shadow-none focus-visible:z-10 focus-visible:bg-card",
+                "h-11 rounded-r-none rounded-l-xl border-r-0 bg-background pr-12 pl-11 text-sm shadow-none focus-visible:z-10 focus-visible:bg-card",
             )}
             autoFocus={autoFocus}
             aria-label={inputAriaLabel ?? m.search_placeholder()}
@@ -232,8 +232,8 @@ export function SearchForm({
             <button
               type="button"
               className={cn(
-                "absolute top-1/2 right-3 grid size-9 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                isCompact && "right-1.5 size-8",
+                "absolute top-1/2 right-1.5 grid size-11 -translate-y-1/2 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                isCompact && "right-0 size-11 rounded-none",
               )}
               aria-label={m.search_clear()}
               onClick={() => {
@@ -263,7 +263,7 @@ export function SearchForm({
             >
               {isDebouncing || suggestionQuery.isFetching ? (
                 <div
-                  className="flex items-center gap-2 px-3 py-2.5 text-sm text-muted-foreground"
+                  className="flex min-h-11 items-center gap-2 px-3 py-2.5 text-sm text-muted-foreground"
                   role="status"
                 >
                   <LoaderCircle
@@ -274,14 +274,14 @@ export function SearchForm({
                 </div>
               ) : suggestionQuery.isError ? (
                 <div
-                  className="px-3 py-2.5 text-sm text-muted-foreground"
+                  className="flex min-h-11 items-center px-3 py-2.5 text-sm text-muted-foreground"
                   role="status"
                 >
                   {m.search_suggestions_error()}
                 </div>
               ) : suggestions.length === 0 ? (
                 <div
-                  className="px-3 py-2.5 text-sm text-muted-foreground"
+                  className="flex min-h-11 items-center px-3 py-2.5 text-sm text-muted-foreground"
                   role="status"
                 >
                   {m.search_suggestions_empty()}
@@ -294,7 +294,7 @@ export function SearchForm({
                     type="button"
                     role="option"
                     aria-selected={activeIndex === index}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                    className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
                       activeIndex === index
                         ? "bg-secondary text-foreground"
                         : "hover:bg-secondary"
@@ -320,7 +320,7 @@ export function SearchForm({
             "h-14 px-5 sm:px-6",
             isHero && "h-14 px-5 sm:h-16 sm:px-8",
             isCompact &&
-              "h-10 w-14 rounded-r-full rounded-l-none border border-input bg-secondary px-0 text-secondary-foreground shadow-none hover:bg-muted focus-visible:z-10",
+              "h-11 w-14 rounded-r-xl rounded-l-none border border-input bg-secondary px-0 text-secondary-foreground shadow-none hover:bg-muted focus-visible:z-10",
           )}
           size={isCompact ? "sm" : "lg"}
           variant={isCompact ? "secondary" : "default"}
@@ -345,7 +345,7 @@ export function SearchForm({
                 <Link
                   to="/search"
                   search={{ q: currentQuery || undefined }}
-                  className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full px-2 font-semibold text-primary hover:bg-primary/8"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl px-2.5 font-semibold text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <SlidersHorizontal className="size-3.5" aria-hidden />
                   {m.search_advanced_link()}
@@ -367,7 +367,7 @@ export function SearchForm({
                 <button
                   key={item}
                   type="button"
-                  className="min-h-8 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="min-h-11 rounded-xl bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() => {
                     submitQuery(item)
                   }}
@@ -377,7 +377,7 @@ export function SearchForm({
               ))}
               <button
                 type="button"
-                className="ml-1 min-h-8 rounded-full px-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+                className="ml-1 min-h-11 rounded-xl px-2.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={clearRecent}
               >
                 {m.clear_recent()}

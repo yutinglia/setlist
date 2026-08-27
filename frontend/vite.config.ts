@@ -128,8 +128,8 @@ export default defineConfig(({ mode }) => {
                 "Search VTuber karaoke setlists and jump to exact YouTube timestamps.",
               start_url: "/",
               display: "standalone",
-              background_color: "#f6f5fa",
-              theme_color: "#171525",
+              background_color: "#f6f7fb",
+              theme_color: "#0b6b5c",
               icons: [
                 {
                   src: "/favicon.svg",
