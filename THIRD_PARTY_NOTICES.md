@@ -16,7 +16,7 @@ MIT License. The packages below remain subject to their respective terms.
 - `@floating-ui/react-dom@2.1.9` — MIT; full text L001 — atomiks — https://floating-ui.com/docs/react-dom
 - `@floating-ui/utils@0.2.12` — MIT; full text L001 — atomiks — https://floating-ui.com
 - `@fontsource-variable/figtree@5.3.0` — OFL-1.1; full text L002 — Google Inc. — https://fontsource.org/fonts/figtree
-- `@inlang/paraglide-js@2.24.1` — MIT; full text L003 — inlang <hello@inlang.com> (https://inlang.com/) — https://paraglidejs.com
+- `@inlang/paraglide-js@2.25.0` — MIT; full text L003 — inlang <hello@inlang.com> (https://inlang.com/) — https://paraglidejs.com
 - `@inlang/recommend-sherlock@0.2.1` — MIT; full text L003
 - `@inlang/sdk@3.0.2` — MIT; full text L004 — https://inlang.com/documentation/sdk
 - `@jridgewell/gen-mapping@0.3.13` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/gen-mapping
@@ -90,14 +90,14 @@ MIT License. The packages below remain subject to their respective terms.
 - `@sinclair/typebox@0.31.30` — MIT; full text L010 — sinclairzx81 — https://github.com/sinclairzx81/sinclair-typebox
 - `@sqlite.org/sqlite-wasm@3.48.0-build4` — Apache-2.0; full text L011 — Thomas Steiner (tomac@google.com) — https://github.com/sqlite/sqlite-wasm#readme
 - `@tanstack/history@1.162.1` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
-- `@tanstack/query-core@5.102.2` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
-- `@tanstack/react-query@5.102.2` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
+- `@tanstack/query-core@5.102.8` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
+- `@tanstack/react-query@5.102.8` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
 - `@tanstack/react-router@1.170.32` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
 - `@tanstack/react-store@0.9.3` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
 - `@tanstack/router-core@1.171.27` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
 - `@tanstack/store@0.9.3` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
-- `@types/node@26.2.0` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
-- `@types/react-dom@19.2.4` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
+- `@types/node@26.4.0` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
+- `@types/react-dom@19.2.5` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
 - `@types/react@19.2.18` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
 - `acorn@8.17.0` — MIT; full text L015 — https://github.com/acornjs/acorn
 - `aria-hidden@1.2.6` — MIT; full text L016 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/aria-hidden#readme
@@ -120,7 +120,7 @@ MIT License. The packages below remain subject to their respective terms.
 - `json5@2.2.3` — MIT; full text L033 — Aseem Kishore <aseem.kishore@gmail.com> — http://json5.org/
 - `kysely@0.28.17` — MIT; full text L034 — Sami Koskimäki <sami@jakso.me> — https://kysely.dev
 - `lightningcss@1.33.0` — MPL-2.0; full text L035 — https://github.com/parcel-bundler/lightningcss
-- `lucide-react@1.33.0` — ISC; full text L036 — Eric Fennis — https://lucide.dev
+- `lucide-react@1.34.0` — ISC; full text L036 — Eric Fennis — https://lucide.dev
 - `nanoid@3.3.18` — MIT; full text L037 — Andrey Sitnik <andrey@sitnik.ru> — ai/nanoid
 - `picocolors@1.1.1` — ISC; full text L038 — Alexey Raspopov — alexeyraspopov/picocolors
 - `picomatch@4.0.5` — MIT; full text L039 — Jon Schlinkert (https://github.com/jonschlinkert) — https://github.com/micromatch/picomatch
@@ -149,10 +149,11 @@ MIT License. The packages below remain subject to their respective terms.
 - `use-sidecar@1.1.3` — MIT; full text L016 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-sidecar
 - `use-sync-external-store@1.6.0` — MIT; full text L041 — https://github.com/facebook/react
 - `uuid@14.0.2` — MIT; full text L052 — https://github.com/uuidjs/uuid
-- `vite@8.2.2` — MIT; full text L053 — Evan You — https://vite.dev
-- `webpack-virtual-modules@0.6.2` — MIT; full text L054 — SysGears INC — https://github.com/sysgears/webpack-virtual-modules#readme
-- `zod@4.4.3` — MIT; full text L055 — Colin McDonnell <zod@colinhacks.com> — https://zod.dev
-- `zustand@5.0.15` — MIT; full text L056 — Paul Henschel — https://github.com/pmndrs/zustand
+- `valibot@1.4.2` — MIT; full text L053 — Fabian Hiller — https://valibot.dev
+- `vite@8.2.2` — MIT; full text L054 — Evan You — https://vite.dev
+- `webpack-virtual-modules@0.6.2` — MIT; full text L055 — SysGears INC — https://github.com/sysgears/webpack-virtual-modules#readme
+- `zod@4.4.3` — MIT; full text L056 — Colin McDonnell <zod@colinhacks.com> — https://zod.dev
+- `zustand@5.0.15` — MIT; full text L057 — Paul Henschel — https://github.com/pmndrs/zustand
 
 ## License texts
 
@@ -285,7 +286,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ### L003
 
-Applies to: `@inlang/paraglide-js@2.24.1`, `@inlang/recommend-sherlock@0.2.1`
+Applies to: `@inlang/paraglide-js@2.25.0`, `@inlang/recommend-sherlock@0.2.1`
 
 ```text
 MIT License
@@ -570,7 +571,7 @@ END OF TERMS AND CONDITIONS
 
 ### L012
 
-Applies to: `@tanstack/history@1.162.1`, `@tanstack/query-core@5.102.2`, `@tanstack/react-query@5.102.2`, `@tanstack/react-router@1.170.32`, `@tanstack/router-core@1.171.27`
+Applies to: `@tanstack/history@1.162.1`, `@tanstack/query-core@5.102.8`, `@tanstack/react-query@5.102.8`, `@tanstack/react-router@1.170.32`, `@tanstack/router-core@1.171.27`
 
 ```text
 MIT License
@@ -626,7 +627,7 @@ SOFTWARE.
 
 ### L014
 
-Applies to: `@types/node@26.2.0`, `@types/react@19.2.18`, `@types/react-dom@19.2.4`
+Applies to: `@types/node@26.4.0`, `@types/react@19.2.18`, `@types/react-dom@19.2.5`
 
 ```text
 MIT License
@@ -1956,7 +1957,7 @@ defined by the Mozilla Public License, v. 2.0.
 
 ### L036
 
-Applies to: `lucide-react@1.33.0`
+Applies to: `lucide-react@1.34.0`
 
 ```text
 ISC License
@@ -2418,6 +2419,22 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 ```
 
 ### L053
+
+Applies to: `valibot@1.4.2`
+
+```text
+MIT License
+
+Copyright (c) Fabian Hiller
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+### L054
 
 Applies to: `vite@8.2.2`
 
@@ -4746,7 +4763,7 @@ Repository: https://github.com/sveltejs/zimmerframe
 > SOFTWARE.
 ```
 
-### L054
+### L055
 
 Applies to: `webpack-virtual-modules@0.6.2`
 
@@ -4774,7 +4791,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L055
+### L056
 
 Applies to: `zod@4.4.3`
 
@@ -4802,7 +4819,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L056
+### L057
 
 Applies to: `zustand@5.0.15`
 
