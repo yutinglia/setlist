@@ -14,4 +14,4 @@ redis==8.1.0
 # yt-dlp's default extra supplies the version-matched EJS challenge scripts;
 # the pinned Deno wheel supplies its recommended JavaScript runtime.
 yt-dlp[default]==2026.8.19
-deno==2.9.5
+deno==2.9.6
