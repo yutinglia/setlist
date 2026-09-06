@@ -8,7 +8,7 @@ SQLAlchemy==2.0.52
 asyncpg==0.31.0
 argon2-cffi==25.1.0
 python-dotenv==1.2.3
-pydantic==2.13.4
+pydantic==2.13.5
 httpx2==2.12.0
 redis==8.1.0
 # yt-dlp's default extra supplies the version-matched EJS challenge scripts;
