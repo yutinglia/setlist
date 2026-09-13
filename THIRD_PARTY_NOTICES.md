@@ -16,16 +16,16 @@ MIT License. The packages below remain subject to their respective terms.
 - `@floating-ui/react-dom@2.1.9` — MIT; full text L001 — atomiks — https://floating-ui.com/docs/react-dom
 - `@floating-ui/utils@0.2.12` — MIT; full text L001 — atomiks — https://floating-ui.com
 - `@fontsource-variable/figtree@5.3.0` — OFL-1.1; full text L002 — Google Inc. — https://fontsource.org/fonts/figtree
-- `@inlang/paraglide-js@2.24.1` — MIT; full text L003 — inlang <hello@inlang.com> (https://inlang.com/) — https://paraglidejs.com
+- `@inlang/paraglide-js@2.25.1` — MIT; full text L003 — inlang <hello@inlang.com> (https://inlang.com/) — https://paraglidejs.com
 - `@inlang/recommend-sherlock@0.2.1` — MIT; full text L003
-- `@inlang/sdk@3.0.2` — MIT; full text L004 — https://inlang.com/documentation/sdk
+- `@inlang/sdk@3.0.4` — MIT; full text L004 — https://inlang.com/documentation/sdk
 - `@jridgewell/gen-mapping@0.3.13` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/gen-mapping
 - `@jridgewell/remapping@2.3.5` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/remapping
 - `@jridgewell/resolve-uri@3.1.2` — MIT; full text L006 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/resolve-uri
 - `@jridgewell/sourcemap-codec@1.5.5` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/sourcemap-codec
 - `@jridgewell/trace-mapping@0.3.31` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/trace-mapping
-- `@lix-js/sdk@0.12.3` — MIT; no license file was included in the installed package — https://github.com/opral/lix
-- `@oxc-project/types@0.146.0` — MIT; full text L007 — Boshen and oxc contributors — https://oxc.rs
+- `@lix-js/sdk@0.15.1` — MIT; no license file was included in the installed package — https://github.com/opral/lix
+- `@oxc-project/types@0.149.0` — MIT; full text L007 — Boshen and oxc contributors — https://oxc.rs
 - `@radix-ui/number@1.1.3` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@radix-ui/primitive@1.1.7` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@radix-ui/react-accessible-icon@1.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
@@ -88,71 +88,70 @@ MIT License. The packages below remain subject to their respective terms.
 - `@radix-ui/rect@1.1.3` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@rolldown/pluginutils@1.0.1` — MIT; full text L009 — https://github.com/rolldown/plugins/tree/main/packages/pluginutils#readme
 - `@sinclair/typebox@0.31.30` — MIT; full text L010 — sinclairzx81 — https://github.com/sinclairzx81/sinclair-typebox
-- `@sqlite.org/sqlite-wasm@3.48.0-build4` — Apache-2.0; full text L011 — Thomas Steiner (tomac@google.com) — https://github.com/sqlite/sqlite-wasm#readme
-- `@tanstack/history@1.162.1` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
-- `@tanstack/query-core@5.102.2` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
-- `@tanstack/react-query@5.102.2` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
-- `@tanstack/react-router@1.170.32` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
-- `@tanstack/react-store@0.9.3` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
-- `@tanstack/router-core@1.171.27` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
-- `@tanstack/store@0.9.3` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
-- `@types/node@26.2.0` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
-- `@types/react-dom@19.2.4` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
-- `@types/react@19.2.18` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
-- `acorn@8.17.0` — MIT; full text L015 — https://github.com/acornjs/acorn
-- `aria-hidden@1.2.6` — MIT; full text L016 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/aria-hidden#readme
-- `array-timsort@1.0.3` — MIT; full text L017 — https://github.com/kaelzhang/node-array-timsort
-- `class-variance-authority@0.7.1` — Apache-2.0; full text L018 — Joe Bell (https://joebell.co.uk) — https://github.com/joe-bell/cva#readme
-- `clsx@2.1.1` — MIT; full text L019 — Luke Edwards — lukeed/clsx
-- `commander@11.1.0` — MIT; full text L020 — TJ Holowaychuk <tj@vision-media.ca> — https://github.com/tj/commander.js
-- `comment-json@4.6.2` — MIT; full text L021 — kaelzhang — git://github.com/kaelzhang/node-comment-json
-- `consola@3.4.0` — MIT; full text L022 — unjs/consola
-- `cookie-es@3.1.1` — MIT; full text L023 — unjs/cookie-es
-- `csstype@3.2.3` — MIT; full text L024 — Fredrik Nicol <fredrik.nicol@gmail.com> — https://github.com/frenic/csstype
-- `detect-libc@2.1.2` — Apache-2.0; full text L025 — Lovell Fuller <npm@lovell.info> — git://github.com/lovell/detect-libc
-- `detect-node-es@1.1.0` — MIT; full text L026 — Ilya Kantor — https://github.com/thekashey/detect-node
-- `esprima@4.0.1` — BSD-2-Clause; full text L027 — Ariya Hidayat — http://esprima.org
-- `fdir@6.5.0` — MIT; full text L028 — thecodrr <thecodrr@protonmail.com> — https://github.com/thecodrr/fdir#readme
-- `fflate@0.8.3` — MIT; full text L029 — Arjun Barrett <arjunbarrett@gmail.com> — https://101arrowz.github.io/fflate
-- `get-nonce@1.0.1` — MIT; full text L030 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/get-nonce
-- `isbot@5.2.1` — Unlicense; full text L031 — https://isbot.js.org
-- `jiti@2.7.0` — MIT; full text L032 — unjs/jiti
-- `json5@2.2.3` — MIT; full text L033 — Aseem Kishore <aseem.kishore@gmail.com> — http://json5.org/
-- `kysely@0.28.17` — MIT; full text L034 — Sami Koskimäki <sami@jakso.me> — https://kysely.dev
-- `lightningcss@1.33.0` — MPL-2.0; full text L035 — https://github.com/parcel-bundler/lightningcss
-- `lucide-react@1.33.0` — ISC; full text L036 — Eric Fennis — https://lucide.dev
-- `nanoid@3.3.18` — MIT; full text L037 — Andrey Sitnik <andrey@sitnik.ru> — ai/nanoid
-- `picocolors@1.1.1` — ISC; full text L038 — Alexey Raspopov — alexeyraspopov/picocolors
-- `picomatch@4.0.5` — MIT; full text L039 — Jon Schlinkert (https://github.com/jonschlinkert) — https://github.com/micromatch/picomatch
-- `postcss@8.5.26` — MIT; full text L040 — Andrey Sitnik <andrey@sitnik.es> — https://postcss.org/
+- `@tanstack/history@1.162.3` — MIT; full text L011 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/query-core@5.102.8` — MIT; full text L011 — tannerlinsley — https://tanstack.com/query
+- `@tanstack/react-query@5.102.8` — MIT; full text L011 — tannerlinsley — https://tanstack.com/query
+- `@tanstack/react-router@1.170.35` — MIT; full text L011 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/react-store@0.11.1` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/store
+- `@tanstack/router-core@1.171.29` — MIT; full text L011 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/store@0.11.1` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/store
+- `@types/node@26.5.1` — MIT; full text L013 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
+- `@types/react-dom@19.3.0` — MIT; full text L013 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
+- `@types/react@19.3.0` — MIT; full text L013 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
+- `acorn@8.17.0` — MIT; full text L014 — https://github.com/acornjs/acorn
+- `aria-hidden@1.2.6` — MIT; full text L015 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/aria-hidden#readme
+- `array-timsort@1.0.3` — MIT; full text L016 — https://github.com/kaelzhang/node-array-timsort
+- `class-variance-authority@0.7.1` — Apache-2.0; full text L017 — Joe Bell (https://joebell.co.uk) — https://github.com/joe-bell/cva#readme
+- `clsx@2.1.1` — MIT; full text L018 — Luke Edwards — lukeed/clsx
+- `commander@11.1.0` — MIT; full text L019 — TJ Holowaychuk <tj@vision-media.ca> — https://github.com/tj/commander.js
+- `comment-json@4.6.2` — MIT; full text L020 — kaelzhang — git://github.com/kaelzhang/node-comment-json
+- `consola@3.4.0` — MIT; full text L021 — unjs/consola
+- `cookie-es@3.1.1` — MIT; full text L022 — unjs/cookie-es
+- `csstype@3.2.3` — MIT; full text L023 — Fredrik Nicol <fredrik.nicol@gmail.com> — https://github.com/frenic/csstype
+- `detect-libc@2.1.2` — Apache-2.0; full text L024 — Lovell Fuller <npm@lovell.info> — git://github.com/lovell/detect-libc
+- `detect-node-es@1.1.0` — MIT; full text L025 — Ilya Kantor — https://github.com/thekashey/detect-node
+- `esprima@4.0.1` — BSD-2-Clause; full text L026 — Ariya Hidayat — http://esprima.org
+- `fdir@6.5.0` — MIT; full text L027 — thecodrr <thecodrr@protonmail.com> — https://github.com/thecodrr/fdir#readme
+- `fflate@0.8.3` — MIT; full text L028 — Arjun Barrett <arjunbarrett@gmail.com> — https://101arrowz.github.io/fflate
+- `get-nonce@1.0.1` — MIT; full text L029 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/get-nonce
+- `isbot@5.2.1` — Unlicense; full text L030 — https://isbot.js.org
+- `jiti@2.7.0` — MIT; full text L031 — unjs/jiti
+- `json5@2.2.3` — MIT; full text L032 — Aseem Kishore <aseem.kishore@gmail.com> — http://json5.org/
+- `kysely@0.28.17` — MIT; full text L033 — Sami Koskimäki <sami@jakso.me> — https://kysely.dev
+- `lightningcss@1.33.0` — MPL-2.0; full text L034 — https://github.com/parcel-bundler/lightningcss
+- `lucide-react@1.44.0` — ISC; full text L035 — Eric Fennis — https://lucide.dev
+- `nanoid@3.3.19` — MIT; full text L036 — Andrey Sitnik <andrey@sitnik.ru> — ai/nanoid
+- `picocolors@1.1.1` — ISC; full text L037 — Alexey Raspopov — alexeyraspopov/picocolors
+- `picomatch@4.0.7` — MIT; full text L038 — Jon Schlinkert (https://github.com/jonschlinkert) — https://github.com/micromatch/picomatch
+- `postcss@8.5.28` — MIT; full text L039 — Andrey Sitnik <andrey@sitnik.es> — https://postcss.org/
 - `radix-ui@1.6.7` — MIT; full text L008 — https://radix-ui.com/primitives
-- `react-dom@19.2.8` — MIT; full text L041 — https://react.dev/
-- `react-remove-scroll-bar@2.3.8` — MIT; full text L016 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll-bar
-- `react-remove-scroll@2.7.2` — MIT; full text L016 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll
-- `react-style-singleton@2.2.3` — MIT; full text L016 — Anton Korzunov (thekashey@gmail.com) — https://github.com/theKashey/react-style-singleton#readme
-- `react@19.2.8` — MIT; full text L041 — https://react.dev/
-- `rolldown@1.2.5` — MIT; full text L042 — https://rolldown.rs/
-- `scheduler@0.27.0` — MIT; full text L041 — https://react.dev/
-- `seroval-plugins@1.6.2` — MIT; full text L043 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/plugins
-- `seroval@1.6.2` — MIT; full text L043 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/seroval
-- `source-map-js@1.2.1` — BSD-3-Clause; full text L044 — Valentin 7rulnik Semirulnik <v7rulnik@gmail.com> — https://github.com/7rulnik/source-map-js
-- `sqlite-wasm-kysely@0.3.0` — Not declared; full text L004
-- `tailwind-merge@3.6.0` — MIT; full text L045 — Dany Castillo — https://github.com/dcastil/tailwind-merge
-- `tinyglobby@0.2.17` — MIT; full text L046 — Superchupu — https://superchupu.dev/tinyglobby
-- `tslib@2.8.1` — 0BSD; full text L047 — Microsoft Corp. — https://www.typescriptlang.org/
-- `tw-animate-css@1.4.0` — MIT; full text L048 — Luca Bosin — https://github.com/Wombosvideo/tw-animate-css#readme
-- `typescript@6.0.3` — Apache-2.0; full text L011 — Microsoft Corp. — https://www.typescriptlang.org/
-- `undici-types@8.3.0` — MIT; full text L049 — https://undici.nodejs.org
+- `react-dom@19.3.0` — MIT; full text L040 — https://react.dev/
+- `react-remove-scroll-bar@2.3.8` — MIT; full text L015 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll-bar
+- `react-remove-scroll@2.7.2` — MIT; full text L015 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll
+- `react-style-singleton@2.2.3` — MIT; full text L015 — Anton Korzunov (thekashey@gmail.com) — https://github.com/theKashey/react-style-singleton#readme
+- `react@19.3.0` — MIT; full text L040 — https://react.dev/
+- `rolldown@1.2.8` — MIT; full text L041 — https://rolldown.rs/
+- `scheduler@0.28.0` — MIT; full text L040 — https://react.dev/
+- `seroval-plugins@1.6.2` — MIT; full text L042 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/plugins
+- `seroval@1.6.2` — MIT; full text L042 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/seroval
+- `source-map-js@1.2.1` — BSD-3-Clause; full text L043 — Valentin 7rulnik Semirulnik <v7rulnik@gmail.com> — https://github.com/7rulnik/source-map-js
+- `tailwind-merge@3.6.0` — MIT; full text L044 — Dany Castillo — https://github.com/dcastil/tailwind-merge
+- `tinyglobby@0.2.17` — MIT; full text L045 — Superchupu — https://superchupu.dev/tinyglobby
+- `tslib@2.8.1` — 0BSD; full text L046 — Microsoft Corp. — https://www.typescriptlang.org/
+- `tw-animate-css@1.4.0` — MIT; full text L047 — Luca Bosin — https://github.com/Wombosvideo/tw-animate-css#readme
+- `typescript@6.0.3` — Apache-2.0; full text L048 — Microsoft Corp. — https://www.typescriptlang.org/
+- `undici-types@8.9.0` — MIT; full text L049 — https://undici.nodejs.org
 - `unplugin@2.3.11` — MIT; full text L050 — https://unplugin.unjs.io
 - `urlpattern-polyfill@10.1.0` — MIT; full text L051 — https://github.com/kenchris/urlpattern-polyfill
-- `use-callback-ref@1.3.3` — MIT; full text L016 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-callback-ref/
-- `use-sidecar@1.1.3` — MIT; full text L016 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-sidecar
-- `use-sync-external-store@1.6.0` — MIT; full text L041 — https://github.com/facebook/react
+- `use-callback-ref@1.3.3` — MIT; full text L015 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-callback-ref/
+- `use-sidecar@1.1.3` — MIT; full text L015 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-sidecar
+- `use-sync-external-store@1.6.0` — MIT; full text L040 — https://github.com/facebook/react
 - `uuid@14.0.2` — MIT; full text L052 — https://github.com/uuidjs/uuid
-- `vite@8.2.2` — MIT; full text L053 — Evan You — https://vite.dev
-- `webpack-virtual-modules@0.6.2` — MIT; full text L054 — SysGears INC — https://github.com/sysgears/webpack-virtual-modules#readme
-- `zod@4.4.3` — MIT; full text L055 — Colin McDonnell <zod@colinhacks.com> — https://zod.dev
-- `zustand@5.0.15` — MIT; full text L056 — Paul Henschel — https://github.com/pmndrs/zustand
+- `valibot@1.5.0` — MIT; full text L053 — Fabian Hiller — https://valibot.dev
+- `vite@8.3.0` — MIT; full text L054 — Evan You — https://vite.dev
+- `webpack-virtual-modules@0.6.2` — MIT; full text L055 — SysGears INC — https://github.com/sysgears/webpack-virtual-modules#readme
+- `zod@4.6.1` — MIT; full text L056 — Colin McDonnell <zod@colinhacks.com> — https://zod.dev
+- `zustand@5.0.15` — MIT; full text L057 — Paul Henschel — https://github.com/pmndrs/zustand
 
 ## License texts
 
@@ -285,7 +284,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ### L003
 
-Applies to: `@inlang/paraglide-js@2.24.1`, `@inlang/recommend-sherlock@0.2.1`
+Applies to: `@inlang/paraglide-js@2.25.1`, `@inlang/recommend-sherlock@0.2.1`
 
 ```text
 MIT License
@@ -313,7 +312,7 @@ SOFTWARE.
 
 ### L004
 
-Applies to: `@inlang/sdk@3.0.2`, `sqlite-wasm-kysely@0.3.0`
+Applies to: `@inlang/sdk@3.0.4`
 
 ```text
 MIT License
@@ -393,7 +392,7 @@ SOFTWARE.
 
 ### L007
 
-Applies to: `@oxc-project/types@0.146.0`
+Applies to: `@oxc-project/types@0.149.0`
 
 ```text
 MIT License
@@ -508,69 +507,7 @@ THE SOFTWARE.
 
 ### L011
 
-Applies to: `@sqlite.org/sqlite-wasm@3.48.0-build4`, `typescript@6.0.3`
-
-```text
-Apache License
-
-Version 2.0, January 2004
-
-http://www.apache.org/licenses/
-
-TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
-
-1. Definitions.
-
-"License" shall mean the terms and conditions for use, reproduction, and distribution as defined by Sections 1 through 9 of this document.
-
-"Licensor" shall mean the copyright owner or entity authorized by the copyright owner that is granting the License.
-
-"Legal Entity" shall mean the union of the acting entity and all other entities that control, are controlled by, or are under common control with that entity. For the purposes of this definition, "control" means (i) the power, direct or indirect, to cause the direction or management of such entity, whether by contract or otherwise, or (ii) ownership of fifty percent (50%) or more of the outstanding shares, or (iii) beneficial ownership of such entity.
-
-"You" (or "Your") shall mean an individual or Legal Entity exercising permissions granted by this License.
-
-"Source" form shall mean the preferred form for making modifications, including but not limited to software source code, documentation source, and configuration files.
-
-"Object" form shall mean any form resulting from mechanical transformation or translation of a Source form, including but not limited to compiled object code, generated documentation, and conversions to other media types.
-
-"Work" shall mean the work of authorship, whether in Source or Object form, made available under the License, as indicated by a copyright notice that is included in or attached to the work (an example is provided in the Appendix below).
-
-"Derivative Works" shall mean any work, whether in Source or Object form, that is based on (or derived from) the Work and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship. For the purposes of this License, Derivative Works shall not include works that remain separable from, or merely link (or bind by name) to the interfaces of, the Work and Derivative Works thereof.
-
-"Contribution" shall mean any work of authorship, including the original version of the Work and any modifications or additions to that Work or Derivative Works thereof, that is intentionally submitted to Licensor for inclusion in the Work by the copyright owner or by an individual or Legal Entity authorized to submit on behalf of the copyright owner. For the purposes of this definition, "submitted" means any form of electronic, verbal, or written communication sent to the Licensor or its representatives, including but not limited to communication on electronic mailing lists, source code control systems, and issue tracking systems that are managed by, or on behalf of, the Licensor for the purpose of discussing and improving the Work, but excluding communication that is conspicuously marked or otherwise designated in writing by the copyright owner as "Not a Contribution."
-
-"Contributor" shall mean Licensor and any individual or Legal Entity on behalf of whom a Contribution has been received by Licensor and subsequently incorporated within the Work.
-
-2. Grant of Copyright License. Subject to the terms and conditions of this License, each Contributor hereby grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable copyright license to reproduce, prepare Derivative Works of, publicly display, publicly perform, sublicense, and distribute the Work and such Derivative Works in Source or Object form.
-
-3. Grant of Patent License. Subject to the terms and conditions of this License, each Contributor hereby grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable (except as stated in this section) patent license to make, have made, use, offer to sell, sell, import, and otherwise transfer the Work, where such license applies only to those patent claims licensable by such Contributor that are necessarily infringed by their Contribution(s) alone or by combination of their Contribution(s) with the Work to which such Contribution(s) was submitted. If You institute patent litigation against any entity (including a cross-claim or counterclaim in a lawsuit) alleging that the Work or a Contribution incorporated within the Work constitutes direct or contributory patent infringement, then any patent licenses granted to You under this License for that Work shall terminate as of the date such litigation is filed.
-
-4. Redistribution. You may reproduce and distribute copies of the Work or Derivative Works thereof in any medium, with or without modifications, and in Source or Object form, provided that You meet the following conditions:
-
-You must give any other recipients of the Work or Derivative Works a copy of this License; and
-
-You must cause any modified files to carry prominent notices stating that You changed the files; and
-
-You must retain, in the Source form of any Derivative Works that You distribute, all copyright, patent, trademark, and attribution notices from the Source form of the Work, excluding those notices that do not pertain to any part of the Derivative Works; and
-
-If the Work includes a "NOTICE" text file as part of its distribution, then any Derivative Works that You distribute must include a readable copy of the attribution notices contained within such NOTICE file, excluding those notices that do not pertain to any part of the Derivative Works, in at least one of the following places: within a NOTICE text file distributed as part of the Derivative Works; within the Source form or documentation, if provided along with the Derivative Works; or, within a display generated by the Derivative Works, if and wherever such third-party notices normally appear. The contents of the NOTICE file are for informational purposes only and do not modify the License. You may add Your own attribution notices within Derivative Works that You distribute, alongside or as an addendum to the NOTICE text from the Work, provided that such additional attribution notices cannot be construed as modifying the License. You may add Your own copyright statement to Your modifications and may provide additional or different license terms and conditions for use, reproduction, or distribution of Your modifications, or for any such Derivative Works as a whole, provided Your use, reproduction, and distribution of the Work otherwise complies with the conditions stated in this License.
-
-5. Submission of Contributions. Unless You explicitly state otherwise, any Contribution intentionally submitted for inclusion in the Work by You to the Licensor shall be under the terms and conditions of this License, without any additional terms or conditions. Notwithstanding the above, nothing herein shall supersede or modify the terms of any separate license agreement you may have executed with Licensor regarding such Contributions.
-
-6. Trademarks. This License does not grant permission to use the trade names, trademarks, service marks, or product names of the Licensor, except as required for reasonable and customary use in describing the origin of the Work and reproducing the content of the NOTICE file.
-
-7. Disclaimer of Warranty. Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible for determining the appropriateness of using or redistributing the Work and assume any risks associated with Your exercise of permissions under this License.
-
-8. Limitation of Liability. In no event and under no legal theory, whether in tort (including negligence), contract, or otherwise, unless required by applicable law (such as deliberate and grossly negligent acts) or agreed to in writing, shall any Contributor be liable to You for damages, including any direct, indirect, special, incidental, or consequential damages of any character arising as a result of this License or out of the use or inability to use the Work (including but not limited to damages for loss of goodwill, work stoppage, computer failure or malfunction, or any and all other commercial damages or losses), even if such Contributor has been advised of the possibility of such damages.
-
-9. Accepting Warranty or Additional Liability. While redistributing the Work or Derivative Works thereof, You may choose to offer, and charge a fee for, acceptance of support, warranty, indemnity, or other liability obligations and/or rights consistent with this License. However, in accepting such obligations, You may act only on Your own behalf and on Your sole responsibility, not on behalf of any other Contributor, and only if You agree to indemnify, defend, and hold each Contributor harmless for any liability incurred by, or claims asserted against, such Contributor by reason of your accepting any such warranty or additional liability.
-
-END OF TERMS AND CONDITIONS
-```
-
-### L012
-
-Applies to: `@tanstack/history@1.162.1`, `@tanstack/query-core@5.102.2`, `@tanstack/react-query@5.102.2`, `@tanstack/react-router@1.170.32`, `@tanstack/router-core@1.171.27`
+Applies to: `@tanstack/history@1.162.3`, `@tanstack/query-core@5.102.8`, `@tanstack/react-query@5.102.8`, `@tanstack/react-router@1.170.35`, `@tanstack/router-core@1.171.29`
 
 ```text
 MIT License
@@ -596,9 +533,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L013
+### L012
 
-Applies to: `@tanstack/react-store@0.9.3`, `@tanstack/store@0.9.3`
+Applies to: `@tanstack/react-store@0.11.1`, `@tanstack/store@0.11.1`
 
 ```text
 MIT License
@@ -624,9 +561,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L014
+### L013
 
-Applies to: `@types/node@26.2.0`, `@types/react@19.2.18`, `@types/react-dom@19.2.4`
+Applies to: `@types/node@26.5.1`, `@types/react@19.3.0`, `@types/react-dom@19.3.0`
 
 ```text
 MIT License
@@ -652,7 +589,7 @@ MIT License
     SOFTWARE
 ```
 
-### L015
+### L014
 
 Applies to: `acorn@8.17.0`
 
@@ -680,7 +617,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### L016
+### L015
 
 Applies to: `aria-hidden@1.2.6`, `react-remove-scroll@2.7.2`, `react-remove-scroll-bar@2.3.8`, `react-style-singleton@2.2.3`, `use-callback-ref@1.3.3`, `use-sidecar@1.1.3`
 
@@ -708,7 +645,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L017
+### L016
 
 Applies to: `array-timsort@1.0.3`
 
@@ -736,7 +673,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### L018
+### L017
 
 Applies to: `class-variance-authority@0.7.1`
 
@@ -933,7 +870,7 @@ Apache License
    limitations under the License.
 ```
 
-### L019
+### L018
 
 Applies to: `clsx@2.1.1`
 
@@ -949,7 +886,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L020
+### L019
 
 Applies to: `commander@11.1.0`
 
@@ -978,7 +915,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L021
+### L020
 
 Applies to: `comment-json@4.6.2`
 
@@ -1006,7 +943,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L022
+### L021
 
 Applies to: `consola@3.4.0`
 
@@ -1060,7 +997,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L023
+### L022
 
 Applies to: `cookie-es@3.1.1`
 
@@ -1095,7 +1032,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L024
+### L023
 
 Applies to: `csstype@3.2.3`
 
@@ -1121,7 +1058,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L025
+### L024
 
 Applies to: `detect-libc@2.1.2`
 
@@ -1329,7 +1266,7 @@ Apache License
    limitations under the License.
 ```
 
-### L026
+### L025
 
 Applies to: `detect-node-es@1.1.0`
 
@@ -1357,7 +1294,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L027
+### L026
 
 Applies to: `esprima@4.0.1`
 
@@ -1385,7 +1322,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### L028
+### L027
 
 Applies to: `fdir@6.5.0`
 
@@ -1399,7 +1336,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L029
+### L028
 
 Applies to: `fflate@0.8.3`
 
@@ -1427,7 +1364,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L030
+### L029
 
 Applies to: `get-nonce@1.0.1`
 
@@ -1455,7 +1392,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L031
+### L030
 
 Applies to: `isbot@5.2.1`
 
@@ -1488,7 +1425,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org/>
 ```
 
-### L032
+### L031
 
 Applies to: `jiti@2.7.0`
 
@@ -1516,7 +1453,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L033
+### L032
 
 Applies to: `json5@2.2.3`
 
@@ -1546,7 +1483,7 @@ SOFTWARE.
 [others]: https://github.com/json5/json5/contributors
 ```
 
-### L034
+### L033
 
 Applies to: `kysely@0.28.17`
 
@@ -1574,7 +1511,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L035
+### L034
 
 Applies to: `lightningcss@1.33.0`
 
@@ -1954,9 +1891,9 @@ This Source Code Form is "Incompatible With Secondary Licenses", as
 defined by the Mozilla Public License, v. 2.0.
 ```
 
-### L036
+### L035
 
-Applies to: `lucide-react@1.33.0`
+Applies to: `lucide-react@1.44.0`
 
 ```text
 ISC License
@@ -2004,9 +1941,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L037
+### L036
 
-Applies to: `nanoid@3.3.18`
+Applies to: `nanoid@3.3.19`
 
 ```text
 The MIT License (MIT)
@@ -2031,7 +1968,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L038
+### L037
 
 Applies to: `picocolors@1.1.1`
 
@@ -2053,9 +1990,9 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### L039
+### L038
 
-Applies to: `picomatch@4.0.5`
+Applies to: `picomatch@4.0.7`
 
 ```text
 The MIT License (MIT)
@@ -2081,9 +2018,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### L040
+### L039
 
-Applies to: `postcss@8.5.26`
+Applies to: `postcss@8.5.28`
 
 ```text
 The MIT License (MIT)
@@ -2108,9 +2045,9 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L041
+### L040
 
-Applies to: `react@19.2.8`, `react-dom@19.2.8`, `scheduler@0.27.0`, `use-sync-external-store@1.6.0`
+Applies to: `react@19.3.0`, `react-dom@19.3.0`, `scheduler@0.28.0`, `use-sync-external-store@1.6.0`
 
 ```text
 MIT License
@@ -2136,9 +2073,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L042
+### L041
 
-Applies to: `rolldown@1.2.5`
+Applies to: `rolldown@1.2.8`
 
 ```text
 MIT License
@@ -2168,7 +2105,7 @@ end of terms and conditions
 The licenses of externally maintained libraries from which parts of the Software is derived are listed [here](https://github.com/rolldown/rolldown/blob/main/THIRD-PARTY-LICENSE).
 ```
 
-### L043
+### L042
 
 Applies to: `seroval@1.6.2`, `seroval-plugins@1.6.2`
 
@@ -2182,7 +2119,7 @@ The above copyright notice and this permission notice (including the next paragr
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### L044
+### L043
 
 Applies to: `source-map-js@1.2.1`
 
@@ -2216,7 +2153,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### L045
+### L044
 
 Applies to: `tailwind-merge@3.6.0`
 
@@ -2244,7 +2181,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L046
+### L045
 
 Applies to: `tinyglobby@0.2.17`
 
@@ -2272,7 +2209,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L047
+### L046
 
 Applies to: `tslib@2.8.1`
 
@@ -2291,7 +2228,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### L048
+### L047
 
 Applies to: `tw-animate-css@1.4.0`
 
@@ -2319,9 +2256,71 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+### L048
+
+Applies to: `typescript@6.0.3`
+
+```text
+Apache License
+
+Version 2.0, January 2004
+
+http://www.apache.org/licenses/
+
+TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+1. Definitions.
+
+"License" shall mean the terms and conditions for use, reproduction, and distribution as defined by Sections 1 through 9 of this document.
+
+"Licensor" shall mean the copyright owner or entity authorized by the copyright owner that is granting the License.
+
+"Legal Entity" shall mean the union of the acting entity and all other entities that control, are controlled by, or are under common control with that entity. For the purposes of this definition, "control" means (i) the power, direct or indirect, to cause the direction or management of such entity, whether by contract or otherwise, or (ii) ownership of fifty percent (50%) or more of the outstanding shares, or (iii) beneficial ownership of such entity.
+
+"You" (or "Your") shall mean an individual or Legal Entity exercising permissions granted by this License.
+
+"Source" form shall mean the preferred form for making modifications, including but not limited to software source code, documentation source, and configuration files.
+
+"Object" form shall mean any form resulting from mechanical transformation or translation of a Source form, including but not limited to compiled object code, generated documentation, and conversions to other media types.
+
+"Work" shall mean the work of authorship, whether in Source or Object form, made available under the License, as indicated by a copyright notice that is included in or attached to the work (an example is provided in the Appendix below).
+
+"Derivative Works" shall mean any work, whether in Source or Object form, that is based on (or derived from) the Work and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship. For the purposes of this License, Derivative Works shall not include works that remain separable from, or merely link (or bind by name) to the interfaces of, the Work and Derivative Works thereof.
+
+"Contribution" shall mean any work of authorship, including the original version of the Work and any modifications or additions to that Work or Derivative Works thereof, that is intentionally submitted to Licensor for inclusion in the Work by the copyright owner or by an individual or Legal Entity authorized to submit on behalf of the copyright owner. For the purposes of this definition, "submitted" means any form of electronic, verbal, or written communication sent to the Licensor or its representatives, including but not limited to communication on electronic mailing lists, source code control systems, and issue tracking systems that are managed by, or on behalf of, the Licensor for the purpose of discussing and improving the Work, but excluding communication that is conspicuously marked or otherwise designated in writing by the copyright owner as "Not a Contribution."
+
+"Contributor" shall mean Licensor and any individual or Legal Entity on behalf of whom a Contribution has been received by Licensor and subsequently incorporated within the Work.
+
+2. Grant of Copyright License. Subject to the terms and conditions of this License, each Contributor hereby grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable copyright license to reproduce, prepare Derivative Works of, publicly display, publicly perform, sublicense, and distribute the Work and such Derivative Works in Source or Object form.
+
+3. Grant of Patent License. Subject to the terms and conditions of this License, each Contributor hereby grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable (except as stated in this section) patent license to make, have made, use, offer to sell, sell, import, and otherwise transfer the Work, where such license applies only to those patent claims licensable by such Contributor that are necessarily infringed by their Contribution(s) alone or by combination of their Contribution(s) with the Work to which such Contribution(s) was submitted. If You institute patent litigation against any entity (including a cross-claim or counterclaim in a lawsuit) alleging that the Work or a Contribution incorporated within the Work constitutes direct or contributory patent infringement, then any patent licenses granted to You under this License for that Work shall terminate as of the date such litigation is filed.
+
+4. Redistribution. You may reproduce and distribute copies of the Work or Derivative Works thereof in any medium, with or without modifications, and in Source or Object form, provided that You meet the following conditions:
+
+You must give any other recipients of the Work or Derivative Works a copy of this License; and
+
+You must cause any modified files to carry prominent notices stating that You changed the files; and
+
+You must retain, in the Source form of any Derivative Works that You distribute, all copyright, patent, trademark, and attribution notices from the Source form of the Work, excluding those notices that do not pertain to any part of the Derivative Works; and
+
+If the Work includes a "NOTICE" text file as part of its distribution, then any Derivative Works that You distribute must include a readable copy of the attribution notices contained within such NOTICE file, excluding those notices that do not pertain to any part of the Derivative Works, in at least one of the following places: within a NOTICE text file distributed as part of the Derivative Works; within the Source form or documentation, if provided along with the Derivative Works; or, within a display generated by the Derivative Works, if and wherever such third-party notices normally appear. The contents of the NOTICE file are for informational purposes only and do not modify the License. You may add Your own attribution notices within Derivative Works that You distribute, alongside or as an addendum to the NOTICE text from the Work, provided that such additional attribution notices cannot be construed as modifying the License. You may add Your own copyright statement to Your modifications and may provide additional or different license terms and conditions for use, reproduction, or distribution of Your modifications, or for any such Derivative Works as a whole, provided Your use, reproduction, and distribution of the Work otherwise complies with the conditions stated in this License.
+
+5. Submission of Contributions. Unless You explicitly state otherwise, any Contribution intentionally submitted for inclusion in the Work by You to the Licensor shall be under the terms and conditions of this License, without any additional terms or conditions. Notwithstanding the above, nothing herein shall supersede or modify the terms of any separate license agreement you may have executed with Licensor regarding such Contributions.
+
+6. Trademarks. This License does not grant permission to use the trade names, trademarks, service marks, or product names of the Licensor, except as required for reasonable and customary use in describing the origin of the Work and reproducing the content of the NOTICE file.
+
+7. Disclaimer of Warranty. Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible for determining the appropriateness of using or redistributing the Work and assume any risks associated with Your exercise of permissions under this License.
+
+8. Limitation of Liability. In no event and under no legal theory, whether in tort (including negligence), contract, or otherwise, unless required by applicable law (such as deliberate and grossly negligent acts) or agreed to in writing, shall any Contributor be liable to You for damages, including any direct, indirect, special, incidental, or consequential damages of any character arising as a result of this License or out of the use or inability to use the Work (including but not limited to damages for loss of goodwill, work stoppage, computer failure or malfunction, or any and all other commercial damages or losses), even if such Contributor has been advised of the possibility of such damages.
+
+9. Accepting Warranty or Additional Liability. While redistributing the Work or Derivative Works thereof, You may choose to offer, and charge a fee for, acceptance of support, warranty, indemnity, or other liability obligations and/or rights consistent with this License. However, in accepting such obligations, You may act only on Your own behalf and on Your sole responsibility, not on behalf of any other Contributor, and only if You agree to indemnify, defend, and hold each Contributor harmless for any liability incurred by, or claims asserted against, such Contributor by reason of your accepting any such warranty or additional liability.
+
+END OF TERMS AND CONDITIONS
+```
+
 ### L049
 
-Applies to: `undici-types@8.3.0`
+Applies to: `undici-types@8.9.0`
 
 ```text
 MIT License
@@ -2419,7 +2418,23 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### L053
 
-Applies to: `vite@8.2.2`
+Applies to: `valibot@1.5.0`
+
+```text
+MIT License
+
+Copyright (c) Fabian Hiller
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+### L054
+
+Applies to: `vite@8.3.0`
 
 ```text
 # Vite core license
@@ -4746,7 +4761,7 @@ Repository: https://github.com/sveltejs/zimmerframe
 > SOFTWARE.
 ```
 
-### L054
+### L055
 
 Applies to: `webpack-virtual-modules@0.6.2`
 
@@ -4774,9 +4789,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L055
+### L056
 
-Applies to: `zod@4.4.3`
+Applies to: `zod@4.6.1`
 
 ```text
 MIT License
@@ -4802,7 +4817,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### L056
+### L057
 
 Applies to: `zustand@5.0.15`
 
