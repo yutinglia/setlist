@@ -4,7 +4,7 @@
 # Or:
 #   docker build -f backend/Dockerfile -t vks-backend .
 
-FROM python:3.14-slim-bookworm@sha256:23c59390fc717bf09f9336908199a0ae75d9c4264bf296123f94ad772fea3b52 AS base
+FROM python:3.15-slim-bookworm@sha256:575f8bc12ec26542e0678bc6b60e385218248019d433157ec327264a78c3a853 AS base
 
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
