@@ -22,83 +22,83 @@ MIT License. The packages below remain subject to their respective terms.
 - `@jridgewell/gen-mapping@0.3.13` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/gen-mapping
 - `@jridgewell/remapping@2.3.5` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/remapping
 - `@jridgewell/resolve-uri@3.1.2` — MIT; full text L006 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/resolve-uri
-- `@jridgewell/sourcemap-codec@1.5.5` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/sourcemap-codec
+- `@jridgewell/sourcemap-codec@1.6.0` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/sourcemap-codec
 - `@jridgewell/trace-mapping@0.3.31` — MIT; full text L005 — Justin Ridgewell <justin@ridgewell.name> — https://github.com/jridgewell/sourcemaps/tree/main/packages/trace-mapping
 - `@lix-js/sdk@0.12.3` — MIT; no license file was included in the installed package — https://github.com/opral/lix
-- `@oxc-project/types@0.146.0` — MIT; full text L007 — Boshen and oxc contributors — https://oxc.rs
+- `@oxc-project/types@0.156.0` — MIT; full text L007 — Boshen and oxc contributors — https://oxc.rs
 - `@radix-ui/number@1.1.3` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/primitive@1.1.7` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-accessible-icon@1.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-accordion@1.2.20` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-alert-dialog@1.1.23` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-arrow@1.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-aspect-ratio@1.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-avatar@1.2.6` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-checkbox@1.3.11` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-collapsible@1.1.20` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-collection@1.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/primitive@1.2.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-accessible-icon@1.2.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-accordion@1.3.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-alert-dialog@1.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-arrow@1.1.17` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-aspect-ratio@1.2.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-avatar@1.3.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-checkbox@1.4.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-collapsible@1.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-collection@1.2.0` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@radix-ui/react-compose-refs@1.1.5` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-context-menu@2.3.7` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-context@1.2.2` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-dialog@1.1.23` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-direction@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-dismissable-layer@1.1.19` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-dropdown-menu@2.1.24` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-focus-guards@1.1.6` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-focus-scope@1.1.16` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-form@0.1.16` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-hover-card@1.1.23` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-context-menu@2.4.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-context@1.3.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-dialog@1.3.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-direction@1.2.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-dismissable-layer@1.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-dropdown-menu@2.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-focus-guards@1.2.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-focus-scope@1.3.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-form@0.3.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-hover-card@1.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@radix-ui/react-id@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-label@2.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-menu@2.1.24` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-menubar@1.1.24` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-navigation-menu@1.2.22` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-one-time-password-field@0.1.16` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-password-toggle-field@0.1.11` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-popover@1.1.23` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-popper@1.3.7` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-portal@1.1.17` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-presence@1.1.10` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-primitive@2.1.10` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-progress@1.1.16` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-radio-group@1.4.7` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-roving-focus@1.1.19` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-scroll-area@1.2.18` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-select@2.3.7` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-separator@1.1.15` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-slider@1.4.7` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-slot@1.3.3` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-switch@1.3.7` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-tabs@1.1.21` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-toast@1.2.23` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-toggle-group@1.1.19` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-toggle@1.1.18` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-toolbar@1.1.19` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-tooltip@1.2.16` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-callback-ref@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-controllable-state@1.2.6` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-label@2.1.17` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-menu@2.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-menubar@1.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-navigation-menu@1.4.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-one-time-password-field@0.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-password-toggle-field@0.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-popover@1.3.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-popper@1.4.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-portal@1.2.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-presence@1.1.11` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-primitive@2.2.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-progress@1.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-radio-group@1.5.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-roving-focus@1.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-scroll-area@1.4.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-select@2.4.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-separator@1.2.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-slider@1.6.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-slot@1.5.0` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-switch@1.4.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-tabs@1.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-toast@1.3.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-toggle-group@1.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-toggle@1.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-toolbar@1.2.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-tooltip@1.4.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-callback-ref@1.1.5` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-controllable-state@1.3.0` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@radix-ui/react-use-effect-event@0.0.5` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-escape-keydown@1.1.5` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-escape-keydown@1.1.6` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@radix-ui/react-use-is-hydrated@0.1.3` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@radix-ui/react-use-layout-effect@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@radix-ui/react-use-previous@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@radix-ui/react-use-rect@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-use-size@1.1.4` — MIT; full text L008 — https://radix-ui.com/primitives
-- `@radix-ui/react-visually-hidden@1.2.11` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-use-size@1.1.5` — MIT; full text L008 — https://radix-ui.com/primitives
+- `@radix-ui/react-visually-hidden@1.2.13` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@radix-ui/rect@1.1.3` — MIT; full text L008 — https://radix-ui.com/primitives
 - `@rolldown/pluginutils@1.0.1` — MIT; full text L009 — https://github.com/rolldown/plugins/tree/main/packages/pluginutils#readme
 - `@sinclair/typebox@0.31.30` — MIT; full text L010 — sinclairzx81 — https://github.com/sinclairzx81/sinclair-typebox
 - `@sqlite.org/sqlite-wasm@3.48.0-build4` — Apache-2.0; full text L011 — Thomas Steiner (tomac@google.com) — https://github.com/sqlite/sqlite-wasm#readme
-- `@tanstack/history@1.162.1` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
-- `@tanstack/query-core@5.102.2` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
-- `@tanstack/react-query@5.102.2` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
-- `@tanstack/react-router@1.170.32` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
-- `@tanstack/react-store@0.9.3` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
-- `@tanstack/router-core@1.171.27` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
-- `@tanstack/store@0.9.3` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
-- `@types/node@26.2.0` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
-- `@types/react-dom@19.2.4` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
-- `@types/react@19.2.18` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
+- `@tanstack/history@1.162.5` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/query-core@5.106.1` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
+- `@tanstack/react-query@5.106.1` — MIT; full text L012 — tannerlinsley — https://tanstack.com/query
+- `@tanstack/react-router@1.170.46` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/react-store@0.11.2` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
+- `@tanstack/router-core@1.171.39` — MIT; full text L012 — Tanner Linsley — https://tanstack.com/router
+- `@tanstack/store@0.11.2` — MIT; full text L013 — Tanner Linsley — https://tanstack.com/store
+- `@types/node@26.6.6` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
+- `@types/react-dom@19.3.0` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
+- `@types/react@19.3.0` — MIT; full text L014 — https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
 - `acorn@8.17.0` — MIT; full text L015 — https://github.com/acornjs/acorn
 - `aria-hidden@1.2.6` — MIT; full text L016 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/aria-hidden#readme
 - `array-timsort@1.0.3` — MIT; full text L017 — https://github.com/kaelzhang/node-array-timsort
@@ -120,39 +120,39 @@ MIT License. The packages below remain subject to their respective terms.
 - `json5@2.2.3` — MIT; full text L033 — Aseem Kishore <aseem.kishore@gmail.com> — http://json5.org/
 - `kysely@0.28.17` — MIT; full text L034 — Sami Koskimäki <sami@jakso.me> — https://kysely.dev
 - `lightningcss@1.33.0` — MPL-2.0; full text L035 — https://github.com/parcel-bundler/lightningcss
-- `lucide-react@1.33.0` — ISC; full text L036 — Eric Fennis — https://lucide.dev
-- `nanoid@3.3.18` — MIT; full text L037 — Andrey Sitnik <andrey@sitnik.ru> — ai/nanoid
+- `lucide-react@1.69.0` — ISC; full text L036 — Eric Fennis — https://lucide.dev
+- `nanoid@3.3.20` — MIT; full text L037 — Andrey Sitnik <andrey@sitnik.ru> — ai/nanoid
 - `picocolors@1.1.1` — ISC; full text L038 — Alexey Raspopov — alexeyraspopov/picocolors
-- `picomatch@4.0.5` — MIT; full text L039 — Jon Schlinkert (https://github.com/jonschlinkert) — https://github.com/micromatch/picomatch
-- `postcss@8.5.26` — MIT; full text L040 — Andrey Sitnik <andrey@sitnik.es> — https://postcss.org/
-- `radix-ui@1.6.7` — MIT; full text L008 — https://radix-ui.com/primitives
-- `react-dom@19.2.8` — MIT; full text L041 — https://react.dev/
+- `picomatch@4.0.7` — MIT; full text L039 — Jon Schlinkert (https://github.com/jonschlinkert) — https://github.com/micromatch/picomatch
+- `postcss@8.5.32` — MIT; full text L040 — Andrey Sitnik <andrey@sitnik.es> — https://postcss.org/
+- `radix-ui@1.8.1` — MIT; full text L008 — https://radix-ui.com/primitives
+- `react-dom@19.3.1` — MIT; full text L041 — https://react.dev/
 - `react-remove-scroll-bar@2.3.8` — MIT; full text L016 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll-bar
 - `react-remove-scroll@2.7.2` — MIT; full text L016 — Anton Korzunov <thekashey@gmail.com> — https://github.com/theKashey/react-remove-scroll
 - `react-style-singleton@2.2.3` — MIT; full text L016 — Anton Korzunov (thekashey@gmail.com) — https://github.com/theKashey/react-style-singleton#readme
-- `react@19.2.8` — MIT; full text L041 — https://react.dev/
-- `rolldown@1.2.5` — MIT; full text L042 — https://rolldown.rs/
-- `scheduler@0.27.0` — MIT; full text L041 — https://react.dev/
-- `seroval-plugins@1.6.2` — MIT; full text L043 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/plugins
-- `seroval@1.6.2` — MIT; full text L043 — Alexis Munsayac — https://github.com/lxsmnsyc/seroval/tree/main/packages/seroval
-- `source-map-js@1.2.1` — BSD-3-Clause; full text L044 — Valentin 7rulnik Semirulnik <v7rulnik@gmail.com> — https://github.com/7rulnik/source-map-js
+- `react@19.3.1` — MIT; full text L041 — https://react.dev/
+- `rolldown@1.2.16` — MIT; full text L042 — https://rolldown.rs/
+- `scheduler@0.28.0` — MIT; full text L041 — https://react.dev/
+- `seroval-plugins@1.7.7` — MIT; full text L043 — Alexis Munsayac — https://seroval.vercel.app/docs/using-plugins
+- `seroval@1.7.7` — MIT; full text L043 — Alexis Munsayac — https://seroval.vercel.app
+- `source-map-js@1.2.2` — BSD-3-Clause; full text L044 — Valentin 7rulnik Semirulnik <v7rulnik@gmail.com> — https://github.com/7rulnik/source-map-js
 - `sqlite-wasm-kysely@0.3.0` — Not declared; full text L004
-- `tailwind-merge@3.6.0` — MIT; full text L045 — Dany Castillo — https://github.com/dcastil/tailwind-merge
+- `tailwind-merge@3.7.0` — MIT; full text L045 — Dany Castillo — https://github.com/dcastil/tailwind-merge
 - `tinyglobby@0.2.17` — MIT; full text L046 — Superchupu — https://superchupu.dev/tinyglobby
 - `tslib@2.8.1` — 0BSD; full text L047 — Microsoft Corp. — https://www.typescriptlang.org/
 - `tw-animate-css@1.4.0` — MIT; full text L048 — Luca Bosin — https://github.com/Wombosvideo/tw-animate-css#readme
 - `typescript@6.0.3` — Apache-2.0; full text L011 — Microsoft Corp. — https://www.typescriptlang.org/
-- `undici-types@8.3.0` — MIT; full text L049 — https://undici.nodejs.org
+- `undici-types@8.9.0` — MIT; full text L049 — https://undici.nodejs.org
 - `unplugin@2.3.11` — MIT; full text L050 — https://unplugin.unjs.io
 - `urlpattern-polyfill@10.1.0` — MIT; full text L051 — https://github.com/kenchris/urlpattern-polyfill
 - `use-callback-ref@1.3.3` — MIT; full text L016 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-callback-ref/
 - `use-sidecar@1.1.3` — MIT; full text L016 — theKashey <thekashey@gmail.com> — https://github.com/theKashey/use-sidecar
 - `use-sync-external-store@1.6.0` — MIT; full text L041 — https://github.com/facebook/react
 - `uuid@14.0.2` — MIT; full text L052 — https://github.com/uuidjs/uuid
-- `vite@8.2.2` — MIT; full text L053 — Evan You — https://vite.dev
+- `vite@8.3.6` — MIT; full text L053 — Evan You — https://vite.dev
 - `webpack-virtual-modules@0.6.2` — MIT; full text L054 — SysGears INC — https://github.com/sysgears/webpack-virtual-modules#readme
-- `zod@4.4.3` — MIT; full text L055 — Colin McDonnell <zod@colinhacks.com> — https://zod.dev
-- `zustand@5.0.15` — MIT; full text L056 — Paul Henschel — https://github.com/pmndrs/zustand
+- `zod@4.6.7` — MIT; full text L055 — Colin McDonnell <zod@colinhacks.com> — https://zod.dev
+- `zustand@5.0.16` — MIT; full text L056 — Paul Henschel — https://github.com/pmndrs/zustand
 
 ## License texts
 
@@ -341,7 +341,7 @@ SOFTWARE.
 
 ### L005
 
-Applies to: `@jridgewell/gen-mapping@0.3.13`, `@jridgewell/remapping@2.3.5`, `@jridgewell/sourcemap-codec@1.5.5`, `@jridgewell/trace-mapping@0.3.31`
+Applies to: `@jridgewell/gen-mapping@0.3.13`, `@jridgewell/remapping@2.3.5`, `@jridgewell/sourcemap-codec@1.6.0`, `@jridgewell/trace-mapping@0.3.31`
 
 ```text
 Copyright 2024 Justin Ridgewell <justin@ridgewell.name>
@@ -393,7 +393,7 @@ SOFTWARE.
 
 ### L007
 
-Applies to: `@oxc-project/types@0.146.0`
+Applies to: `@oxc-project/types@0.156.0`
 
 ```text
 MIT License
@@ -422,7 +422,7 @@ SOFTWARE.
 
 ### L008
 
-Applies to: `@radix-ui/number@1.1.3`, `@radix-ui/primitive@1.1.7`, `@radix-ui/react-accessible-icon@1.1.15`, `@radix-ui/react-accordion@1.2.20`, `@radix-ui/react-alert-dialog@1.1.23`, `@radix-ui/react-arrow@1.1.15`, `@radix-ui/react-aspect-ratio@1.1.15`, `@radix-ui/react-avatar@1.2.6`, `@radix-ui/react-checkbox@1.3.11`, `@radix-ui/react-collapsible@1.1.20`, `@radix-ui/react-collection@1.1.15`, `@radix-ui/react-compose-refs@1.1.5`, `@radix-ui/react-context@1.2.2`, `@radix-ui/react-context-menu@2.3.7`, `@radix-ui/react-dialog@1.1.23`, `@radix-ui/react-direction@1.1.4`, `@radix-ui/react-dismissable-layer@1.1.19`, `@radix-ui/react-dropdown-menu@2.1.24`, `@radix-ui/react-focus-guards@1.1.6`, `@radix-ui/react-focus-scope@1.1.16`, `@radix-ui/react-form@0.1.16`, `@radix-ui/react-hover-card@1.1.23`, `@radix-ui/react-id@1.1.4`, `@radix-ui/react-label@2.1.15`, `@radix-ui/react-menu@2.1.24`, `@radix-ui/react-menubar@1.1.24`, `@radix-ui/react-navigation-menu@1.2.22`, `@radix-ui/react-one-time-password-field@0.1.16`, `@radix-ui/react-password-toggle-field@0.1.11`, `@radix-ui/react-popover@1.1.23`, `@radix-ui/react-popper@1.3.7`, `@radix-ui/react-portal@1.1.17`, `@radix-ui/react-presence@1.1.10`, `@radix-ui/react-primitive@2.1.10`, `@radix-ui/react-progress@1.1.16`, `@radix-ui/react-radio-group@1.4.7`, `@radix-ui/react-roving-focus@1.1.19`, `@radix-ui/react-scroll-area@1.2.18`, `@radix-ui/react-select@2.3.7`, `@radix-ui/react-separator@1.1.15`, `@radix-ui/react-slider@1.4.7`, `@radix-ui/react-slot@1.3.3`, `@radix-ui/react-switch@1.3.7`, `@radix-ui/react-tabs@1.1.21`, `@radix-ui/react-toast@1.2.23`, `@radix-ui/react-toggle@1.1.18`, `@radix-ui/react-toggle-group@1.1.19`, `@radix-ui/react-toolbar@1.1.19`, `@radix-ui/react-tooltip@1.2.16`, `@radix-ui/react-use-callback-ref@1.1.4`, `@radix-ui/react-use-controllable-state@1.2.6`, `@radix-ui/react-use-effect-event@0.0.5`, `@radix-ui/react-use-escape-keydown@1.1.5`, `@radix-ui/react-use-is-hydrated@0.1.3`, `@radix-ui/react-use-layout-effect@1.1.4`, `@radix-ui/react-use-previous@1.1.4`, `@radix-ui/react-use-rect@1.1.4`, `@radix-ui/react-use-size@1.1.4`, `@radix-ui/react-visually-hidden@1.2.11`, `@radix-ui/rect@1.1.3`, `radix-ui@1.6.7`
+Applies to: `@radix-ui/number@1.1.3`, `@radix-ui/primitive@1.2.0`, `@radix-ui/react-accessible-icon@1.2.0`, `@radix-ui/react-accordion@1.3.1`, `@radix-ui/react-alert-dialog@1.2.1`, `@radix-ui/react-arrow@1.1.17`, `@radix-ui/react-aspect-ratio@1.2.0`, `@radix-ui/react-avatar@1.3.1`, `@radix-ui/react-checkbox@1.4.1`, `@radix-ui/react-collapsible@1.2.1`, `@radix-ui/react-collection@1.2.0`, `@radix-ui/react-compose-refs@1.1.5`, `@radix-ui/react-context@1.3.0`, `@radix-ui/react-context-menu@2.4.1`, `@radix-ui/react-dialog@1.3.1`, `@radix-ui/react-direction@1.2.0`, `@radix-ui/react-dismissable-layer@1.2.1`, `@radix-ui/react-dropdown-menu@2.2.1`, `@radix-ui/react-focus-guards@1.2.0`, `@radix-ui/react-focus-scope@1.3.1`, `@radix-ui/react-form@0.3.0`, `@radix-ui/react-hover-card@1.2.1`, `@radix-ui/react-id@1.1.4`, `@radix-ui/react-label@2.1.17`, `@radix-ui/react-menu@2.2.1`, `@radix-ui/react-menubar@1.2.1`, `@radix-ui/react-navigation-menu@1.4.1`, `@radix-ui/react-one-time-password-field@0.2.1`, `@radix-ui/react-password-toggle-field@0.2.1`, `@radix-ui/react-popover@1.3.1`, `@radix-ui/react-popper@1.4.0`, `@radix-ui/react-portal@1.2.0`, `@radix-ui/react-presence@1.1.11`, `@radix-ui/react-primitive@2.2.0`, `@radix-ui/react-progress@1.2.1`, `@radix-ui/react-radio-group@1.5.1`, `@radix-ui/react-roving-focus@1.2.1`, `@radix-ui/react-scroll-area@1.4.0`, `@radix-ui/react-select@2.4.1`, `@radix-ui/react-separator@1.2.0`, `@radix-ui/react-slider@1.6.1`, `@radix-ui/react-slot@1.5.0`, `@radix-ui/react-switch@1.4.1`, `@radix-ui/react-tabs@1.2.1`, `@radix-ui/react-toast@1.3.1`, `@radix-ui/react-toggle@1.2.1`, `@radix-ui/react-toggle-group@1.2.1`, `@radix-ui/react-toolbar@1.2.1`, `@radix-ui/react-tooltip@1.4.1`, `@radix-ui/react-use-callback-ref@1.1.5`, `@radix-ui/react-use-controllable-state@1.3.0`, `@radix-ui/react-use-effect-event@0.0.5`, `@radix-ui/react-use-escape-keydown@1.1.6`, `@radix-ui/react-use-is-hydrated@0.1.3`, `@radix-ui/react-use-layout-effect@1.1.4`, `@radix-ui/react-use-previous@1.1.4`, `@radix-ui/react-use-rect@1.1.4`, `@radix-ui/react-use-size@1.1.5`, `@radix-ui/react-visually-hidden@1.2.13`, `@radix-ui/rect@1.1.3`, `radix-ui@1.8.1`
 
 ```text
 MIT License
@@ -570,7 +570,7 @@ END OF TERMS AND CONDITIONS
 
 ### L012
 
-Applies to: `@tanstack/history@1.162.1`, `@tanstack/query-core@5.102.2`, `@tanstack/react-query@5.102.2`, `@tanstack/react-router@1.170.32`, `@tanstack/router-core@1.171.27`
+Applies to: `@tanstack/history@1.162.5`, `@tanstack/query-core@5.106.1`, `@tanstack/react-query@5.106.1`, `@tanstack/react-router@1.170.46`, `@tanstack/router-core@1.171.39`
 
 ```text
 MIT License
@@ -598,7 +598,7 @@ SOFTWARE.
 
 ### L013
 
-Applies to: `@tanstack/react-store@0.9.3`, `@tanstack/store@0.9.3`
+Applies to: `@tanstack/react-store@0.11.2`, `@tanstack/store@0.11.2`
 
 ```text
 MIT License
@@ -626,7 +626,7 @@ SOFTWARE.
 
 ### L014
 
-Applies to: `@types/node@26.2.0`, `@types/react@19.2.18`, `@types/react-dom@19.2.4`
+Applies to: `@types/node@26.6.6`, `@types/react@19.3.0`, `@types/react-dom@19.3.0`
 
 ```text
 MIT License
@@ -1956,7 +1956,7 @@ defined by the Mozilla Public License, v. 2.0.
 
 ### L036
 
-Applies to: `lucide-react@1.33.0`
+Applies to: `lucide-react@1.69.0`
 
 ```text
 ISC License
@@ -2006,7 +2006,7 @@ SOFTWARE.
 
 ### L037
 
-Applies to: `nanoid@3.3.18`
+Applies to: `nanoid@3.3.20`
 
 ```text
 The MIT License (MIT)
@@ -2055,7 +2055,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ### L039
 
-Applies to: `picomatch@4.0.5`
+Applies to: `picomatch@4.0.7`
 
 ```text
 The MIT License (MIT)
@@ -2083,7 +2083,7 @@ THE SOFTWARE.
 
 ### L040
 
-Applies to: `postcss@8.5.26`
+Applies to: `postcss@8.5.32`
 
 ```text
 The MIT License (MIT)
@@ -2110,7 +2110,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ### L041
 
-Applies to: `react@19.2.8`, `react-dom@19.2.8`, `scheduler@0.27.0`, `use-sync-external-store@1.6.0`
+Applies to: `react@19.3.1`, `react-dom@19.3.1`, `scheduler@0.28.0`, `use-sync-external-store@1.6.0`
 
 ```text
 MIT License
@@ -2138,7 +2138,7 @@ SOFTWARE.
 
 ### L042
 
-Applies to: `rolldown@1.2.5`
+Applies to: `rolldown@1.2.16`
 
 ```text
 MIT License
@@ -2170,7 +2170,7 @@ The licenses of externally maintained libraries from which parts of the Software
 
 ### L043
 
-Applies to: `seroval@1.6.2`, `seroval-plugins@1.6.2`
+Applies to: `seroval@1.7.7`, `seroval-plugins@1.7.7`
 
 ```text
 MIT License Copyright (c) 2025 Alexis Munsayac <alexis.munsayac@gmail.com>
@@ -2184,7 +2184,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### L044
 
-Applies to: `source-map-js@1.2.1`
+Applies to: `source-map-js@1.2.2`
 
 ```text
 Copyright (c) 2009-2011, Mozilla Foundation and contributors
@@ -2218,7 +2218,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### L045
 
-Applies to: `tailwind-merge@3.6.0`
+Applies to: `tailwind-merge@3.7.0`
 
 ```text
 MIT License
@@ -2321,7 +2321,7 @@ SOFTWARE.
 
 ### L049
 
-Applies to: `undici-types@8.3.0`
+Applies to: `undici-types@8.9.0`
 
 ```text
 MIT License
@@ -2419,7 +2419,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### L053
 
-Applies to: `vite@8.2.2`
+Applies to: `vite@8.3.6`
 
 ```text
 # Vite core license
@@ -2449,7 +2449,7 @@ SOFTWARE.
 
 # Licenses of bundled dependencies
 The published Vite artifact additionally contains code with the following licenses:
-Apache-2.0, BSD-2-Clause, CC0-1.0, ISC, MIT
+BSD-2-Clause, CC0-1.0, ISC, MIT
 
 # Bundled dependencies:
 ## @jridgewell/gen-mapping, @jridgewell/remapping, @jridgewell/sourcemap-codec, @jridgewell/trace-mapping
@@ -2553,215 +2553,6 @@ Repository: https://github.com/rollup/plugins
 > LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 > THE SOFTWARE.
-
----------------------------------------
-
-## @vercel/detect-agent
-License: Apache-2.0
-By: Vercel
-Repository: https://github.com/vercel/vercel
-
-> Apache License
->                            Version 2.0, January 2004
->                         http://www.apache.org/licenses/
->
->    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
->
->    1. Definitions.
->
->       "License" shall mean the terms and conditions for use, reproduction,
->       and distribution as defined by Sections 1 through 9 of this document.
->
->       "Licensor" shall mean the copyright owner or entity authorized by
->       the copyright owner that is granting the License.
->
->       "Legal Entity" shall mean the union of the acting entity and all
->       other entities that control, are controlled by, or are under common
->       control with that entity. For the purposes of this definition,
->       "control" means (i) the power, direct or indirect, to cause the
->       direction or management of such entity, whether by contract or
->       otherwise, or (ii) ownership of fifty percent (50%) or more of the
->       outstanding shares, or (iii) beneficial ownership of such entity.
->
->       "You" (or "Your") shall mean an individual or Legal Entity
->       exercising permissions granted by this License.
->
->       "Source" form shall mean the preferred form for making modifications,
->       including but not limited to software source code, documentation
->       source, and configuration files.
->
->       "Object" form shall mean any form resulting from mechanical
->       transformation or translation of a Source form, including but
->       not limited to compiled object code, generated documentation,
->       and conversions to other media types.
->
->       "Work" shall mean the work of authorship, whether in Source or
->       Object form, made available under the License, as indicated by a
->       copyright notice that is included in or attached to the work
->       (an example is provided in the Appendix below).
->
->       "Derivative Works" shall mean any work, whether in Source or Object
->       form, that is based on (or derived from) the Work and for which the
->       editorial revisions, annotations, elaborations, or other modifications
->       represent, as a whole, an original work of authorship. For the purposes
->       of this License, Derivative Works shall not include works that remain
->       separable from, or merely link (or bind by name) to the interfaces of,
->       the Work and Derivative Works thereof.
->
->       "Contribution" shall mean any work of authorship, including
->       the original version of the Work and any modifications or additions
->       to that Work or Derivative Works thereof, that is intentionally
->       submitted to Licensor for inclusion in the Work by the copyright owner
->       or by an individual or Legal Entity authorized to submit on behalf of
->       the copyright owner. For the purposes of this definition, "submitted"
->       means any form of electronic, verbal, or written communication sent
->       to the Licensor or its representatives, including but not limited to
->       communication on electronic mailing lists, source code control systems,
->       and issue tracking systems that are managed by, or on behalf of, the
->       Licensor for the purpose of discussing and improving the Work, but
->       excluding communication that is conspicuously marked or otherwise
->       designated in writing by the copyright owner as "Not a Contribution."
->
->       "Contributor" shall mean Licensor and any individual or Legal Entity
->       on behalf of whom a Contribution has been received by Licensor and
->       subsequently incorporated within the Work.
->
->    2. Grant of Copyright License. Subject to the terms and conditions of
->       this License, each Contributor hereby grants to You a perpetual,
->       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
->       copyright license to reproduce, prepare Derivative Works of,
->       publicly display, publicly perform, sublicense, and distribute the
->       Work and such Derivative Works in Source or Object form.
->
->    3. Grant of Patent License. Subject to the terms and conditions of
->       this License, each Contributor hereby grants to You a perpetual,
->       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
->       (except as stated in this section) patent license to make, have made,
->       use, offer to sell, sell, import, and otherwise transfer the Work,
->       where such license applies only to those patent claims licensable
->       by such Contributor that are necessarily infringed by their
->       Contribution(s) alone or by combination of their Contribution(s)
->       with the Work to which such Contribution(s) was submitted. If You
->       institute patent litigation against any entity (including a
->       cross-claim or counterclaim in a lawsuit) alleging that the Work
->       or a Contribution incorporated within the Work constitutes direct
->       or contributory patent infringement, then any patent licenses
->       granted to You under this License for that Work shall terminate
->       as of the date such litigation is filed.
->
->    4. Redistribution. You may reproduce and distribute copies of the
->       Work or Derivative Works thereof in any medium, with or without
->       modifications, and in Source or Object form, provided that You
->       meet the following conditions:
->
->       (a) You must give any other recipients of the Work or
->           Derivative Works a copy of this License; and
->
->       (b) You must cause any modified files to carry prominent notices
->           stating that You changed the files; and
->
->       (c) You must retain, in the Source form of any Derivative Works
->           that You distribute, all copyright, patent, trademark, and
->           attribution notices from the Source form of the Work,
->           excluding those notices that do not pertain to any part of
->           the Derivative Works; and
->
->       (d) If the Work includes a "NOTICE" text file as part of its
->           distribution, then any Derivative Works that You distribute must
->           include a readable copy of the attribution notices contained
->           within such NOTICE file, excluding those notices that do not
->           pertain to any part of the Derivative Works, in at least one
->           of the following places: within a NOTICE text file distributed
->           as part of the Derivative Works; within the Source form or
->           documentation, if provided along with the Derivative Works; or,
->           within a display generated by the Derivative Works, if and
->           wherever such third-party notices normally appear. The contents
->           of the NOTICE file are for informational purposes only and
->           do not modify the License. You may add Your own attribution
->           notices within Derivative Works that You distribute, alongside
->           or as an addendum to the NOTICE text from the Work, provided
->           that such additional attribution notices cannot be construed
->           as modifying the License.
->
->       You may add Your own copyright statement to Your modifications and
->       may provide additional or different license terms and conditions
->       for use, reproduction, or distribution of Your modifications, or
->       for any such Derivative Works as a whole, provided Your use,
->       reproduction, and distribution of the Work otherwise complies with
->       the conditions stated in this License.
->
->    5. Submission of Contributions. Unless You explicitly state otherwise,
->       any Contribution intentionally submitted for inclusion in the Work
->       by You to the Licensor shall be under the terms and conditions of
->       this License, without any additional terms or conditions.
->       Notwithstanding the above, nothing herein shall supersede or modify
->       the terms of any separate license agreement you may have executed
->       with Licensor regarding such Contributions.
->
->    6. Trademarks. This License does not grant permission to use the trade
->       names, trademarks, service marks, or product names of the Licensor,
->       except as required for reasonable and customary use in describing the
->       origin of the Work and reproducing the content of the NOTICE file.
->
->    7. Disclaimer of Warranty. Unless required by applicable law or
->       agreed to in writing, Licensor provides the Work (and each
->       Contributor provides its Contributions) on an "AS IS" BASIS,
->       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
->       implied, including, without limitation, any warranties or conditions
->       of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
->       PARTICULAR PURPOSE. You are solely responsible for determining the
->       appropriateness of using or redistributing the Work and assume any
->       risks associated with Your exercise of permissions under this License.
->
->    8. Limitation of Liability. In no event and under no legal theory,
->       whether in tort (including negligence), contract, or otherwise,
->       unless required by applicable law (such as deliberate and grossly
->       negligent acts) or agreed to in writing, shall any Contributor be
->       liable to You for damages, including any direct, indirect, special,
->       incidental, or consequential damages of any character arising as a
->       result of this License or out of the use or inability to use the
->       Work (including but not limited to damages for loss of goodwill,
->       work stoppage, computer failure or malfunction, or any and all
->       other commercial damages or losses), even if such Contributor
->       has been advised of the possibility of such damages.
->
->    9. Accepting Warranty or Additional Liability. While redistributing
->       the Work or Derivative Works thereof, You may choose to offer,
->       and charge a fee for, acceptance of support, warranty, indemnity,
->       or other liability obligations and/or rights consistent with this
->       License. However, in accepting such obligations, You may act only
->       on Your own behalf and on Your sole responsibility, not on behalf
->       of any other Contributor, and only if You agree to indemnify,
->       defend, and hold each Contributor harmless for any liability
->       incurred by, or claims asserted against, such Contributor by reason
->       of your accepting any such warranty or additional liability.
->
->    END OF TERMS AND CONDITIONS
->
->    APPENDIX: How to apply the Apache License to your work.
->
->       To apply the Apache License to your work, attach the following
->       boilerplate notice, with the fields enclosed by brackets "[]"
->       replaced with your own identifying information. (Don't include
->       the brackets!)  The text should be enclosed in the appropriate
->       comment syntax for the file format. We also recommend that a
->       file or class name and description of purpose be included on the
->       same "printed page" as the copyright notice for easier
->       identification within third-party archives.
->
->    Copyright 2017 Vercel, Inc.
->
->    Licensed under the Apache License, Version 2.0 (the "License");
->    you may not use this file except in compliance with the License.
->    You may obtain a copy of the License at
->
->        http://www.apache.org/licenses/LICENSE-2.0
->
->    Unless required by applicable law or agreed to in writing, software
->    distributed under the License is distributed on an "AS IS" BASIS,
->    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
->    See the License for the specific language governing permissions and
->    limitations under the License.
 
 ---------------------------------------
 
@@ -2948,7 +2739,7 @@ Repositories: https://github.com/sindresorhus/bundle-name, https://github.com/si
 
 ## cac
 License: MIT
-By: egoist
+By: egoist, Kevin Deng <sxzz@sxzz.moe>
 Repository: https://github.com/cacjs/cac
 
 > The MIT License (MIT)
@@ -3095,35 +2886,6 @@ Repository: https://github.com/expressjs/cors
 > CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 > TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 > SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
----------------------------------------
-
-## cross-spawn
-License: MIT
-By: André Cruz
-Repository: https://github.com/moxystudio/node-cross-spawn
-
-> The MIT License (MIT)
->
-> Copyright (c) 2018 Made With MOXY Lda <hello@moxy.studio>
->
-> Permission is hereby granted, free of charge, to any person obtaining a copy
-> of this software and associated documentation files (the "Software"), to deal
-> in the Software without restriction, including without limitation the rights
-> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-> copies of the Software, and to permit persons to whom the Software is
-> furnished to do so, subject to the following conditions:
->
-> The above copyright notice and this permission notice shall be included in
-> all copies or substantial portions of the Software.
->
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-> THE SOFTWARE.
 
 ---------------------------------------
 
@@ -3650,29 +3412,6 @@ Repository: https://github.com/Rich-Harris/is-reference
 
 ---------------------------------------
 
-## isexe, which
-License: ISC
-By: Isaac Z. Schlueter
-Repositories: https://github.com/isaacs/isexe, https://github.com/isaacs/node-which
-
-> The ISC License
->
-> Copyright (c) Isaac Z. Schlueter and Contributors
->
-> Permission to use, copy, modify, and/or distribute this software for any
-> purpose with or without fee is hereby granted, provided that the above
-> copyright notice and this permission notice appear in all copies.
->
-> THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-> WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-> MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-> ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-> WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-> ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
-> IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
----------------------------------------
-
 ## js-tokens
 License: MIT
 By: Simon Lydell
@@ -4093,23 +3832,6 @@ Repository: https://github.com/pillarjs/parseurl
 
 ---------------------------------------
 
-## path-key, shebang-regex
-License: MIT
-By: Sindre Sorhus
-Repositories: https://github.com/sindresorhus/path-key, https://github.com/sindresorhus/shebang-regex
-
-> MIT License
->
-> Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
->
-> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
->
-> The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
->
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
----------------------------------------
-
 ## periscopic
 License: MIT
 Repository: https://github.com/Rich-Harris/periscopic
@@ -4304,7 +4026,7 @@ Repository: https://github.com/css-modules/postcss-modules-values
 
 ## postcss-selector-parser
 License: MIT
-By: Ben Briggs, Chris Eppstein
+By: Maxime Thirouin, Ben Briggs, Chris Eppstein
 Repository: https://github.com/postcss/postcss-selector-parser
 
 > Copyright (c) Ben Briggs <beneb.info@gmail.com> (http://beneb.info)
@@ -4420,23 +4142,6 @@ Repositories: https://github.com/lukeed/resolve.exports, https://github.com/luke
 
 ---------------------------------------
 
-## shebang-command
-License: MIT
-By: Kevin Mårtensson
-Repository: https://github.com/kevva/shebang-command
-
-> MIT License
->
-> Copyright (c) Kevin Mårtensson <kevinmartensson@gmail.com> (github.com/kevva)
->
-> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
->
-> The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
->
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
----------------------------------------
-
 ## shell-quote
 License: MIT
 By: James Halliday
@@ -4506,6 +4211,34 @@ Repository: https://github.com/jshttp/statuses
 
 ---------------------------------------
 
+## std-env
+License: MIT
+Repository: https://github.com/unjs/std-env
+
+> MIT License
+>
+> Copyright (c) Pooya Parsa <pooya@pi0.io>
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy
+> of this software and associated documentation files (the "Software"), to deal
+> in the Software without restriction, including without limitation the rights
+> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+> copies of the Software, and to permit persons to whom the Software is
+> furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+> SOFTWARE.
+
+---------------------------------------
+
 ## string-hash
 License: CC0-1.0
 By: The Dark Sky Company
@@ -4521,6 +4254,35 @@ Repository: https://github.com/antfu/strip-literal
 > MIT License
 >
 > Copyright (c) 2022 Anthony Fu <https://github.com/antfu>
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy
+> of this software and associated documentation files (the "Software"), to deal
+> in the Software without restriction, including without limitation the rights
+> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+> copies of the Software, and to permit persons to whom the Software is
+> furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+> SOFTWARE.
+
+---------------------------------------
+
+## tinyexec
+License: MIT
+By: James Garbutt
+Repository: https://github.com/tinylibs/tinyexec
+
+> MIT License
+>
+> Copyright (c) 2024 Tinylibs
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
@@ -4776,7 +4538,7 @@ SOFTWARE.
 
 ### L055
 
-Applies to: `zod@4.4.3`
+Applies to: `zod@4.6.7`
 
 ```text
 MIT License
@@ -4804,7 +4566,7 @@ SOFTWARE.
 
 ### L056
 
-Applies to: `zustand@5.0.15`
+Applies to: `zustand@5.0.16`
 
 ```text
 MIT License
